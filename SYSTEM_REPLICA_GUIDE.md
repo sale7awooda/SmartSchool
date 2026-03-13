@@ -1,4 +1,4 @@
-# Smart School System - Comprehensive Replica Guide
+# Smart School System - Comprehensive Replica full Guide
 
 This document serves as the ultimate blueprint for the "Smart School" system. It contains every detail, design token, architectural decision, and component structure required to build a pixel-perfect replica of this application.
 
