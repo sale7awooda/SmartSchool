@@ -1,0 +1,702 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { 
+  ArrowLeft, ArrowRight, Save, Settings, BookOpen, LayoutGrid,
+  CheckCircle2, Wand2, MapPin, User, AlertCircle, Plus, X, Trash2
+} from 'lucide-react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+
+// Mock Data
+const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const SYSTEM_SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Art', 'Physical Education', 'Music', 'Computer Science'];
+const SYSTEM_TEACHERS = ['Mr. Smith', 'Mrs. Davis', 'Dr. Brown', 'Ms. Wilson', 'Mr. Taylor', 'Ms. Anderson', 'Mr. Thomas', 'Mrs. Jackson', 'Mr. White'];
+const COLORS = [
+  'bg-blue-100 text-blue-800 border-blue-200', 
+  'bg-emerald-100 text-emerald-800 border-emerald-200', 
+  'bg-purple-100 text-purple-800 border-purple-200', 
+  'bg-amber-100 text-amber-800 border-amber-200', 
+  'bg-pink-100 text-pink-800 border-pink-200', 
+  'bg-orange-100 text-orange-800 border-orange-200'
+];
+
+const getColorForSubject = (subject: string) => {
+  let hash = 0;
+  for (let i = 0; i < subject.length; i++) {
+    hash = subject.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return COLORS[Math.abs(hash) % COLORS.length];
+};
+
+const INITIAL_SCHEDULE = [
+  { id: 'c1', day: 'Monday', grade: 'Grade 1', period: 1, subject: 'Math', teacher: 'Mr. Smith', room: '101', color: COLORS[0] },
+  { id: 'c2', day: 'Monday', grade: 'Grade 1', period: 2, subject: 'English', teacher: 'Mrs. Davis', room: '102', color: COLORS[1] },
+  { id: 'c3', day: 'Monday', grade: 'Grade 2', period: 1, subject: 'Science', teacher: 'Dr. Brown', room: 'Lab 1', color: COLORS[2] },
+];
+
+export default function TimetableWizard() {
+  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
+  const [draftSaved, setDraftSaved] = useState<string | null>(null);
+
+  // Step 1 State: Constraints
+  const [constraints, setConstraints] = useState({
+    periodsPerDay: 6,
+    daysPerWeek: 5,
+    periodLength: 50,
+    breakLength: 30,
+  });
+
+  // Step 2 State: Subject Mapping
+  const [mappings, setMappings] = useState<{id: string, grade: string, subject: string, teacher: string, classesPerWeek: number}[]>([
+    { id: 'm1', grade: 'Grade 1', subject: 'Mathematics', teacher: 'Mr. Smith', classesPerWeek: 5 },
+    { id: 'm2', grade: 'Grade 1', subject: 'English', teacher: 'Mrs. Davis', classesPerWeek: 5 },
+  ]);
+  const [newMapping, setNewMapping] = useState({ grade: GRADES[0], subject: SYSTEM_SUBJECTS[0], teacher: SYSTEM_TEACHERS[0], classesPerWeek: 1 });
+
+  // Step 3 State: Builder
+  const [selectedDay, setSelectedDay] = useState('Monday');
+  const [selectedSlot, setSelectedSlot] = useState<{grade: string, period: number} | null>(null);
+  const [slotForm, setSlotForm] = useState({ mappingId: '', room: '' });
+
+  const steps = [
+    { id: 1, title: 'Constraints', icon: Settings, description: 'Set periods and timing' },
+    { id: 2, title: 'Subject Mapping', icon: BookOpen, description: 'Assign subjects & teachers' },
+    { id: 3, title: 'Builder', icon: LayoutGrid, description: 'Drag & drop or auto-generate' },
+  ];
+
+  const periods = useMemo(() => {
+    const p = [];
+    for (let i = 1; i <= constraints.periodsPerDay; i++) {
+      p.push({ id: i, label: `Period ${i}` });
+      if (i === 3) {
+        p.push({ id: 'break', label: 'Breakfast Break' });
+      }
+    }
+    return p;
+  }, [constraints.periodsPerDay]);
+
+  const totalAvailable = GRADES.length * constraints.periodsPerDay * constraints.daysPerWeek;
+  const totalMapped = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
+  const progressPercent = Math.min(100, Math.round((totalMapped / totalAvailable) * 100));
+
+  const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, 3));
+  const handleBack = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+
+  const handleSaveDraft = (draftNum: number) => {
+    setDraftSaved(`Draft ${draftNum}`);
+    setTimeout(() => setDraftSaved(null), 3000);
+  };
+
+  const handlePublish = () => {
+    router.push('/dashboard/schedule');
+  };
+
+  const handleAddMapping = () => {
+    if (!newMapping.subject || !newMapping.teacher) return;
+    setMappings([...mappings, { ...newMapping, id: `m${Date.now()}` }]);
+    setNewMapping({ grade: GRADES[0], subject: '', teacher: '', classesPerWeek: 1 });
+  };
+
+  const handleRemoveMapping = (id: string) => {
+    setMappings(mappings.filter(m => m.id !== id));
+  };
+
+  const handleGenerateTimetable = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      const newSchedule: any[] = [];
+      let idCounter = 1;
+
+      mappings.forEach((mapping) => {
+        const color = getColorForSubject(mapping.subject);
+        let classesPlaced = 0;
+        let attempts = 0;
+
+        while (classesPlaced < mapping.classesPerWeek && attempts < 200) {
+          attempts++;
+          const randomDay = DAYS[Math.floor(Math.random() * constraints.daysPerWeek)];
+          const randomPeriod = Math.floor(Math.random() * constraints.periodsPerDay) + 1;
+
+          const isOccupied = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.period === randomPeriod);
+          
+          if (!isOccupied) {
+            newSchedule.push({
+              id: `gen-${idCounter++}`,
+              day: randomDay,
+              grade: mapping.grade,
+              period: randomPeriod,
+              subject: mapping.subject,
+              teacher: mapping.teacher,
+              room: 'TBD',
+              color: color
+            });
+            classesPlaced++;
+          }
+        }
+      });
+
+      setSchedule(newSchedule);
+      setIsGenerating(false);
+    }, 1000);
+  };
+
+  const handleAddClass = () => {
+    const mapping = mappings.find(m => m.id === slotForm.mappingId);
+    if (!mapping || !selectedSlot) return;
+    
+    const newClass = {
+      id: `manual-${Date.now()}`,
+      day: selectedDay,
+      grade: selectedSlot.grade,
+      period: selectedSlot.period,
+      subject: mapping.subject,
+      teacher: mapping.teacher,
+      room: slotForm.room || 'TBD',
+      color: getColorForSubject(mapping.subject)
+    };
+    
+    setSchedule([...schedule, newClass]);
+    setSelectedSlot(null);
+    setSlotForm({ mappingId: '', room: '' });
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const sourceId = result.source.droppableId;
+    const destId = result.destination.droppableId;
+
+    if (sourceId === destId) return;
+
+    const [sourceGrade, sourcePeriodStr] = sourceId.split('-');
+    const [destGrade, destPeriodStr] = destId.split('-');
+    const sourcePeriod = parseInt(sourcePeriodStr);
+    const destPeriod = parseInt(destPeriodStr);
+
+    setSchedule(prev => {
+      const newSchedule = [...prev];
+      const draggedItemIndex = newSchedule.findIndex(
+        s => s.day === selectedDay && s.grade === sourceGrade && s.period === sourcePeriod
+      );
+      
+      if (draggedItemIndex === -1) return prev;
+
+      const destItemIndex = newSchedule.findIndex(
+        s => s.day === selectedDay && s.grade === destGrade && s.period === destPeriod
+      );
+
+      if (destItemIndex !== -1) {
+        const tempGrade = newSchedule[draggedItemIndex].grade;
+        const tempPeriod = newSchedule[draggedItemIndex].period;
+        
+        newSchedule[draggedItemIndex].grade = newSchedule[destItemIndex].grade;
+        newSchedule[draggedItemIndex].period = newSchedule[destItemIndex].period;
+        
+        newSchedule[destItemIndex].grade = tempGrade;
+        newSchedule[destItemIndex].period = tempPeriod;
+      } else {
+        newSchedule[draggedItemIndex].grade = destGrade;
+        newSchedule[draggedItemIndex].period = destPeriod;
+      }
+
+      return newSchedule;
+    });
+  };
+
+  return (
+    <div className="space-y-6 pb-20">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.push('/dashboard/schedule')}
+            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            <ArrowLeft size={20} className="text-slate-500" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Timetable Wizard</h1>
+            <p className="text-sm text-slate-500">Create or modify the master schedule</p>
+          </div>
+        </div>
+        
+        {currentStep === 3 && (
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => handleSaveDraft(1)}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              Save Draft 1
+            </button>
+            <button 
+              onClick={() => handleSaveDraft(2)}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              Save Draft 2
+            </button>
+            <button 
+              onClick={handlePublish}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
+            >
+              <Save size={16} />
+              Publish Main
+            </button>
+          </div>
+        )}
+      </div>
+
+      {draftSaved && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="bg-emerald-50 text-emerald-700 p-3 rounded-xl flex items-center gap-2 text-sm font-medium border border-emerald-100"
+        >
+          <CheckCircle2 size={16} />
+          {draftSaved} saved successfully.
+        </motion.div>
+      )}
+
+      {/* Stepper */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex items-center justify-between max-w-3xl mx-auto relative">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 rounded-full -z-10"></div>
+          <div 
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full -z-10 transition-all duration-500"
+            style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
+          ></div>
+          
+          {steps.map((step) => {
+            const Icon = step.icon;
+            const isActive = currentStep >= step.id;
+            const isCurrent = currentStep === step.id;
+            
+            return (
+              <div key={step.id} className="flex flex-col items-center gap-2 bg-white px-2">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                  isActive ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-400'
+                }`}>
+                  <Icon size={18} />
+                </div>
+                <div className="text-center">
+                  <p className={`text-sm font-bold ${isCurrent ? 'text-indigo-900' : isActive ? 'text-slate-700' : 'text-slate-400'}`}>
+                    {step.title}
+                  </p>
+                  <p className="text-[10px] text-slate-500 hidden sm:block">{step.description}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6 min-h-[400px]">
+        <AnimatePresence mode="wait">
+          {currentStep === 1 && (
+            <motion.div 
+              key="step1"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="max-w-2xl mx-auto space-y-6"
+            >
+              <h2 className="text-xl font-bold text-slate-900">General Constraints</h2>
+              <p className="text-slate-500 text-sm">Define the basic structure of your school week.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Days per Week</label>
+                  <input 
+                    type="number" 
+                    min="1" max="7"
+                    value={constraints.daysPerWeek}
+                    onChange={(e) => setConstraints({...constraints, daysPerWeek: parseInt(e.target.value) || 5})}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Periods per Day</label>
+                  <input 
+                    type="number" 
+                    min="1" max="10"
+                    value={constraints.periodsPerDay}
+                    onChange={(e) => setConstraints({...constraints, periodsPerDay: parseInt(e.target.value) || 6})}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Period Length (mins)</label>
+                  <input 
+                    type="number" 
+                    value={constraints.periodLength}
+                    onChange={(e) => setConstraints({...constraints, periodLength: parseInt(e.target.value) || 50})}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Breakfast Break Length (mins)</label>
+                  <input 
+                    type="number" 
+                    value={constraints.breakLength}
+                    onChange={(e) => setConstraints({...constraints, breakLength: parseInt(e.target.value) || 30})}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {currentStep === 2 && (
+            <motion.div 
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="max-w-5xl mx-auto space-y-6"
+            >
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Subject Mapping</h2>
+                <p className="text-slate-500 text-sm">Assign subjects and required classes per week to each grade.</p>
+              </div>
+
+              {/* Progress Indicator */}
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-slate-700">Mapping Progress</h3>
+                  <span className="text-sm font-bold text-indigo-600">{totalMapped} / {totalAvailable} Periods</span>
+                </div>
+                <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Based on {constraints.periodsPerDay} periods/day over {constraints.daysPerWeek} days for {GRADES.length} grades.
+                </p>
+              </div>
+
+              {/* Add Mapping Form */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <select 
+                  value={newMapping.grade}
+                  onChange={e => setNewMapping({...newMapping, grade: e.target.value})}
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                >
+                  {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <select 
+                  value={newMapping.subject}
+                  onChange={e => setNewMapping({...newMapping, subject: e.target.value})}
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                >
+                  {SYSTEM_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select 
+                  value={newMapping.teacher}
+                  onChange={e => setNewMapping({...newMapping, teacher: e.target.value})}
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                >
+                  {SYSTEM_TEACHERS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input 
+                  type="number" min="1" placeholder="Classes/Week"
+                  value={newMapping.classesPerWeek}
+                  onChange={e => setNewMapping({...newMapping, classesPerWeek: parseInt(e.target.value) || 1})}
+                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <button 
+                  onClick={handleAddMapping}
+                  disabled={!newMapping.subject || !newMapping.teacher}
+                  className="p-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Plus size={18} /> Add
+                </button>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="p-4 font-bold text-slate-700">Grade</th>
+                      <th className="p-4 font-bold text-slate-700">Subject</th>
+                      <th className="p-4 font-bold text-slate-700">Teacher</th>
+                      <th className="p-4 font-bold text-slate-700">Classes / Week</th>
+                      <th className="p-4 font-bold text-slate-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {mappings.map((mapping) => (
+                      <tr key={mapping.id} className="hover:bg-slate-50/50">
+                        <td className="p-4 font-medium">{mapping.grade}</td>
+                        <td className="p-4">{mapping.subject}</td>
+                        <td className="p-4">{mapping.teacher}</td>
+                        <td className="p-4">{mapping.classesPerWeek}</td>
+                        <td className="p-4">
+                          <button 
+                            onClick={() => handleRemoveMapping(mapping.id)}
+                            className="text-red-500 hover:text-red-700 font-medium text-xs flex items-center gap-1"
+                          >
+                            <Trash2 size={14} /> Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {mappings.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-500">
+                          No subjects mapped yet. Add one above.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {currentStep === 3 && (
+            <motion.div 
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Timetable Builder</h2>
+                  <p className="text-slate-500 text-sm">Drag and drop to resolve conflicts, or auto-generate based on mappings.</p>
+                </div>
+                <button 
+                  onClick={handleGenerateTimetable}
+                  disabled={isGenerating}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
+                >
+                  {isGenerating ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Wand2 size={16} />
+                  )}
+                  {isGenerating ? 'Generating...' : 'Auto-Generate'}
+                </button>
+              </div>
+
+              {/* Day Tabs */}
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                {DAYS.slice(0, constraints.daysPerWeek).map(day => (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedDay(day)}
+                    className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition-colors ${
+                      selectedDay === day ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+
+              <div className="border border-slate-100 rounded-2xl overflow-hidden overflow-x-auto bg-slate-50/30">
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <div className="min-w-[1000px]">
+                    <div 
+                      className="grid border-b border-slate-200 bg-white"
+                      style={{ gridTemplateColumns: `120px repeat(${periods.length}, minmax(120px, 1fr))` }}
+                    >
+                      <div className="p-4 border-r border-slate-200 flex items-center justify-center font-bold text-slate-500">
+                        Grades
+                      </div>
+                      {periods.map((period, index) => (
+                        <div key={index} className="p-3 border-r border-slate-200 last:border-0 flex flex-col items-center justify-center text-center">
+                          {period.id === 'break' ? (
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{period.label}</span>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-700">{period.label}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="divide-y divide-slate-200 bg-white">
+                      {GRADES.map(grade => (
+                        <div 
+                          key={grade} 
+                          className="grid"
+                          style={{ gridTemplateColumns: `120px repeat(${periods.length}, minmax(120px, 1fr))` }}
+                        >
+                          <div className="p-4 border-r border-slate-200 flex items-center justify-center bg-slate-50/50 font-bold text-slate-700">
+                            {grade}
+                          </div>
+
+                          {periods.map((period, index) => {
+                            if (period.id === 'break') {
+                              return (
+                                <div key={`${grade}-break-${index}`} className="p-2 border-r border-slate-200 bg-slate-50/50 flex items-center justify-center">
+                                  <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                </div>
+                              );
+                            }
+
+                            const classData = schedule.find(s => s.day === selectedDay && s.grade === grade && s.period === period.id);
+                            const droppableId = `${grade}-${period.id}`;
+
+                            return (
+                              <Droppable key={droppableId} droppableId={droppableId}>
+                                {(provided, snapshot) => (
+                                  <div 
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                    onClick={() => !classData && setSelectedSlot({ grade, period: period.id as number })}
+                                    className={`p-2 border-r border-slate-200 last:border-0 min-h-[100px] transition-colors ${
+                                      snapshot.isDraggingOver ? 'bg-indigo-50' : !classData ? 'hover:bg-slate-50 cursor-pointer' : ''
+                                    }`}
+                                  >
+                                    {classData ? (
+                                      <Draggable draggableId={classData.id} index={0}>
+                                        {(provided, snapshot) => (
+                                          <div
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                            className={`group h-full p-2 rounded-xl border ${classData.color} flex flex-col justify-between cursor-grab active:cursor-grabbing ${
+                                              snapshot.isDragging ? 'shadow-lg scale-105 z-50' : 'shadow-sm hover:scale-[1.02] transition-transform'
+                                            }`}
+                                            style={provided.draggableProps.style}
+                                          >
+                                            <div>
+                                              <div className="flex items-start justify-between">
+                                                <h4 className="font-bold text-xs leading-tight">{classData.subject}</h4>
+                                                <button 
+                                                  onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setSchedule(schedule.filter(s => s.id !== classData.id)); 
+                                                  }}
+                                                  className="opacity-0 hover:opacity-100 group-hover:opacity-100 text-slate-500 hover:text-red-500 transition-opacity"
+                                                >
+                                                  <X size={12} />
+                                                </button>
+                                              </div>
+                                              <p className="text-[10px] opacity-80 mt-1 flex items-center gap-1">
+                                                <MapPin size={10} /> {classData.room}
+                                              </p>
+                                            </div>
+                                            <p className="text-[10px] font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
+                                              <User size={10} /> {classData.teacher}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </Draggable>
+                                    ) : (
+                                      <div className="h-full rounded-xl border border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                        <Plus size={16} className="text-slate-400" />
+                                      </div>
+                                    )}
+                                    {provided.placeholder}
+                                  </div>
+                                )}
+                              </Droppable>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </DragDropContext>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Footer Navigation */}
+      <div className="flex items-center justify-between pt-4">
+        <button
+          onClick={handleBack}
+          disabled={currentStep === 1}
+          className="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Back
+        </button>
+        
+        {currentStep < 3 ? (
+          <button
+            onClick={handleNext}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm"
+          >
+            Next Step
+            <ArrowRight size={16} />
+          </button>
+        ) : (
+          <div className="text-sm text-slate-500 flex items-center gap-2">
+            <AlertCircle size={16} />
+            Don&apos;t forget to save your drafts or publish.
+          </div>
+        )}
+      </div>
+
+      {/* Add Class Modal */}
+      <AnimatePresence>
+        {selectedSlot && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-slate-900">Add Class</h3>
+                <button onClick={() => setSelectedSlot(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X size={20} className="text-slate-500" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Subject & Teacher</label>
+                  <select 
+                    value={slotForm.mappingId}
+                    onChange={(e) => setSlotForm({...slotForm, mappingId: e.target.value})}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  >
+                    <option value="">Select a mapped subject...</option>
+                    {mappings.filter(m => m.grade === selectedSlot.grade).map(m => (
+                      <option key={m.id} value={m.id}>{m.subject} ({m.teacher})</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Room</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Room 101"
+                    value={slotForm.room}
+                    onChange={(e) => setSlotForm({...slotForm, room: e.target.value})}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+                
+                <button 
+                  onClick={handleAddClass}
+                  disabled={!slotForm.mappingId}
+                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                  Add to Schedule
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

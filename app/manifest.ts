@@ -1,0 +1,23 @@
+import type { MetadataRoute } from 'next'
+ 
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'Smart School',
+    short_name: 'Smart School',
+    description: 'Mobile-first school management system',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#f8fafc',
+    theme_color: '#4f46e5',
+    icons: [
+      { src: '/icon.svg', sizes: '72x72', type: 'image/svg+xml' },
+      { src: '/icon.svg', sizes: '96x96', type: 'image/svg+xml' },
+      { src: '/icon.svg', sizes: '128x128', type: 'image/svg+xml' },
+      { src: '/icon.svg', sizes: '144x144', type: 'image/svg+xml' },
+      { src: '/icon.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { src: '/icon.svg', sizes: '256x256', type: 'image/svg+xml' },
+      { src: '/icon.svg', sizes: '384x384', type: 'image/svg+xml' },
+      { src: '/icon.svg', sizes: '512x512', type: 'image/svg+xml' },
+    ],
+  }
+}

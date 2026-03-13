@@ -1,0 +1,5 @@
+{
+  "name": "School Management SaaS MVP",
+  "description": "A mobile-first SaaS school management system supporting multiple roles including superadmin, school admin, accountant, teacher, staff, and parents.",
+  "requestFramePermissions": []
+}

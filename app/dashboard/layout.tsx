@@ -1,0 +1,304 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
+import { 
+  LayoutDashboard, 
+  Users, 
+  CreditCard, 
+  CalendarCheck, 
+  Bell, 
+  LogOut,
+  BookOpen,
+  Settings,
+  CalendarDays,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  Bus,
+  MessageSquare,
+  Briefcase,
+  TrendingUp,
+  Library,
+  UserCog
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import StaffProfileModal from '@/components/StaffProfileModal';
+import { DashboardHeader } from '@/components/dashboard-header';
+import { Logo } from '@/components/logo';
+import { AnimatePresence } from 'motion/react';
+
+// Mock data for the profile modal
+const MOCK_LEAVE_REQUESTS = [
+  { id: 'L1', staff: 'Edna Krabappel', type: 'Sick Leave', startDate: '2023-11-10', endDate: '2023-11-11', status: 'Approved', days: 2 },
+];
+const MOCK_PAYSLIPS = [
+  { id: 'P1', staff: 'Edna Krabappel', month: 'October 2023', amount: '$4,200.00', status: 'Paid', date: '2023-10-28' },
+];
+const MOCK_FINANCIALS = [
+  { id: 'F1', staff: 'Edna Krabappel', type: 'Bonus', amount: '$500.00', date: '2023-12-15', status: 'Approved', description: 'Year-end performance bonus' },
+];
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, logout, switchStudent, isLoading } = useAuth();
+  const { t, isRTL } = useLanguage();
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [activeProfileTab, setActiveProfileTab] = useState<'overview' | 'qualifications' | 'schedule' | 'leave' | 'payroll' | 'financials'>('overview');
+
+  // Automatically collapse on smaller desktop screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+        setIsCollapsed(true);
+      } else if (window.innerWidth >= 1024) {
+        setIsCollapsed(false);
+      }
+    };
+    
+    // Initial check
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  if (isLoading || !user) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 dark:text-slate-200">Loading...</div>;
+  }
+
+  const getNavItems = () => {
+    const items = [
+      { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard, roles: ['superadmin', 'schoolAdmin', 'accountant', 'teacher', 'parent', 'staff', 'student'] },
+      { name: t('academics'), href: '/dashboard/academics', icon: BookOpen, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent'] },
+      { name: t('students'), href: '/dashboard/students', icon: Users, roles: ['superadmin', 'schoolAdmin', 'teacher'] },
+      { name: t('exams'), href: '/dashboard/exams', icon: FileText, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent', 'student'] },
+      { name: t('schedule'), href: '/dashboard/schedule', icon: CalendarDays, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent', 'student'] },
+      { name: t('attendance'), href: '/dashboard/attendance', icon: CalendarCheck, roles: ['schoolAdmin', 'teacher', 'parent'] },
+      { name: t('library'), href: '/dashboard/library', icon: Library, roles: ['superadmin', 'schoolAdmin', 'teacher', 'student', 'staff'] },
+      { name: t('fees'), href: '/dashboard/fees', icon: CreditCard, roles: ['schoolAdmin', 'accountant', 'parent'] },
+      { name: t('hr'), href: '/dashboard/hr', icon: UserCog, roles: ['superadmin', 'schoolAdmin', 'staff'] },
+      { name: t('transport'), href: '/dashboard/transport', icon: Bus, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent', 'staff'] },
+      { name: t('operations'), href: '/dashboard/operations', icon: Briefcase, roles: ['superadmin', 'schoolAdmin', 'staff', 'teacher'] },
+      { name: t('analytics'), href: '/dashboard/analytics', icon: TrendingUp, roles: ['superadmin', 'schoolAdmin'] },
+      { name: t('communication'), href: '/dashboard/communication', icon: MessageSquare, roles: ['superadmin', 'schoolAdmin', 'accountant', 'teacher', 'parent', 'staff', 'student'] },
+      { name: t('settings'), href: '/dashboard/settings', icon: Settings, roles: ['superadmin', 'schoolAdmin', 'accountant', 'teacher', 'parent', 'staff', 'student'] },
+    ];
+    return items.filter(item => item.roles.includes(user.role));
+  };
+
+  const navItems = getNavItems();
+
+  return (
+    <div className="min-h-screen w-full bg-slate-50/50 dark:bg-slate-950 flex flex-col md:flex-row font-sans transition-colors">
+      
+      {/* Desktop Sidebar */}
+      <aside 
+        className={`hidden md:flex flex-col bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 fixed h-full z-20 shadow-sm transition-all duration-300 ${
+          isCollapsed ? 'w-20' : 'w-56'
+        } ${isRTL ? 'right-0 border-l' : 'left-0 border-r'}`}
+      >
+        <div className="p-4 border-b border-slate-100/50 dark:border-slate-800 flex items-center justify-between h-24">
+          <div className={`flex items-center gap-4 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 p-1.5">
+              <Logo className="w-full h-full" />
+            </div>
+            <div className="min-w-0 leading-tight">
+              <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">Smart</h2>
+              <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">School</h2>
+            </div>
+          </div>
+          
+          {isCollapsed && (
+            <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shrink-0 p-1">
+              <Logo className="w-full h-full" />
+            </div>
+          )}
+
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={`absolute top-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full p-1 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all z-30 ${
+              isRTL ? '-left-3 rotate-0' : '-right-3 rotate-0'
+            } ${isCollapsed ? (isRTL ? 'rotate-0' : 'rotate-180') : (isRTL ? 'rotate-180' : 'rotate-0')}`}
+          >
+            {isRTL ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+        </div>
+        
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          {navItems.map((item) => {
+            const isActive = item.href === '/dashboard' 
+              ? pathname === '/dashboard' 
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                title={isCollapsed ? item.name : undefined}
+                className={`flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-semibold transition-all group relative ${
+                  isActive 
+                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-500/20' 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                <item.icon size={24} className={`shrink-0 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                
+                {!isCollapsed && (
+                  <span className="truncate">{item.name}</span>
+                )}
+
+                {/* Tooltip for collapsed state */}
+                {isCollapsed && (
+                  <div className={`absolute ml-4 px-2.5 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 ${isRTL ? 'right-full mr-4' : 'left-full ml-4'}`}>
+                    {item.name}
+                    <div className={`absolute top-1/2 -translate-y-1/2 border-4 border-transparent ${isRTL ? '-right-1 border-l-slate-800' : '-left-1 border-r-slate-800'}`} />
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-3 border-t border-slate-100/50 dark:border-slate-800">
+          {user.role === 'parent' && user.studentIds && user.studentIds.length > 1 && !isCollapsed && (
+            <div className="mb-4 px-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Switch Student</label>
+              <select 
+                value={user.studentId} 
+                onChange={(e) => switchStudent(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                {user.studentIds.map(id => (
+                  <option key={id} value={id}>Student: {id}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          <div className="px-2 py-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Smart School v1.0</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Drawer */}
+      <aside className={`md:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-56 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}`}>
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center p-1.5">
+              <Logo className="w-full h-full" />
+            </div>
+            <div className="leading-tight">
+              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Smart</h2>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">School</h2>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
+          >
+            {isRTL ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
+          </button>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-0.5 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = item.href === '/dashboard' 
+              ? pathname === '/dashboard' 
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all ${
+                  isActive 
+                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-500/20' 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <item.icon size={24} className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className={`flex-1 flex flex-col transition-all duration-300 md:pb-0 pb-16 ${isCollapsed ? (isRTL ? 'md:mr-20' : 'md:ml-20') : (isRTL ? 'md:mr-56' : 'md:ml-56')}`}>
+        <DashboardHeader 
+          onShowProfile={() => setShowProfileModal(true)} 
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+        />
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col">
+          {children}
+        </div>
+      </main>
+
+      {/* Mobile Bottom Navigation (Quick Links) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex justify-around items-center h-16 px-2">
+          {navItems.slice(0, 5).map((item) => {
+            const isActive = item.href === '/dashboard' 
+              ? pathname === '/dashboard' 
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
+                  isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                }`}
+              >
+                <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-indigo-50 dark:bg-indigo-500/10' : ''}`}>
+                  <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <span className={`text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}>{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      <AnimatePresence>
+        {showProfileModal && (
+          <StaffProfileModal 
+            selectedStaff={{
+              id: user.id,
+              name: user.name,
+              role: user.role,
+              department: user.staffProfile?.department || 'N/A',
+              email: user.email || user.staffProfile?.email || 'N/A',
+              phone: user.phone || user.staffProfile?.phone || 'N/A',
+              status: 'Active',
+              designation: user.staffProfile?.designation || 'N/A',
+              joinDate: user.staffProfile?.joinDate || 'N/A',
+              qualifications: user.staffProfile?.qualifications || [],
+              subjects: user.staffProfile?.subjects || []
+            }} 
+            handleCloseProfile={() => setShowProfileModal(false)}
+            activeProfileTab={activeProfileTab}
+            setActiveProfileTab={setActiveProfileTab}
+            MOCK_LEAVE_REQUESTS={MOCK_LEAVE_REQUESTS}
+            MOCK_PAYSLIPS={MOCK_PAYSLIPS}
+            MOCK_FINANCIALS={MOCK_FINANCIALS}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

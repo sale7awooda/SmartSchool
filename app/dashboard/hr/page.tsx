@@ -1,0 +1,547 @@
+'use client';
+
+import { useState } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  UserCog, 
+  Users, 
+  Calendar, 
+  DollarSign, 
+  FileText, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  Download, 
+  Plus,
+  Search,
+  Mail,
+  Phone,
+  Building2,
+  Briefcase,
+  Award,
+  Book,
+  ChevronRight,
+  Banknote
+} from 'lucide-react';
+import { toast } from 'sonner';
+import StaffProfileModal from '@/components/StaffProfileModal';
+
+// Mock Data
+const MOCK_STAFF = [
+  { id: 'S1', name: 'Edna Krabappel', role: 'Teacher', department: 'Academics', email: 'edna@school.edu', phone: '555-0101', status: 'Active', designation: 'Senior Teacher', joinDate: '2015-08-15', qualifications: ['M.Ed. in Elementary Education', 'B.A. in English'], subjects: ['English', 'History'] },
+  { id: 'S2', name: 'Seymour Skinner', role: 'Principal', department: 'Administration', email: 'skinner@school.edu', phone: '555-0102', status: 'Active', designation: 'Principal', joinDate: '2010-07-01', qualifications: ['Ph.D. in Educational Leadership', 'M.A. in Administration'], subjects: [] },
+  { id: 'S3', name: 'Groundskeeper Willie', role: 'Staff', department: 'Maintenance', email: 'willie@school.edu', phone: '555-0103', status: 'Active', designation: 'Head Groundskeeper', joinDate: '2012-03-10', qualifications: ['Certified Facilities Manager'], subjects: [] },
+  { id: 'S4', name: 'Gary Chalmers', role: 'Superintendent', department: 'District', email: 'chalmers@school.edu', phone: '555-0104', status: 'On Leave', designation: 'Superintendent', joinDate: '2008-09-01', qualifications: ['Ed.D. in Educational Administration'], subjects: [] },
+  { id: '4', name: 'Edna Krabappel', role: 'teacher', department: 'Elementary Education', email: 'teacher@school.com', phone: '555-0102', status: 'Active', designation: 'Grade 4 Teacher', joinDate: '1998-08-20', qualifications: ['B.Ed. Elementary Education', 'M.A. Curriculum Development'], subjects: ['Mathematics', 'English', 'Social Studies'] },
+  { id: '5', name: 'Willie MacDougal', role: 'staff', department: 'Facilities', email: 'staff@school.com', phone: '555-0103', status: 'Active', designation: 'Head Groundskeeper', joinDate: '1995-05-01', qualifications: ['Certified Landscaper', 'Boiler Maintenance Specialist'], subjects: [] },
+];
+
+const MOCK_LEAVE_REQUESTS = [
+  { id: 'L1', staff: 'Edna Krabappel', type: 'Sick Leave', startDate: '2023-11-10', endDate: '2023-11-11', status: 'Approved', days: 2 },
+  { id: 'L2', staff: 'Gary Chalmers', type: 'Annual Leave', startDate: '2023-12-20', endDate: '2023-12-31', status: 'Pending', days: 8 },
+  { id: 'L3', staff: 'Groundskeeper Willie', type: 'Personal', startDate: '2023-10-05', endDate: '2023-10-05', status: 'Rejected', days: 1 },
+];
+
+const MOCK_PAYSLIPS = [
+  { id: 'P1', staff: 'Edna Krabappel', month: 'October 2023', amount: '$4,200.00', status: 'Paid', date: '2023-10-28' },
+  { id: 'P2', staff: 'Seymour Skinner', month: 'October 2023', amount: '$6,500.00', status: 'Paid', date: '2023-10-28' },
+  { id: 'P3', staff: 'Groundskeeper Willie', month: 'October 2023', amount: '$3,800.00', status: 'Paid', date: '2023-10-28' },
+];
+
+const MOCK_FINANCIALS = [
+  { id: 'F1', staff: 'Edna Krabappel', type: 'Bonus', amount: '$500.00', date: '2023-12-15', status: 'Approved', description: 'Year-end performance bonus' },
+  { id: 'F2', staff: 'Groundskeeper Willie', type: 'Loan', amount: '$1,000.00', date: '2023-09-01', status: 'Active', description: 'Emergency home repair' },
+  { id: 'F3', staff: 'Gary Chalmers', type: 'Fine', amount: '$50.00', date: '2023-10-15', status: 'Paid', description: 'Lost equipment' },
+];
+
+export default function HRPage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'directory' | 'leave' | 'payroll' | 'financials' | 'documents'>('directory');
+  const [selectedStaff, setSelectedStaff] = useState<typeof MOCK_STAFF[0] | null>(null);
+  const [activeProfileTab, setActiveProfileTab] = useState<'overview' | 'qualifications' | 'schedule' | 'leave' | 'payroll' | 'financials'>('overview');
+
+  if (!user || !['superadmin', 'schoolAdmin', 'staff', 'teacher', 'accountant'].includes(user.role)) {
+    return null;
+  }
+
+  const isAdmin = ['superadmin', 'schoolAdmin'].includes(user.role);
+
+  // If not admin, default to their own profile view and hide directory tab
+  if (!isAdmin && activeTab === 'directory') {
+    setActiveTab('leave');
+  }
+
+  const handleCloseProfile = () => {
+    setSelectedStaff(null);
+    setActiveProfileTab('overview');
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role.toLowerCase()) {
+      case 'principal': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'teacher': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      case 'superintendent': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Human Resources</h1>
+          <p className="text-slate-500 mt-2 font-medium">Manage staff directory, leave requests, payroll, and documents.</p>
+        </div>
+        {isAdmin && (
+          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+            <Plus size={16} />
+            Add Employee
+          </button>
+        )}
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex overflow-x-auto scrollbar-hide bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm shrink-0">
+        {isAdmin && (
+          <button 
+            onClick={() => setActiveTab('directory')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'directory' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+          >
+            <Users size={18} />
+            Staff Directory
+          </button>
+        )}
+        <button 
+          onClick={() => setActiveTab('leave')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'leave' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+        >
+          <Calendar size={18} />
+          Leave Management
+        </button>
+        <button 
+          onClick={() => setActiveTab('payroll')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'payroll' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+        >
+          <DollarSign size={18} />
+          Payroll
+        </button>
+        <button 
+          onClick={() => setActiveTab('financials')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'financials' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+        >
+          <Banknote size={18} />
+          Loans & Fines
+        </button>
+        <button 
+          onClick={() => setActiveTab('documents')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'documents' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+        >
+          <FileText size={18} />
+          Documents & Policies
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+        <AnimatePresence mode="wait">
+          {activeTab === 'directory' && isAdmin && <DirectoryTab key="directory" onSelectStaff={setSelectedStaff} />}
+          {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} />}
+          {activeTab === 'payroll' && <PayrollTab key="payroll" isAdmin={isAdmin} userName={user.name} />}
+          {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} />}
+          {activeTab === 'documents' && <DocumentsTab key="documents" />}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {selectedStaff && (
+          <StaffProfileModal 
+            selectedStaff={selectedStaff} 
+            handleCloseProfile={handleCloseProfile}
+            activeProfileTab={activeProfileTab}
+            setActiveProfileTab={setActiveProfileTab}
+            MOCK_LEAVE_REQUESTS={MOCK_LEAVE_REQUESTS}
+            MOCK_PAYSLIPS={MOCK_PAYSLIPS}
+            MOCK_FINANCIALS={MOCK_FINANCIALS}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_STAFF[0]) => void }) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredStaff = MOCK_STAFF.filter(staff => 
+    staff.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    staff.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    staff.department.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Staff Directory</h2>
+            <p className="text-sm font-medium text-slate-500 mt-1">Manage employee profiles and contact information.</p>
+          </div>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Search staff..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white border-b border-slate-100">
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role & Dept</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredStaff.length > 0 ? filteredStaff.map((staff) => (
+                <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0">
+                        {staff.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm">{staff.name}</p>
+                        <p className="text-xs text-slate-500 font-medium">ID: {staff.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-sm font-bold text-slate-700">{staff.role}</p>
+                    <p className="text-xs text-slate-500 font-medium">{staff.department}</p>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+                        <Mail size={12} className="text-slate-400" /> {staff.email}
+                      </p>
+                      <p className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+                        <Phone size={12} className="text-slate-400" /> {staff.phone}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                      staff.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {staff.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <button 
+                      onClick={() => onSelectStaff(staff)}
+                      className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors"
+                    >
+                      View Profile
+                    </button>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-slate-500">No staff found matching your search.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
+  const displayLeaves = isAdmin ? MOCK_LEAVE_REQUESTS : MOCK_LEAVE_REQUESTS.filter(l => l.staff === userName);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">{isAdmin ? 'Leave Requests' : 'My Leave Requests'}</h2>
+            <p className="text-sm font-medium text-slate-500 mt-1">{isAdmin ? 'Review and approve staff time off.' : 'Track your time off requests.'}</p>
+          </div>
+          {!isAdmin && (
+            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+              <Plus size={16} />
+              Apply for Leave
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white border-b border-slate-100">
+                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>}
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Leave Type</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Duration</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {displayLeaves.length > 0 ? displayLeaves.map((leave) => (
+                <tr key={leave.id} className="hover:bg-slate-50/50 transition-colors">
+                  {isAdmin && (
+                    <td className="p-4">
+                      <p className="font-bold text-slate-900 text-sm">{leave.staff}</p>
+                    </td>
+                  )}
+                  <td className="p-4">
+                    <p className="text-sm font-bold text-slate-700">{leave.type}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-sm font-medium text-slate-700">{leave.startDate} to {leave.endDate}</p>
+                    <p className="text-xs text-slate-500 font-medium">{leave.days} days</p>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 w-fit ${
+                      leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 
+                      leave.status === 'Rejected' ? 'bg-rose-100 text-rose-700' : 
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {leave.status === 'Approved' && <CheckCircle2 size={12} />}
+                      {leave.status === 'Rejected' && <XCircle size={12} />}
+                      {leave.status === 'Pending' && <Clock size={12} />}
+                      {leave.status}
+                    </span>
+                  </td>
+                  {isAdmin && (
+                    <td className="p-4 text-right">
+                      {leave.status === 'Pending' ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => toast.success('Leave approved')}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Approve"
+                          >
+                            <CheckCircle2 size={18} />
+                          </button>
+                          <button 
+                            onClick={() => toast.error('Leave rejected')}
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Reject"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">Processed</span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-slate-500">No leave requests found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
+  const displayPayslips = isAdmin ? MOCK_PAYSLIPS : MOCK_PAYSLIPS.filter(p => p.staff === userName);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">{isAdmin ? 'Payroll Processing' : 'My Payslips'}</h2>
+            <p className="text-sm font-medium text-slate-500 mt-1">{isAdmin ? 'Manage salaries and generate payslips.' : 'View and download your payslips.'}</p>
+          </div>
+          {isAdmin && (
+            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+              <DollarSign size={16} />
+              Run Payroll
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white border-b border-slate-100">
+                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>}
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Pay Period</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Net Pay</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {displayPayslips.length > 0 ? displayPayslips.map((slip) => (
+                <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors">
+                  {isAdmin && (
+                    <td className="p-4">
+                      <p className="font-bold text-slate-900 text-sm">{slip.staff}</p>
+                    </td>
+                  )}
+                  <td className="p-4">
+                    <p className="text-sm font-bold text-slate-700">{slip.month}</p>
+                    <p className="text-xs text-slate-500 font-medium">Processed: {slip.date}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-sm font-black text-slate-900">{slip.amount}</p>
+                  </td>
+                  <td className="p-4">
+                    <span className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700">
+                      {slip.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <button className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-2 ml-auto">
+                      <Download size={14} />
+                      Payslip
+                    </button>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-slate-500">No payslips found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
+  const displayFinancials = isAdmin ? MOCK_FINANCIALS : MOCK_FINANCIALS.filter(f => f.staff === userName);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">{isAdmin ? 'Loans, Bonuses & Fines' : 'My Loans & Fines'}</h2>
+            <p className="text-sm font-medium text-slate-500 mt-1">{isAdmin ? 'Manage staff financial additions and deductions.' : 'Track your bonuses, loans, and fines.'}</p>
+          </div>
+          {!isAdmin && (
+            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+              <Plus size={16} />
+              Apply for Loan
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white border-b border-slate-100">
+                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>}
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Type</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {displayFinancials.length > 0 ? displayFinancials.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                  {isAdmin && (
+                    <td className="p-4">
+                      <p className="font-bold text-slate-900 text-sm">{item.staff}</p>
+                    </td>
+                  )}
+                  <td className="p-4">
+                    <p className="text-sm font-bold text-slate-700">{item.type}</p>
+                    <p className="text-xs text-slate-500">{item.description}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className={`text-sm font-black ${item.type === 'Fine' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {item.type === 'Fine' ? '-' : '+'}{item.amount}
+                    </p>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-sm font-medium text-slate-700">{item.date}</p>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                      item.status === 'Approved' || item.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 
+                      item.status === 'Active' ? 'bg-indigo-100 text-indigo-700' : 
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-slate-500">No financial records found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function DocumentsTab() {
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-indigo-600 rounded-[2rem] shadow-sm p-6 sm:p-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-6 opacity-10">
+            <FileText size={100} />
+          </div>
+          <h2 className="text-xl font-bold mb-2 relative z-10">Employee Handbook</h2>
+          <p className="text-indigo-100 text-sm font-medium mb-6 relative z-10">Updated for 2023-2024 academic year. Contains all policies and guidelines.</p>
+          <button className="w-full py-3 bg-white text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors relative z-10 flex items-center justify-center gap-2">
+            <Download size={16} />
+            Download PDF
+          </button>
+        </div>
+
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+            <FileText size={24} />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Benefits Guide</h2>
+          <p className="text-slate-500 text-sm font-medium mb-6">Health, dental, and retirement plan information for full-time staff.</p>
+          <button className="w-full py-3 bg-slate-50 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+            <Download size={16} />
+            Download PDF
+          </button>
+        </div>
+
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-4">
+            <FileText size={24} />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Tax Forms (W-4)</h2>
+          <p className="text-slate-500 text-sm font-medium mb-6">Standard tax withholding forms for the current fiscal year.</p>
+          <button className="w-full py-3 bg-slate-50 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+            <Download size={16} />
+            Download PDF
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
