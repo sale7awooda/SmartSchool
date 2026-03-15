@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const [supabaseUrl, setSupabaseUrl] = useState('');
   const [supabaseKey, setSupabaseKey] = useState('');
   const [mapboxToken, setMapboxToken] = useState('');
+  const [gpsInterval, setGpsInterval] = useState('1');
 
   // Load saved configurations
   useEffect(() => {
@@ -48,6 +49,8 @@ export default function SettingsPage() {
     setSupabaseKey(localStorage.getItem('SUPABASE_ANON_KEY') || '');
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMapboxToken(localStorage.getItem('MAPBOX_ACCESS_TOKEN') || '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGpsInterval(localStorage.getItem('GPS_UPDATE_INTERVAL') || '1');
   }, []);
 
   if (!user) return null;
@@ -61,6 +64,7 @@ export default function SettingsPage() {
       localStorage.setItem('SUPABASE_URL', supabaseUrl);
       localStorage.setItem('SUPABASE_ANON_KEY', supabaseKey);
       localStorage.setItem('MAPBOX_ACCESS_TOKEN', mapboxToken);
+      localStorage.setItem('GPS_UPDATE_INTERVAL', gpsInterval);
     }
 
     // Simulate API call
@@ -477,6 +481,21 @@ export default function SettingsPage() {
                               className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground font-mono text-sm" 
                             />
                             <p className="text-xs text-muted-foreground">The Mapbox access token used for calculating bus routes and ETAs.</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-foreground">GPS Update Interval (Minutes)</label>
+                            <select 
+                              value={gpsInterval}
+                              onChange={(e) => setGpsInterval(e.target.value)}
+                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground appearance-none"
+                            >
+                              <option value="1">1 Minute (Recommended)</option>
+                              <option value="2">2 Minutes</option>
+                              <option value="3">3 Minutes</option>
+                              <option value="5">5 Minutes (Saves Quota)</option>
+                            </select>
+                            <p className="text-xs text-muted-foreground">Controls how often the bus driver/attendant app broadcasts its location to parents. Higher intervals save Supabase Realtime quota.</p>
                           </div>
                         </div>
                       </div>

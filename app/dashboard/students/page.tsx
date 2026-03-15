@@ -25,6 +25,7 @@ export default function StudentsPage() {
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('overview');
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [isPromotionOpen, setIsPromotionOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -104,13 +105,22 @@ export default function StudentsPage() {
           <p className="text-muted-foreground mt-2 font-medium">Find contact information and detailed profiles for students and parents.</p>
         </div>
         {isAdmin && (
-          <button 
-            onClick={() => setIsAddStudentOpen(true)}
-            className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
-          >
-            <UserPlus size={20} />
-            Add Student
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setIsPromotionOpen(true)}
+              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-secondary text-secondary-foreground rounded-xl font-bold hover:bg-secondary/80 transition-all active:scale-[0.98] shadow-sm"
+            >
+              <GraduationCap size={20} />
+              Promote Students
+            </button>
+            <button 
+              onClick={() => setIsAddStudentOpen(true)}
+              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
+            >
+              <UserPlus size={20} />
+              Add Student
+            </button>
+          </div>
         )}
       </div>
 
@@ -776,6 +786,72 @@ export default function StudentsPage() {
                   className="w-full px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-all active:scale-[0.98] shadow-sm"
                 >
                   Close Profile
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Promotion Modal */}
+      <AnimatePresence>
+        {isPromotionOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card w-full max-w-md rounded-[2rem] shadow-xl border border-border overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <GraduationCap className="text-primary" />
+                  Promote Students
+                </h2>
+                <button onClick={() => setIsPromotionOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+                <div className="bg-primary/10 text-primary p-4 rounded-xl text-sm font-medium">
+                  This action will promote all eligible students to the next grade level and update their academic year. This process cannot be easily undone.
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Current Academic Year</label>
+                    <input type="text" value="2023-2024" disabled className="w-full px-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium text-muted-foreground" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">New Academic Year</label>
+                    <input type="text" value="2024-2025" disabled className="w-full px-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium text-foreground" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 border-t border-border bg-muted/30 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsPromotionOpen(false)}
+                  className="flex-1 px-4 py-3 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setIsSubmitting(true);
+                    setTimeout(() => {
+                      setIsSubmitting(false);
+                      setIsPromotionOpen(false);
+                      toast.success('Students successfully promoted to the next academic year.');
+                    }, 1500);
+                  }}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-70 flex items-center justify-center"
+                >
+                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Confirm Promotion'}
                 </button>
               </div>
             </motion.div>

@@ -20,6 +20,7 @@ export interface User {
   studentIds?: string[]; // All students belonging to this parent
   phone?: string;
   staffProfile?: StaffProfile;
+  customPermissions?: Record<string, string[]>; // e.g., { 'transport': ['view', 'manage'] }
 }
 
 export interface MedicalProfile {
@@ -50,10 +51,19 @@ export interface TimelineEvent {
   icon?: 'award' | 'alert' | 'calendar' | 'file';
 }
 
+export interface AcademicEnrollment {
+  id: string;
+  studentId: string;
+  academicYear: string;
+  grade: string;
+  status: 'Promoted' | 'Retained' | 'Graduated';
+}
+
 export interface Student {
   id: string;
   name: string;
   grade: string;
+  academicYear?: string;
   rollNumber: string;
   email?: string;
   phone?: string;
@@ -219,7 +229,7 @@ export const MOCK_BUS_ROUTES: BusRoute[] = [
     id: 'route1',
     routeNumber: 'R-01',
     busNumber: 'BUS-66',
-    driverId: 'd1',
+    driverId: '7',
     attendantId: '5', // Willie MacDougal
     attendantName: 'Groundskeeper Willie',
     attendantPhone: '555-0103',

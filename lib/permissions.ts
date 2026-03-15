@@ -156,6 +156,13 @@ export function usePermissions() {
   const can = (action: Action, resource: Resource): boolean => {
     if (!user) return false;
     
+    // Check custom permissions first
+    if (user.customPermissions && user.customPermissions[resource]) {
+      if (user.customPermissions[resource].includes(action) || user.customPermissions[resource].includes('manage')) {
+        return true;
+      }
+    }
+
     const rolePermissions = PERMISSIONS[user.role];
     if (!rolePermissions) return false;
 

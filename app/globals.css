@@ -167,3 +167,8 @@
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #1e293b;
 }
+
+/* Smooth marker animation for Leaflet */
+.bus-marker-animated {
+  transition: transform 1s ease-in-out;
+}

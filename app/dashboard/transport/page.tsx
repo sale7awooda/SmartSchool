@@ -71,11 +71,21 @@ export default function TransportPage() {
   const [supabase, setSupabase] = useState<any>(null);
   const [channels, setChannels] = useState<Record<string, RealtimeChannel>>({});
   const [liveBusLocations, setLiveBusLocations] = useState<Record<string, {lat: number, lng: number}>>({});
+  
+  // GPS Broadcasting state
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [gpsInterval, setGpsInterval] = useState(60000); // Default 1 minute
 
   useEffect(() => {
     // Initialize Supabase client
     const url = typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_URL') : null;
     const key = typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_ANON_KEY') : null;
+    const savedInterval = typeof window !== 'undefined' ? localStorage.getItem('GPS_UPDATE_INTERVAL') : null;
+    
+    if (savedInterval) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGpsInterval(parseInt(savedInterval) * 60000);
+    }
     
     if (url && key) {
       const client = createClient(url, key);
@@ -135,7 +145,7 @@ export default function TransportPage() {
       : null;
 
     const staffRoute = isStaff 
-      ? routes.find(r => r.attendantId === user?.id) 
+      ? routes.find(r => r.attendantId === user?.id || r.driverId === user?.id) 
       : null;
 
     const routeIdsToJoin: string[] = [];
@@ -175,6 +185,45 @@ export default function TransportPage() {
       });
     };
   }, [supabase, user, routes]);
+
+  // Handle GPS Broadcasting Interval
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    
+    if (isBroadcasting && supabase) {
+      const isStaff = user?.role === 'staff' || user?.role === 'teacher';
+      const staffRoute = isStaff 
+        ? routes.find(r => r.attendantId === user?.id || r.driverId === user?.id) 
+        : null;
+
+      if (staffRoute && channels[staffRoute.id]) {
+        toast.success(`Started broadcasting GPS every ${gpsInterval / 60000} minute(s).`);
+        
+        intervalId = setInterval(() => {
+          setLiveBusLocations(prev => {
+            const currentLoc = prev[staffRoute.id] || { lat: 39.7850, lng: -89.6450 };
+            const newLat = currentLoc.lat + (Math.random() - 0.5) * 0.01;
+            const newLng = currentLoc.lng + (Math.random() - 0.5) * 0.01;
+            
+            channels[staffRoute.id].send({
+              type: 'broadcast',
+              event: 'location_update',
+              payload: { routeId: staffRoute.id, lat: newLat, lng: newLng }
+            });
+            
+            return {
+              ...prev,
+              [staffRoute.id]: { lat: newLat, lng: newLng }
+            };
+          });
+        }, gpsInterval);
+      }
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isBroadcasting, supabase, channels, gpsInterval, user, routes]);
 
   if (!user) return null;
 
@@ -661,24 +710,37 @@ export default function TransportPage() {
                 <button
                   onClick={() => {
                     if (channels[staffRoute.id]) {
-                      // Simulate moving slightly from the default mock location
-                      const currentLoc = liveBusLocations[staffRoute.id] || { lat: 39.7850, lng: -89.6450 };
-                      const newLat = currentLoc.lat + (Math.random() - 0.5) * 0.01;
-                      const newLng = currentLoc.lng + (Math.random() - 0.5) * 0.01;
-                      channels[staffRoute.id].send({
-                        type: 'broadcast',
-                        event: 'location_update',
-                        payload: { routeId: staffRoute.id, lat: newLat, lng: newLng }
-                      });
-                      toast.success('Location update broadcasted to all users.');
+                      if (isBroadcasting) {
+                        setIsBroadcasting(false);
+                        toast.info('Stopped broadcasting GPS location.');
+                      } else {
+                        setIsBroadcasting(true);
+                        // Send immediate update on start
+                        const currentLoc = liveBusLocations[staffRoute.id] || { lat: 39.7850, lng: -89.6450 };
+                        const newLat = currentLoc.lat + (Math.random() - 0.5) * 0.01;
+                        const newLng = currentLoc.lng + (Math.random() - 0.5) * 0.01;
+                        channels[staffRoute.id].send({
+                          type: 'broadcast',
+                          event: 'location_update',
+                          payload: { routeId: staffRoute.id, lat: newLat, lng: newLng }
+                        });
+                        setLiveBusLocations(prev => ({
+                          ...prev,
+                          [staffRoute.id]: { lat: newLat, lng: newLng }
+                        }));
+                      }
                     } else {
                       toast.error('Not connected to real-time server.');
                     }
                   }}
-                  className="w-full mt-4 p-4 rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+                  className={`w-full mt-4 p-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${
+                    isBroadcasting 
+                      ? 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20' 
+                      : 'bg-primary/10 text-primary hover:bg-primary/20'
+                  }`}
                 >
                   <MapPin size={20} />
-                  Broadcast Live GPS Update
+                  {isBroadcasting ? 'Stop GPS Broadcast' : 'Start Live GPS Broadcast'}
                 </button>
               </div>
 
