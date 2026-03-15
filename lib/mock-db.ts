@@ -116,6 +116,7 @@ export interface BusStop {
   name: string;
   arrivalTime: string; // e.g., "07:30 AM"
   coordinates?: { lat: number; lng: number }; // For map simulation
+  studentId?: string;
 }
 
 export interface Driver {
@@ -226,9 +227,9 @@ export const MOCK_BUS_ROUTES: BusRoute[] = [
     currentLocation: 'Evergreen Terrace',
     liveStatus: 'Approaching 742 Evergreen Terrace',
     stops: [
-      { id: 's1', name: 'Evergreen Terrace', arrivalTime: '07:30 AM' },
-      { id: 's2', name: 'Kwik-E-Mart', arrivalTime: '07:45 AM' },
-      { id: 's3', name: 'Springfield Elementary', arrivalTime: '08:00 AM' },
+      { id: 's1', name: 'Evergreen Terrace', arrivalTime: '07:30 AM', coordinates: { lat: 39.7817, lng: -89.6501 }, studentId: 'STU001' },
+      { id: 's2', name: 'Kwik-E-Mart', arrivalTime: '07:45 AM', coordinates: { lat: 39.7900, lng: -89.6400 }, studentId: 'STU003' },
+      { id: 's3', name: 'Springfield Elementary', arrivalTime: '08:00 AM', coordinates: { lat: 39.8000, lng: -89.6300 } },
     ]
   }
 ];

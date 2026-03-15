@@ -21,11 +21,13 @@ import Image from 'next/image';
 
 // Mock Data
 const MOCK_BOOKS = [
-  { id: 'B1', title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', isbn: '978-0743273565', status: 'Available', category: 'Fiction', cover: 'https://picsum.photos/seed/gatsby/200/300' },
-  { id: 'B2', title: 'To Kill a Mockingbird', author: 'Harper Lee', isbn: '978-0060935467', status: 'Checked Out', category: 'Fiction', cover: 'https://picsum.photos/seed/mockingbird/200/300' },
-  { id: 'B3', title: 'A Brief History of Time', author: 'Stephen Hawking', isbn: '978-0553380163', status: 'Available', category: 'Science', cover: 'https://picsum.photos/seed/hawking/200/300' },
-  { id: 'B4', title: '1984', author: 'George Orwell', isbn: '978-0451524935', status: 'Available', category: 'Fiction', cover: 'https://picsum.photos/seed/1984/200/300' },
-  { id: 'B5', title: 'Introduction to Algorithms', author: 'Thomas H. Cormen', isbn: '978-0262033848', status: 'Checked Out', category: 'Computer Science', cover: 'https://picsum.photos/seed/algorithms/200/300' },
+  { id: 'B1', title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', isbn: '978-0743273565', status: 'Available', category: 'Fiction', subject: 'English', grade: 'Grade 11', cover: 'https://picsum.photos/seed/gatsby/200/300' },
+  { id: 'B2', title: 'To Kill a Mockingbird', author: 'Harper Lee', isbn: '978-0060935467', status: 'Checked Out', category: 'Fiction', subject: 'English', grade: 'Grade 10', cover: 'https://picsum.photos/seed/mockingbird/200/300' },
+  { id: 'B3', title: 'A Brief History of Time', author: 'Stephen Hawking', isbn: '978-0553380163', status: 'Available', category: 'Science', subject: 'Physics', grade: 'Grade 12', cover: 'https://picsum.photos/seed/hawking/200/300' },
+  { id: 'B4', title: '1984', author: 'George Orwell', isbn: '978-0451524935', status: 'Available', category: 'Fiction', subject: 'English', grade: 'Grade 12', cover: 'https://picsum.photos/seed/1984/200/300' },
+  { id: 'B5', title: 'Introduction to Algorithms', author: 'Thomas H. Cormen', isbn: '978-0262033848', status: 'Checked Out', category: 'Computer Science', subject: 'Computer Science', grade: 'Grade 12', cover: 'https://picsum.photos/seed/algorithms/200/300' },
+  { id: 'B6', title: 'Calculus: Early Transcendentals', author: 'James Stewart', isbn: '978-1285741550', status: 'Available', category: 'Mathematics', subject: 'Mathematics', grade: 'Grade 12', cover: 'https://picsum.photos/seed/calculus/200/300' },
+  { id: 'B7', title: 'Biology', author: 'Neil Campbell', isbn: '978-0321543257', status: 'Available', category: 'Science', subject: 'Biology', grade: 'Grade 11', cover: 'https://picsum.photos/seed/biology/200/300' },
 ];
 
 const MOCK_LOANS = [
@@ -186,25 +188,101 @@ export default function LibraryPage() {
 }
 
 function CatalogTab({ isAdmin, onSelectBook }: { isAdmin: boolean, onSelectBook: (book: any) => void }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    grade: 'All',
+    subject: 'All',
+    availability: 'All'
+  });
+
+  const grades = ['All', ...Array.from(new Set(MOCK_BOOKS.map(b => b.grade)))];
+  const subjects = ['All', ...Array.from(new Set(MOCK_BOOKS.map(b => b.subject)))];
+  const availabilities = ['All', 'Available', 'Checked Out'];
+
+  const filteredBooks = MOCK_BOOKS.filter(book => {
+    const matchesSearch = 
+      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.isbn.includes(searchQuery);
+    
+    const matchesGrade = filters.grade === 'All' || book.grade === filters.grade;
+    const matchesSubject = filters.subject === 'All' || book.subject === filters.subject;
+    const matchesAvailability = filters.availability === 'All' || book.status === filters.availability;
+
+    return matchesSearch && matchesGrade && matchesSubject && matchesAvailability;
+  });
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Search by title, author, or ISBN..." 
-            className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm text-foreground placeholder:text-muted-foreground"
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Search by title, author, or ISBN..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center justify-center gap-2 px-4 py-3 border rounded-xl font-bold text-sm transition-all shadow-sm ${showFilters ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-foreground hover:bg-muted'}`}
+          >
+            <Filter size={16} />
+            Filters
+          </button>
         </div>
-        <button className="flex items-center justify-center gap-2 px-4 py-3 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm">
-          <Filter size={16} />
-          Filters
-        </button>
+
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-2xl border border-border">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Grade</label>
+                  <select 
+                    value={filters.grade}
+                    onChange={(e) => setFilters({ ...filters, grade: e.target.value })}
+                    className="w-full p-2.5 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
+                  >
+                    {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subject</label>
+                  <select 
+                    value={filters.subject}
+                    onChange={(e) => setFilters({ ...filters, subject: e.target.value })}
+                    className="w-full p-2.5 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
+                  >
+                    {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Availability</label>
+                  <select 
+                    value={filters.availability}
+                    onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
+                    className="w-full p-2.5 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
+                  >
+                    {availabilities.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
-        {MOCK_BOOKS.map(book => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
+        {filteredBooks.map(book => (
           <div key={book.id} onClick={() => onSelectBook(book)} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-all group cursor-pointer">
             <div className="aspect-[3/4] relative bg-muted">
               <Image 
@@ -223,18 +301,31 @@ function CatalogTab({ isAdmin, onSelectBook }: { isAdmin: boolean, onSelectBook:
               </div>
             </div>
             <div className="p-2 sm:p-3">
-              <p className="text-[9px] font-bold text-primary mb-0.5 uppercase tracking-wider truncate">{book.category}</p>
+              <p className="text-[9px] font-bold text-primary mb-0.5 uppercase tracking-wider truncate">{book.subject} • {book.grade}</p>
               <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight mb-0.5 line-clamp-2" title={book.title}>{book.title}</h3>
               <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">{book.author}</p>
             </div>
           </div>
         ))}
+        {filteredBooks.length === 0 && (
+          <div className="col-span-full py-12 text-center text-muted-foreground font-medium">
+            No books found matching your criteria.
+          </div>
+        )}
       </div>
     </motion.div>
   );
 }
 
 function LoansTab({ isAdmin }: { isAdmin: boolean }) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredLoans = MOCK_LOANS.filter(loan => 
+    loan.bookTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    loan.borrower.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    loan.bookId.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
@@ -249,6 +340,8 @@ function LoansTab({ isAdmin }: { isAdmin: boolean }) {
               <input 
                 type="text" 
                 placeholder="Search borrower or book..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-64 text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -268,7 +361,7 @@ function LoansTab({ isAdmin }: { isAdmin: boolean }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {MOCK_LOANS.map((loan) => (
+              {filteredLoans.map((loan) => (
                 <tr key={loan.id} className="hover:bg-muted/50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -309,6 +402,13 @@ function LoansTab({ isAdmin }: { isAdmin: boolean }) {
                   )}
                 </tr>
               ))}
+              {filteredLoans.length === 0 && (
+                <tr>
+                  <td colSpan={isAdmin ? 6 : 5} className="p-8 text-center text-muted-foreground font-medium">
+                    No matching loans found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -377,15 +477,36 @@ function FinesTab() {
 }
 
 function HistoryTab() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredHistory = MOCK_HISTORY.filter(record => 
+    record.bookTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    record.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    record.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    record.note.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-border bg-muted/50">
-          <h2 className="text-xl font-bold text-foreground">Library History</h2>
-          <p className="text-sm font-medium text-muted-foreground mt-1">Recent activity and transactions.</p>
+        <div className="p-6 border-b border-border bg-muted/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Library History</h2>
+            <p className="text-sm font-medium text-muted-foreground mt-1">Recent activity and transactions.</p>
+          </div>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Search history..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-64 text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
         </div>
         <div className="divide-y divide-border">
-          {MOCK_HISTORY.map((record) => (
+          {filteredHistory.map((record) => (
             <div key={record.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -412,6 +533,11 @@ function HistoryTab() {
               </div>
             </div>
           ))}
+          {filteredHistory.length === 0 && (
+            <div className="p-12 text-center text-muted-foreground font-medium">
+              No history records found.
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { fetchRoute, searchAddress } from '@/lib/routing';
 import { 
   MOCK_BUS_ROUTES, 
   MOCK_STUDENTS, 
@@ -36,6 +38,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
+const TransportMap = dynamic(() => import('@/components/transport/TransportMap'), { ssr: false });
+
 export default function TransportPage() {
   const { user } = useAuth();
   const { can, isAdmin, isRole } = usePermissions();
@@ -48,6 +52,15 @@ export default function TransportPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [currentRoute, setCurrentRoute] = useState<Partial<BusRoute>>({});
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  // Map & Route Planning State
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [addressSearchQuery, setAddressSearchQuery] = useState('');
+  const [addressResults, setAddressResults] = useState<any[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isAddingStop, setIsAddingStop] = useState(false);
 
   // Mock live tracking state
   const [liveLocation, setLiveLocation] = useState({ lat: 34.0522, lng: -118.2437 });
@@ -63,6 +76,26 @@ export default function TransportPage() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [activeDropdown]);
+
+  // Update route coordinates when stops change
+  useEffect(() => {
+    async function updateRoute() {
+      if (currentRoute.stops && currentRoute.stops.length >= 2) {
+        const coords = currentRoute.stops.map(s => s.coordinates).filter(Boolean) as {lat: number, lng: number}[];
+        if (coords.length >= 2) {
+          const routeData = await fetchRoute(coords);
+          if (routeData) {
+            setRouteCoordinates(routeData.routeCoordinates);
+          }
+        } else {
+          setRouteCoordinates([]);
+        }
+      } else {
+        setRouteCoordinates([]);
+      }
+    }
+    updateRoute();
+  }, [currentRoute.stops]);
 
   if (!user) return null;
 
@@ -156,15 +189,38 @@ export default function TransportPage() {
   };
 
   const handleAddStop = () => {
+    if (!selectedLocation || !selectedStudent) {
+      toast.error('Please select a student and their location on the map.');
+      return;
+    }
+
     const newStop: BusStop = {
       id: `stop-${Date.now()}`,
-      name: '',
-      arrivalTime: ''
+      name: selectedStudent.name + "'s Stop",
+      arrivalTime: '00:00 AM', // In a real app, calculate this based on ETA
+      coordinates: selectedLocation,
+      studentId: selectedStudent.id
     };
+
     setCurrentRoute(prev => ({
       ...prev,
       stops: [...(prev.stops || []), newStop]
     }));
+
+    // Reset adding state
+    setIsAddingStop(false);
+    setSelectedStudent(null);
+    setSelectedLocation(null);
+    setStudentSearchQuery('');
+    setAddressSearchQuery('');
+    setAddressResults([]);
+    toast.success('Stop added to route.');
+  };
+
+  const handleAddressSearch = async () => {
+    if (!addressSearchQuery) return;
+    const results = await searchAddress(addressSearchQuery);
+    setAddressResults(results);
   };
 
   const handleUpdateStop = (index: number, field: keyof BusStop, value: string) => {
@@ -196,26 +252,18 @@ export default function TransportPage() {
               {/* Live Status Card */}
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden relative h-96">
-                  {/* Mock Map Background */}
-                  <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                    <div className="text-center opacity-40">
-                      <MapPin size={48} className="mx-auto mb-2 text-muted-foreground" />
-                      <p className="font-bold text-muted-foreground">Live Map Simulation</p>
-                    </div>
-                    {/* Simulated Bus Icon moving */}
-                    <motion.div 
-                      animate={{ 
-                        x: [0, 50, 0, -50, 0],
-                        y: [0, 20, 0, -20, 0]
-                      }}
-                      transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
-                      className="absolute"
-                    >
-                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg border-4 border-white z-10">
-                        <Bus size={20} />
-                      </div>
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full animate-ping opacity-75"></div>
-                    </motion.div>
+                  {/* Map Background */}
+                  <div className="absolute inset-0 bg-muted">
+                    <TransportMap 
+                      stops={parentRoute.stops.map(s => ({
+                        lat: s.coordinates?.lat || 0,
+                        lng: s.coordinates?.lng || 0,
+                        name: s.name,
+                        studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                        eta: s.arrivalTime
+                      })).filter(s => s.lat !== 0)}
+                      liveBusLocation={{ lat: 39.7850, lng: -89.6450 }} // Mock live location between stops
+                    />
                   </div>
 
                   {/* Status Overlay */}
@@ -461,11 +509,16 @@ export default function TransportPage() {
             </div>
           ) : (
             <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden h-[600px] relative flex items-center justify-center bg-muted">
-              <div className="text-center">
-                <MapPin size={64} className="mx-auto text-slate-300 mb-4" />
-                <h3 className="text-xl font-bold text-foreground">Live Fleet Tracking</h3>
-                <p className="text-muted-foreground mt-2">Map view showing all active buses would appear here.</p>
-              </div>
+              <TransportMap 
+                stops={routes.flatMap(r => r.stops).map(s => ({
+                  lat: s.coordinates?.lat || 0,
+                  lng: s.coordinates?.lng || 0,
+                  name: s.name,
+                  studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                  eta: s.arrivalTime
+                })).filter(s => s.lat !== 0)}
+                liveBusLocation={{ lat: 39.7850, lng: -89.6450 }} // Mock live location
+              />
             </div>
           )}
         </div>
@@ -490,26 +543,19 @@ export default function TransportPage() {
 
               {/* Map View for Staff */}
               <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden relative h-64">
-                <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                  <div className="text-center opacity-40">
-                    <MapPin size={48} className="mx-auto mb-2 text-muted-foreground" />
-                    <p className="font-bold text-muted-foreground">Live Map Simulation</p>
-                  </div>
-                  <motion.div 
-                    animate={{ 
-                      x: [0, 50, 0, -50, 0],
-                      y: [0, 20, 0, -20, 0]
-                    }}
-                    transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
-                    className="absolute"
-                  >
-                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg border-4 border-white z-10">
-                      <Bus size={20} />
-                    </div>
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full animate-ping opacity-75"></div>
-                  </motion.div>
+                <div className="absolute inset-0 bg-muted">
+                  <TransportMap 
+                    stops={staffRoute.stops.map(s => ({
+                      lat: s.coordinates?.lat || 0,
+                      lng: s.coordinates?.lng || 0,
+                      name: s.name,
+                      studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                      eta: s.arrivalTime
+                    })).filter(s => s.lat !== 0)}
+                    liveBusLocation={{ lat: 39.7850, lng: -89.6450 }} // Mock live location
+                  />
                 </div>
-                <div className="absolute bottom-4 left-4 right-4 bg-card/90 backdrop-blur-md p-3 rounded-xl border border-border shadow-sm flex items-center justify-between">
+                <div className="absolute bottom-4 left-4 right-4 bg-card/90 backdrop-blur-md p-3 rounded-xl border border-border shadow-sm flex items-center justify-between z-10">
                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Location</p>
                    <p className="text-sm font-bold text-foreground">{staffRoute.currentLocation}</p>
                 </div>
@@ -608,7 +654,7 @@ export default function TransportPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-border max-h-[90vh] flex flex-col"
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden border border-border max-h-[90vh] flex flex-col"
             >
               <div className="p-6 border-b border-border flex items-center justify-between bg-muted/50">
                 <h2 className="text-xl font-bold text-foreground">
@@ -684,44 +730,153 @@ export default function TransportPage() {
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">Stops</label>
-                    {modalMode !== 'view' && (
-                      <button onClick={handleAddStop} className="text-xs font-bold text-primary hover:text-primary flex items-center gap-1">
-                        <Plus size={14} /> Add Stop
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    {currentRoute.stops?.map((stop, index) => (
-                      <div key={index} className="flex gap-3">
-                        <input 
-                          type="text" 
-                          value={stop.name}
-                          onChange={(e) => handleUpdateStop(index, 'name', e.target.value)}
-                          disabled={modalMode === 'view'}
-                          className="flex-1 bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                          placeholder="Stop Name"
-                        />
-                        <input 
-                          type="text" 
-                          value={stop.arrivalTime}
-                          onChange={(e) => handleUpdateStop(index, 'arrivalTime', e.target.value)}
-                          disabled={modalMode === 'view'}
-                          className="w-32 bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                          placeholder="Time"
-                        />
-                        {modalMode !== 'view' && (
-                          <button onClick={() => handleRemoveStop(index)} className="p-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors">
-                            <Trash2 size={18} />
-                          </button>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">Stops</label>
+                      {modalMode !== 'view' && !isAddingStop && (
+                        <button onClick={() => setIsAddingStop(true)} className="text-xs font-bold text-primary hover:text-primary flex items-center gap-1">
+                          <Plus size={14} /> Add Stop
+                        </button>
+                      )}
+                    </div>
+                    
+                    {isAddingStop && modalMode !== 'view' && (
+                      <div className="p-4 bg-muted border border-border rounded-xl space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-bold text-sm">New Stop</h4>
+                          <button onClick={() => setIsAddingStop(false)} className="text-muted-foreground hover:text-foreground"><X size={16}/></button>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-bold text-muted-foreground mb-1">Select Student</label>
+                          <div className="relative">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <input 
+                              type="text" 
+                              value={studentSearchQuery}
+                              onChange={(e) => setStudentSearchQuery(e.target.value)}
+                              placeholder="Search student name..."
+                              className="w-full pl-9 pr-3 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                            {studentSearchQuery && !selectedStudent && (
+                              <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                                {MOCK_STUDENTS.filter(s => s.name.toLowerCase().includes(studentSearchQuery.toLowerCase())).map(student => (
+                                  <button
+                                    key={student.id}
+                                    onClick={() => {
+                                      setSelectedStudent(student);
+                                      setStudentSearchQuery(student.name);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                                  >
+                                    {student.name} ({student.grade})
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {selectedStudent && (
+                          <div>
+                            <label className="block text-xs font-bold text-muted-foreground mb-1">Location (Search or Click Map)</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                value={addressSearchQuery}
+                                onChange={(e) => setAddressSearchQuery(e.target.value)}
+                                placeholder="Search address..."
+                                className="flex-1 px-3 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              />
+                              <button onClick={handleAddressSearch} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold">Search</button>
+                            </div>
+                            {addressResults.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {addressResults.map((res, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => {
+                                      setSelectedLocation({ lat: res.lat, lng: res.lng });
+                                      setAddressResults([]);
+                                      setAddressSearchQuery(res.name.split(',')[0]);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-xs bg-card border border-border rounded-lg hover:bg-muted truncate"
+                                  >
+                                    {res.name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {selectedLocation && (
+                              <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                                <CheckCircle2 size={14} /> Location Selected
+                              </div>
+                            )}
+                          </div>
                         )}
+
+                        <button 
+                          onClick={handleAddStop}
+                          disabled={!selectedStudent || !selectedLocation}
+                          className="w-full py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold disabled:opacity-50"
+                        >
+                          Add to Route
+                        </button>
                       </div>
-                    ))}
-                    {(!currentRoute.stops || currentRoute.stops.length === 0) && (
-                      <div className="text-center py-4 text-muted-foreground text-sm italic">No stops added yet.</div>
                     )}
+
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {currentRoute.stops?.map((stop, index) => (
+                        <div key={index} className="flex flex-col gap-2 p-3 bg-muted border border-border rounded-xl">
+                          <div className="flex justify-between items-start">
+                            <div className="font-bold text-sm">{stop.name}</div>
+                            {modalMode !== 'view' && (
+                              <button onClick={() => handleRemoveStop(index)} className="text-destructive hover:bg-destructive/10 p-1 rounded-md transition-colors">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex gap-3">
+                            <input 
+                              type="text" 
+                              value={stop.arrivalTime}
+                              onChange={(e) => handleUpdateStop(index, 'arrivalTime', e.target.value)}
+                              disabled={modalMode === 'view'}
+                              className="w-32 bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                              placeholder="ETA (e.g. 07:30 AM)"
+                            />
+                            {stop.studentId && (
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <User size={12} className="mr-1" />
+                                {MOCK_STUDENTS.find(s => s.id === stop.studentId)?.name || 'Student'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {(!currentRoute.stops || currentRoute.stops.length === 0) && !isAddingStop && (
+                        <div className="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-xl">
+                          No stops added yet. Click "Add Stop" to begin.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="h-[400px] lg:h-auto min-h-[400px] bg-muted rounded-xl border border-border overflow-hidden relative">
+                    <TransportMap 
+                      stops={(currentRoute.stops || []).map(s => ({
+                        lat: s.coordinates?.lat || 0,
+                        lng: s.coordinates?.lng || 0,
+                        name: s.name,
+                        studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                        eta: s.arrivalTime
+                      })).filter(s => s.lat !== 0)}
+                      interactive={modalMode !== 'view' && isAddingStop}
+                      onLocationSelect={(lat, lng) => setSelectedLocation({lat, lng})}
+                      selectedLocation={selectedLocation}
+                      routeCoordinates={routeCoordinates}
+                    />
                   </div>
                 </div>
               </div>

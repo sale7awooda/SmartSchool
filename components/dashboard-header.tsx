@@ -76,15 +76,6 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
         >
           <Menu size={24} />
         </button>
-        
-        <div className="relative max-w-md w-full hidden md:block">
-          <Search className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${isRTL ? 'right-3' : 'left-3'}`} size={18} />
-          <input 
-            type="text" 
-            placeholder={t('search')}
-            className={`w-full bg-muted border-none rounded-xl py-2 text-sm focus:ring-2 focus:ring-primary/20 text-foreground transition-all ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-1 sm:gap-4">
