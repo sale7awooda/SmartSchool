@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { motion } from 'motion/react';
@@ -32,14 +32,37 @@ import { toast } from 'sonner';
 export default function SettingsPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin' | 'configurations'>('profile');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Configuration State
+  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseKey, setSupabaseKey] = useState('');
+  const [mapboxToken, setMapboxToken] = useState('');
+
+  // Load saved configurations
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSupabaseUrl(localStorage.getItem('SUPABASE_URL') || '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSupabaseKey(localStorage.getItem('SUPABASE_ANON_KEY') || '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMapboxToken(localStorage.getItem('MAPBOX_ACCESS_TOKEN') || '');
+  }, []);
 
   if (!user) return null;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    
+    // Save configurations to localStorage if on configurations tab
+    if (activeTab === 'configurations') {
+      localStorage.setItem('SUPABASE_URL', supabaseUrl);
+      localStorage.setItem('SUPABASE_ANON_KEY', supabaseKey);
+      localStorage.setItem('MAPBOX_ACCESS_TOKEN', mapboxToken);
+    }
+
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800));
     setIsSaving(false);
@@ -65,6 +88,7 @@ export default function SettingsPage() {
               { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
               { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
+              { id: 'configurations', label: 'Advanced Configurations', icon: Globe, show: user.role === 'schoolAdmin' },
             ].filter(tab => tab.show).map((tab) => {
               return (
                 <button
@@ -389,6 +413,72 @@ export default function SettingsPage() {
                           <option>Dark Mode</option>
                           <option>System Default</option>
                         </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Advanced Configurations Tab */}
+              {activeTab === 'configurations' && user.role === 'schoolAdmin' && (
+                <div className="p-6 sm:p-8 space-y-8">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Advanced Configurations</h3>
+                    <p className="text-sm text-muted-foreground mb-6">Manage system-level integrations, real-time services, and APIs.</p>
+                    
+                    <div className="space-y-8">
+                      {/* Real-Time Services */}
+                      <div className="space-y-4">
+                        <h4 className="font-bold text-foreground flex items-center gap-2"><Globe size={18} /> Real-Time Architecture (Supabase)</h4>
+                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4">
+                          <p className="text-sm text-primary font-medium">
+                            These settings control the live tracking and real-time updates across the platform using Supabase Realtime.
+                          </p>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-foreground">Supabase Project URL</label>
+                            <input 
+                              type="text" 
+                              value={supabaseUrl}
+                              onChange={(e) => setSupabaseUrl(e.target.value)}
+                              placeholder="https://your-project.supabase.co" 
+                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground font-mono text-sm" 
+                            />
+                            <p className="text-xs text-muted-foreground">The URL of your Supabase project.</p>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-foreground">Supabase Anon Key</label>
+                            <input 
+                              type="password" 
+                              value={supabaseKey}
+                              onChange={(e) => setSupabaseKey(e.target.value)}
+                              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
+                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground font-mono text-sm" 
+                            />
+                            <p className="text-xs text-muted-foreground">The public anon key for your Supabase project.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <hr className="border-border" />
+
+                      {/* Map & Routing APIs */}
+                      <div className="space-y-4">
+                        <h4 className="font-bold text-foreground flex items-center gap-2"><Globe size={18} /> Map & Routing Services</h4>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-foreground">Mapbox Access Token</label>
+                            <input 
+                              type="password" 
+                              value={mapboxToken}
+                              onChange={(e) => setMapboxToken(e.target.value)}
+                              placeholder="pk.eyJ1Ijoi..." 
+                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground font-mono text-sm" 
+                            />
+                            <p className="text-xs text-muted-foreground">The Mapbox access token used for calculating bus routes and ETAs.</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

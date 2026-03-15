@@ -52,10 +52,26 @@ export default function TransportMap({
   liveBusLocation,
   routeCoordinates = []
 }: TransportMapProps) {
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (token) setMapboxToken(token);
+  }, []);
+
   // Center on the first stop, or a default location (e.g., Springfield)
   const defaultCenter: [number, number] = stops.length > 0 
     ? [stops[0].lat, stops[0].lng] 
     : [39.7817, -89.6501]; // Springfield, IL coordinates as a fallback
+
+  const tileUrl = mapboxToken 
+    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token=${mapboxToken}`
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  
+  const attribution = mapboxToken
+    ? 'Map data &copy; <a href="https://www.mapbox.com/">Mapbox</a>'
+    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   return (
     <div className="w-full h-full rounded-xl overflow-hidden z-0 relative">
@@ -65,8 +81,8 @@ export default function TransportMap({
         style={{ height: '100%', width: '100%', zIndex: 0 }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={attribution}
+          url={tileUrl}
         />
         
         {interactive && <MapEvents onLocationSelect={onLocationSelect} />}

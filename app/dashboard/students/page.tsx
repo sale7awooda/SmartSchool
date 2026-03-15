@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { MOCK_STUDENTS, MOCK_PARENTS, User, Student } from '@/lib/mock-db';
@@ -301,11 +302,11 @@ export default function StudentsPage() {
                     className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-muted-foreground relative group cursor-pointer border-2 border-dashed border-border hover:border-primary/50 transition-colors overflow-hidden"
                   >
                     {formData.photo ? (
-                      <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                      <Image src={formData.photo} alt="Preview" fill className="object-cover" referrerPolicy="no-referrer" />
                     ) : (
                       <Camera size={32} />
                     )}
-                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10">
                       <Plus size={24} className="text-white" />
                     </div>
                   </div>

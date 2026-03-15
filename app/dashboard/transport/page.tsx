@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { fetchRoute, searchAddress } from '@/lib/routing';
@@ -66,6 +67,26 @@ export default function TransportPage() {
   const [liveLocation, setLiveLocation] = useState({ lat: 34.0522, lng: -118.2437 });
   const [droppedOffStudents, setDroppedOffStudents] = useState<string[]>([]);
 
+  // Supabase Realtime state
+  const [supabase, setSupabase] = useState<any>(null);
+  const [channels, setChannels] = useState<Record<string, RealtimeChannel>>({});
+  const [liveBusLocations, setLiveBusLocations] = useState<Record<string, {lat: number, lng: number}>>({});
+
+  useEffect(() => {
+    // Initialize Supabase client
+    const url = typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_URL') : null;
+    const key = typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_ANON_KEY') : null;
+    
+    if (url && key) {
+      const client = createClient(url, key);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSupabase(client);
+      console.log('Connected to Supabase Realtime');
+    } else {
+      console.warn('Supabase URL or Key not found. Please configure in Settings > Advanced Configurations.');
+    }
+  }, []);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -96,6 +117,64 @@ export default function TransportPage() {
     }
     updateRoute();
   }, [currentRoute.stops]);
+
+  // Join Supabase Realtime channels
+  useEffect(() => {
+    if (!supabase) return;
+    
+    const isParent = user?.role === 'parent';
+    const isStaff = user?.role === 'staff' || user?.role === 'teacher';
+    const isAdminRole = user?.role === 'schoolAdmin';
+
+    const parentStudent = isParent && user?.studentId 
+      ? MOCK_STUDENTS.find(s => s.id === user.studentId) 
+      : null;
+    
+    const parentRoute = parentStudent?.busRouteId 
+      ? routes.find(r => r.id === parentStudent.busRouteId) 
+      : null;
+
+    const staffRoute = isStaff 
+      ? routes.find(r => r.attendantId === user?.id) 
+      : null;
+
+    const routeIdsToJoin: string[] = [];
+    if (isParent && parentRoute) {
+      routeIdsToJoin.push(parentRoute.id);
+    } else if (isStaff && staffRoute) {
+      routeIdsToJoin.push(staffRoute.id);
+    } else if (isAdminRole) {
+      // Admins join all active routes for fleet tracking
+      routes.forEach(route => {
+        if (route.status !== 'Not Started') {
+          routeIdsToJoin.push(route.id);
+        }
+      });
+    }
+
+    const newChannels: Record<string, RealtimeChannel> = {};
+
+    routeIdsToJoin.forEach(routeId => {
+      const channel = supabase.channel(`route:${routeId}`)
+        .on('broadcast', { event: 'location_update' }, (payload: any) => {
+          setLiveBusLocations(prev => ({
+            ...prev,
+            [payload.payload.routeId]: { lat: payload.payload.lat, lng: payload.payload.lng }
+          }));
+        })
+        .subscribe();
+      newChannels[routeId] = channel;
+    });
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setChannels(newChannels);
+
+    return () => {
+      Object.values(newChannels).forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+    };
+  }, [supabase, user, routes]);
 
   if (!user) return null;
 
@@ -262,7 +341,7 @@ export default function TransportPage() {
                         studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
                         eta: s.arrivalTime
                       })).filter(s => s.lat !== 0)}
-                      liveBusLocation={{ lat: 39.7850, lng: -89.6450 }} // Mock live location between stops
+                      liveBusLocation={liveBusLocations[parentRoute.id] || { lat: 39.7850, lng: -89.6450 }} // Fallback to mock if no live data
                     />
                   </div>
 
@@ -517,7 +596,7 @@ export default function TransportPage() {
                   studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
                   eta: s.arrivalTime
                 })).filter(s => s.lat !== 0)}
-                liveBusLocation={{ lat: 39.7850, lng: -89.6450 }} // Mock live location
+                liveBusLocation={Object.values(liveBusLocations)[0] || { lat: 39.7850, lng: -89.6450 }} // Show first active bus or mock
               />
             </div>
           )}
@@ -552,7 +631,7 @@ export default function TransportPage() {
                       studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
                       eta: s.arrivalTime
                     })).filter(s => s.lat !== 0)}
-                    liveBusLocation={{ lat: 39.7850, lng: -89.6450 }} // Mock live location
+                    liveBusLocation={liveBusLocations[staffRoute.id] || { lat: 39.7850, lng: -89.6450 }} // Fallback to mock if no live data
                   />
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 bg-card/90 backdrop-blur-md p-3 rounded-xl border border-border shadow-sm flex items-center justify-between z-10">
@@ -579,6 +658,28 @@ export default function TransportPage() {
                     End Trip
                   </button>
                 </div>
+                <button
+                  onClick={() => {
+                    if (channels[staffRoute.id]) {
+                      // Simulate moving slightly from the default mock location
+                      const currentLoc = liveBusLocations[staffRoute.id] || { lat: 39.7850, lng: -89.6450 };
+                      const newLat = currentLoc.lat + (Math.random() - 0.5) * 0.01;
+                      const newLng = currentLoc.lng + (Math.random() - 0.5) * 0.01;
+                      channels[staffRoute.id].send({
+                        type: 'broadcast',
+                        event: 'location_update',
+                        payload: { routeId: staffRoute.id, lat: newLat, lng: newLng }
+                      });
+                      toast.success('Location update broadcasted to all users.');
+                    } else {
+                      toast.error('Not connected to real-time server.');
+                    }
+                  }}
+                  className="w-full mt-4 p-4 rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+                >
+                  <MapPin size={20} />
+                  Broadcast Live GPS Update
+                </button>
               </div>
 
               <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm">
@@ -857,7 +958,7 @@ export default function TransportPage() {
                       ))}
                       {(!currentRoute.stops || currentRoute.stops.length === 0) && !isAddingStop && (
                         <div className="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-xl">
-                          No stops added yet. Click "Add Stop" to begin.
+                          No stops added yet. Click &quot;Add Stop&quot; to begin.
                         </div>
                       )}
                     </div>
