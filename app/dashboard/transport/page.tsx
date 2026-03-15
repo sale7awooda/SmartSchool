@@ -177,8 +177,8 @@ export default function TransportPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Transport & Tracking</h1>
-        <p className="text-slate-500 mt-2 font-medium">
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">Transport & Tracking</h1>
+        <p className="text-muted-foreground mt-2 font-medium">
           {isParent ? "Track your child's bus and view route details." : "Manage bus routes, drivers, and live tracking."}
         </p>
       </div>
@@ -190,12 +190,12 @@ export default function TransportPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Live Status Card */}
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden relative h-96">
+                <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden relative h-96">
                   {/* Mock Map Background */}
-                  <div className="absolute inset-0 bg-slate-100 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-muted flex items-center justify-center">
                     <div className="text-center opacity-40">
-                      <MapPin size={48} className="mx-auto mb-2 text-slate-400" />
-                      <p className="font-bold text-slate-500">Live Map Simulation</p>
+                      <MapPin size={48} className="mx-auto mb-2 text-muted-foreground" />
+                      <p className="font-bold text-muted-foreground">Live Map Simulation</p>
                     </div>
                     {/* Simulated Bus Icon moving */}
                     <motion.div 
@@ -206,40 +206,40 @@ export default function TransportPage() {
                       transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
                       className="absolute"
                     >
-                      <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-white z-10">
+                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg border-4 border-white z-10">
                         <Bus size={20} />
                       </div>
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-indigo-600 rounded-full animate-ping opacity-75"></div>
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full animate-ping opacity-75"></div>
                     </motion.div>
                   </div>
 
                   {/* Status Overlay */}
-                  <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-lg flex items-center justify-between">
+                  <div className="absolute bottom-6 left-6 right-6 bg-card/90 backdrop-blur-md p-4 rounded-2xl border border-border shadow-lg flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Status</p>
-                      <p className="text-lg font-bold text-indigo-600 flex items-center gap-2">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Current Status</p>
+                      <p className="text-lg font-bold text-primary flex items-center gap-2">
                         <span className="relative flex h-3 w-3">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-primary/100"></span>
                         </span>
                         {parentRoute.status}
                       </p>
-                      <p className="text-sm text-slate-600 mt-1">{parentRoute.liveStatus}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{parentRoute.liveStatus}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Est. Arrival</p>
-                      <p className="text-xl font-bold text-slate-900">10 mins</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Est. Arrival</p>
+                      <p className="text-xl font-bold text-foreground">10 mins</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Route Timeline */}
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                  <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <Navigation size={20} className="text-indigo-600" />
+                <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm">
+                  <h3 className="font-bold text-foreground mb-6 flex items-center gap-2">
+                    <Navigation size={20} className="text-primary" />
                     Route Timeline
                   </h3>
-                  <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+                  <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-muted">
                     {parentRoute.stops.map((stop, index) => {
                       const isCompleted = index < 1; // Mock completed status
                       const isNext = index === 1;
@@ -247,26 +247,26 @@ export default function TransportPage() {
                       return (
                         <div key={stop.id} className="relative">
                           <div className={`absolute -left-[35px] w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${
-                            isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' :
-                            isNext ? 'bg-white border-indigo-600 text-indigo-600' :
-                            'bg-white border-slate-300 text-slate-300'
+                            isCompleted ? 'bg-emerald-500/100/100 border-emerald-500 text-primary-foreground' :
+                            isNext ? 'bg-card border-primary text-primary' :
+                            'bg-card border-border text-slate-300'
                           }`}>
                             {isCompleted && <CheckCircle2 size={12} />}
-                            {isNext && <div className="w-2 h-2 bg-indigo-600 rounded-full" />}
+                            {isNext && <div className="w-2 h-2 bg-primary rounded-full" />}
                           </div>
                           <div className={`p-4 rounded-xl border transition-all ${
-                            isNext ? 'bg-indigo-50 border-indigo-100 shadow-sm' : 'bg-white border-slate-100'
+                            isNext ? 'bg-primary/10 border-primary/20 shadow-sm' : 'bg-card border-border'
                           }`}>
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className={`font-bold ${isNext ? 'text-indigo-900' : 'text-slate-900'}`}>{stop.name}</h4>
+                                <h4 className={`font-bold ${isNext ? 'text-indigo-900' : 'text-foreground'}`}>{stop.name}</h4>
                                 {parentStudent?.stopId === stop.id && (
-                                  <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-md uppercase">
+                                  <span className="inline-block mt-1 px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-bold rounded-md uppercase">
                                     Your Stop
                                   </span>
                                 )}
                               </div>
-                              <span className="text-sm font-bold text-slate-500">{stop.arrivalTime}</span>
+                              <span className="text-sm font-bold text-muted-foreground">{stop.arrivalTime}</span>
                             </div>
                           </div>
                         </div>
@@ -278,52 +278,52 @@ export default function TransportPage() {
 
               {/* Driver & Vehicle Info */}
               <div className="space-y-6">
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                  <h3 className="font-bold text-slate-900 mb-4">Driver Details</h3>
+                <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm">
+                  <h3 className="font-bold text-foreground mb-4">Driver Details</h3>
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                    <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
                       <User size={32} />
                     </div>
                     <div>
-                      <p className="font-bold text-lg text-slate-900">{MOCK_DRIVERS.find(d => d.id === parentRoute.driverId)?.name}</p>
-                      <p className="text-sm text-slate-500">License: {MOCK_DRIVERS.find(d => d.id === parentRoute.driverId)?.licenseNumber}</p>
+                      <p className="font-bold text-lg text-foreground">{MOCK_DRIVERS.find(d => d.id === parentRoute.driverId)?.name}</p>
+                      <p className="text-sm text-muted-foreground">License: {MOCK_DRIVERS.find(d => d.id === parentRoute.driverId)?.licenseNumber}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <button className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 transition-colors">
+                    <button className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-colors">
                       <Phone size={18} />
                       Call Driver
                     </button>
                     {parentRoute.attendantName && (
-                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Bus Attendant</p>
-                        <p className="font-bold text-slate-900">{parentRoute.attendantName}</p>
-                        <p className="text-sm text-slate-500 mt-0.5">{parentRoute.attendantPhone}</p>
+                      <div className="p-4 bg-muted rounded-xl border border-border">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Bus Attendant</p>
+                        <p className="font-bold text-foreground">{parentRoute.attendantName}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{parentRoute.attendantPhone}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                  <h3 className="font-bold text-slate-900 mb-4">Vehicle Info</h3>
+                <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm">
+                  <h3 className="font-bold text-foreground mb-4">Vehicle Info</h3>
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
-                      <span className="text-sm font-medium text-slate-500">Bus Number</span>
-                      <span className="font-bold text-slate-900">{parentRoute.busNumber}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
+                      <span className="text-sm font-medium text-muted-foreground">Bus Number</span>
+                      <span className="font-bold text-foreground">{parentRoute.busNumber}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
-                      <span className="text-sm font-medium text-slate-500">Route ID</span>
-                      <span className="font-bold text-slate-900">{parentRoute.routeNumber}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
+                      <span className="text-sm font-medium text-muted-foreground">Route ID</span>
+                      <span className="font-bold text-foreground">{parentRoute.routeNumber}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center p-12 bg-white rounded-[2rem] border border-slate-100">
+            <div className="text-center p-12 bg-card rounded-[2rem] border border-border">
               <Bus size={48} className="mx-auto text-slate-300 mb-4" />
-              <h3 className="text-xl font-bold text-slate-900">No Bus Assigned</h3>
-              <p className="text-slate-500 mt-2">Please contact the school administration to assign a bus route.</p>
+              <h3 className="text-xl font-bold text-foreground">No Bus Assigned</h3>
+              <p className="text-muted-foreground mt-2">Please contact the school administration to assign a bus route.</p>
             </div>
           )}
         </div>
@@ -332,12 +332,12 @@ export default function TransportPage() {
       {/* Admin View */}
       {isAdmin && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card p-4 rounded-[1.5rem] border border-border shadow-sm">
             <div className="flex flex-wrap gap-2">
               <button 
                 onClick={() => setActiveTab('routes')}
                 className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  activeTab === 'routes' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'
+                  activeTab === 'routes' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card text-muted-foreground hover:bg-muted'
                 }`}
               >
                 Routes List
@@ -345,27 +345,27 @@ export default function TransportPage() {
               <button 
                 onClick={() => setActiveTab('tracking')}
                 className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  activeTab === 'tracking' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'
+                  activeTab === 'tracking' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card text-muted-foreground hover:bg-muted'
                 }`}
               >
                 Live Map
               </button>
               <button 
                 onClick={() => handleOpenModal('create')}
-                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white shadow-md hover:bg-emerald-700 transition-all flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-emerald-500 text-primary-foreground shadow-md hover:bg-emerald-600 transition-all flex items-center gap-2"
               >
                 <Plus size={18} />
                 Add Route
               </button>
             </div>
             <div className="relative w-full sm:w-72">
-              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input 
                 type="text" 
                 placeholder="Search routes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all"
               />
             </div>
           </div>
@@ -373,32 +373,32 @@ export default function TransportPage() {
           {activeTab === 'routes' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredRoutes.map(route => (
-                <div key={route.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group relative">
+                <div key={route.id} className="bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-md transition-all group relative">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900">{route.routeNumber}</h3>
-                      <p className="text-sm font-medium text-slate-500">{route.busNumber}</p>
+                      <h3 className="text-xl font-bold text-foreground">{route.routeNumber}</h3>
+                      <p className="text-sm font-medium text-muted-foreground">{route.busNumber}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                      route.status === 'In Transit' ? 'bg-emerald-100 text-emerald-700' :
-                      route.status === 'Arrived at School' ? 'bg-blue-100 text-blue-700' :
-                      'bg-slate-100 text-slate-600'
+                      route.status === 'In Transit' ? 'bg-emerald-500/100/20 text-emerald-500' :
+                      route.status === 'Arrived at School' ? 'bg-blue-500/20 text-blue-500' :
+                      'bg-muted text-muted-foreground'
                     }`}>
                       {route.status}
                     </span>
                   </div>
                   
                   <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <User size={16} className="text-slate-400" />
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <User size={16} className="text-muted-foreground" />
                       <span>Driver: {MOCK_DRIVERS.find(d => d.id === route.driverId)?.name}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <MapPin size={16} className="text-slate-400" />
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <MapPin size={16} className="text-muted-foreground" />
                       <span>{route.currentLocation || 'Unknown Location'}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <Clock size={16} className="text-slate-400" />
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <Clock size={16} className="text-muted-foreground" />
                       <span>{route.stops.length} Stops</span>
                     </div>
                   </div>
@@ -406,7 +406,7 @@ export default function TransportPage() {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleOpenModal('view', route)}
-                      className="flex-1 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-sm hover:bg-indigo-100 transition-colors"
+                      className="flex-1 py-2.5 rounded-xl bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-colors"
                     >
                       View Details
                     </button>
@@ -416,34 +416,34 @@ export default function TransportPage() {
                           e.stopPropagation();
                           setActiveDropdown(activeDropdown === route.id ? null : route.id);
                         }}
-                        className="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                        className="p-2.5 rounded-xl border border-border text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors"
                       >
                         <MoreVertical size={20} />
                       </button>
                       
                       {activeDropdown === route.id && (
-                        <div className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-20">
+                        <div className="absolute right-0 bottom-full mb-2 w-48 bg-card rounded-xl shadow-xl border border-border overflow-hidden z-20">
                           <button 
                             onClick={() => handleOpenModal('edit', route)}
-                            className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-foreground hover:bg-muted flex items-center gap-2"
                           >
                             <Edit size={16} /> Edit Route
                           </button>
                           <button 
                             onClick={() => handleOpenModal('edit', route)}
-                            className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-foreground hover:bg-muted flex items-center gap-2"
                           >
                             <UserPlus size={16} /> Supervisor
                           </button>
                           <button 
                             onClick={() => handleToggleDisable(route.id)}
-                            className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-foreground hover:bg-muted flex items-center gap-2"
                           >
                             <Power size={16} /> Disable/Enable
                           </button>
                           <button 
                             onClick={() => handleDeleteRoute(route.id)}
-                            className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 flex items-center gap-2"
                           >
                             <Trash2 size={16} /> Delete
                           </button>
@@ -455,11 +455,11 @@ export default function TransportPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden h-[600px] relative flex items-center justify-center bg-slate-50">
+            <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden h-[600px] relative flex items-center justify-center bg-muted">
               <div className="text-center">
                 <MapPin size={64} className="mx-auto text-slate-300 mb-4" />
-                <h3 className="text-xl font-bold text-slate-900">Live Fleet Tracking</h3>
-                <p className="text-slate-500 mt-2">Map view showing all active buses would appear here.</p>
+                <h3 className="text-xl font-bold text-foreground">Live Fleet Tracking</h3>
+                <p className="text-muted-foreground mt-2">Map view showing all active buses would appear here.</p>
               </div>
             </div>
           )}
@@ -471,7 +471,7 @@ export default function TransportPage() {
         <div className="max-w-md mx-auto space-y-6">
           {staffRoute ? (
             <>
-              <div className="bg-indigo-600 text-white p-6 rounded-[2rem] shadow-lg shadow-indigo-600/20 relative overflow-hidden">
+              <div className="bg-primary text-primary-foreground p-6 rounded-[2rem] shadow-lg shadow-primary/20 relative overflow-hidden">
                 <div className="relative z-10">
                   <p className="text-indigo-100 font-medium mb-1">Current Route</p>
                   <h2 className="text-3xl font-bold">{staffRoute.routeNumber}</h2>
@@ -480,15 +480,15 @@ export default function TransportPage() {
                     Live Tracking Active
                   </p>
                 </div>
-                <Bus className="absolute -right-6 -bottom-6 text-indigo-500/50 w-48 h-48" />
+                <Bus className="absolute -right-6 -bottom-6 text-primary/50 w-48 h-48" />
               </div>
 
               {/* Map View for Staff */}
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden relative h-64">
-                <div className="absolute inset-0 bg-slate-100 flex items-center justify-center">
+              <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden relative h-64">
+                <div className="absolute inset-0 bg-muted flex items-center justify-center">
                   <div className="text-center opacity-40">
-                    <MapPin size={48} className="mx-auto mb-2 text-slate-400" />
-                    <p className="font-bold text-slate-500">Live Map Simulation</p>
+                    <MapPin size={48} className="mx-auto mb-2 text-muted-foreground" />
+                    <p className="font-bold text-muted-foreground">Live Map Simulation</p>
                   </div>
                   <motion.div 
                     animate={{ 
@@ -498,31 +498,31 @@ export default function TransportPage() {
                     transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
                     className="absolute"
                   >
-                    <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-white z-10">
+                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg border-4 border-white z-10">
                       <Bus size={20} />
                     </div>
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-indigo-600 rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full animate-ping opacity-75"></div>
                   </motion.div>
                 </div>
-                <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Location</p>
-                   <p className="text-sm font-bold text-slate-900">{staffRoute.currentLocation}</p>
+                <div className="absolute bottom-4 left-4 right-4 bg-card/90 backdrop-blur-md p-3 rounded-xl border border-border shadow-sm flex items-center justify-between">
+                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Location</p>
+                   <p className="text-sm font-bold text-foreground">{staffRoute.currentLocation}</p>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                <h3 className="font-bold text-slate-900 mb-4">Route Actions</h3>
+              <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm">
+                <h3 className="font-bold text-foreground mb-4">Route Actions</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <button 
                     onClick={() => handleStatusUpdate(staffRoute.id, 'In Transit')}
-                    className="p-4 rounded-xl bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100 transition-colors flex flex-col items-center gap-2"
+                    className="p-4 rounded-xl bg-emerald-500/100/10 text-emerald-500 font-bold hover:bg-emerald-500/100/20 transition-colors flex flex-col items-center gap-2"
                   >
                     <Navigation size={24} />
                     Start Trip
                   </button>
                   <button 
                     onClick={() => handleStatusUpdate(staffRoute.id, 'Arrived at School')}
-                    className="p-4 rounded-xl bg-slate-50 text-slate-700 font-bold hover:bg-slate-100 transition-colors flex flex-col items-center gap-2"
+                    className="p-4 rounded-xl bg-muted text-foreground font-bold hover:bg-muted transition-colors flex flex-col items-center gap-2"
                   >
                     <CheckCircle2 size={24} />
                     End Trip
@@ -530,8 +530,8 @@ export default function TransportPage() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                <h3 className="font-bold text-slate-900 mb-4">Student Drop-off</h3>
+              <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm">
+                <h3 className="font-bold text-foreground mb-4">Student Drop-off</h3>
                 <div className="space-y-4">
                   {MOCK_STUDENTS
                     .filter(s => s.busRouteId === staffRoute.id)
@@ -549,32 +549,32 @@ export default function TransportPage() {
                           key={student.id} 
                           className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                             isDroppedOff 
-                              ? 'bg-slate-100 border-slate-200 opacity-75' 
-                              : 'bg-slate-50 border-slate-100'
+                              ? 'bg-muted border-border opacity-75' 
+                              : 'bg-muted border-border'
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm ${
-                              isDroppedOff ? 'bg-slate-200 text-slate-500' : 'bg-white text-slate-700'
+                              isDroppedOff ? 'bg-slate-200 text-muted-foreground' : 'bg-card text-foreground'
                             }`}>
                               {student.name.charAt(0)}
                             </div>
                             <div>
-                              <p className={`font-bold text-sm ${isDroppedOff ? 'text-slate-500' : 'text-slate-900'}`}>
+                              <p className={`font-bold text-sm ${isDroppedOff ? 'text-muted-foreground' : 'text-foreground'}`}>
                                 {student.name}
                               </p>
-                              <p className="text-xs text-slate-500">{stopName}</p>
+                              <p className="text-xs text-muted-foreground">{stopName}</p>
                             </div>
                           </div>
                           {isDroppedOff ? (
-                            <span className="px-3 py-1.5 bg-slate-200 text-slate-500 text-xs font-bold rounded-lg flex items-center gap-1">
+                            <span className="px-3 py-1.5 bg-slate-200 text-muted-foreground text-xs font-bold rounded-lg flex items-center gap-1">
                               <CheckCircle2 size={12} />
                               Arrived
                             </span>
                           ) : (
                             <button 
                               onClick={() => handleDropOff(student.id, student.name)}
-                              className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20"
+                              className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
                             >
                               Drop Off
                             </button>
@@ -586,10 +586,10 @@ export default function TransportPage() {
               </div>
             </>
           ) : (
-            <div className="text-center p-12 bg-white rounded-[2rem] border border-slate-100">
+            <div className="text-center p-12 bg-card rounded-[2rem] border border-border">
               <Bus size={48} className="mx-auto text-slate-300 mb-4" />
-              <h3 className="text-xl font-bold text-slate-900">No Route Assigned</h3>
-              <p className="text-slate-500 mt-2">You are not currently assigned to any bus route.</p>
+              <h3 className="text-xl font-bold text-foreground">No Route Assigned</h3>
+              <p className="text-muted-foreground mt-2">You are not currently assigned to any bus route.</p>
             </div>
           )}
         </div>
@@ -598,18 +598,18 @@ export default function TransportPage() {
       {/* Admin Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col"
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-border max-h-[90vh] flex flex-col"
             >
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h2 className="text-xl font-bold text-slate-900">
+              <div className="p-6 border-b border-border flex items-center justify-between bg-muted/50">
+                <h2 className="text-xl font-bold text-foreground">
                   {modalMode === 'create' ? 'Add New Route' : modalMode === 'edit' ? 'Edit Route' : 'Route Details'}
                 </h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
+                <button onClick={() => setIsModalOpen(false)} className="p-2 bg-card rounded-xl border border-border text-muted-foreground hover:text-muted-foreground transition-colors">
                   <X size={20} />
                 </button>
               </div>
@@ -617,24 +617,24 @@ export default function TransportPage() {
               <div className="p-6 overflow-y-auto space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Route Number</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Route Number</label>
                     <input 
                       type="text" 
                       value={currentRoute.routeNumber || ''}
                       onChange={(e) => setCurrentRoute({...currentRoute, routeNumber: e.target.value})}
                       disabled={modalMode === 'view'}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       placeholder="e.g. R-101"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Bus Number</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Bus Number</label>
                     <input 
                       type="text" 
                       value={currentRoute.busNumber || ''}
                       onChange={(e) => setCurrentRoute({...currentRoute, busNumber: e.target.value})}
                       disabled={modalMode === 'view'}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       placeholder="e.g. BUS-42"
                     />
                   </div>
@@ -642,12 +642,12 @@ export default function TransportPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Driver</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Driver</label>
                     <select 
                       value={currentRoute.driverId || ''}
                       onChange={(e) => setCurrentRoute({...currentRoute, driverId: e.target.value})}
                       disabled={modalMode === 'view'}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
                       <option value="">Select Driver</option>
                       {MOCK_DRIVERS.map(d => (
@@ -656,7 +656,7 @@ export default function TransportPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attendant (Supervisor)</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Attendant (Supervisor)</label>
                     <select 
                       value={currentRoute.attendantId || ''}
                       onChange={(e) => {
@@ -669,7 +669,7 @@ export default function TransportPage() {
                         });
                       }}
                       disabled={modalMode === 'view'}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
                       <option value="">Select Attendant</option>
                       {MOCK_USERS.filter(u => ['staff', 'teacher'].includes(u.role)).map(u => (
@@ -681,9 +681,9 @@ export default function TransportPage() {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Stops</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">Stops</label>
                     {modalMode !== 'view' && (
-                      <button onClick={handleAddStop} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                      <button onClick={handleAddStop} className="text-xs font-bold text-primary hover:text-primary flex items-center gap-1">
                         <Plus size={14} /> Add Stop
                       </button>
                     )}
@@ -696,7 +696,7 @@ export default function TransportPage() {
                           value={stop.name}
                           onChange={(e) => handleUpdateStop(index, 'name', e.target.value)}
                           disabled={modalMode === 'view'}
-                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          className="flex-1 bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                           placeholder="Stop Name"
                         />
                         <input 
@@ -704,34 +704,34 @@ export default function TransportPage() {
                           value={stop.arrivalTime}
                           onChange={(e) => handleUpdateStop(index, 'arrivalTime', e.target.value)}
                           disabled={modalMode === 'view'}
-                          className="w-32 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          className="w-32 bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                           placeholder="Time"
                         />
                         {modalMode !== 'view' && (
-                          <button onClick={() => handleRemoveStop(index)} className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                          <button onClick={() => handleRemoveStop(index)} className="p-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors">
                             <Trash2 size={18} />
                           </button>
                         )}
                       </div>
                     ))}
                     {(!currentRoute.stops || currentRoute.stops.length === 0) && (
-                      <div className="text-center py-4 text-slate-400 text-sm italic">No stops added yet.</div>
+                      <div className="text-center py-4 text-muted-foreground text-sm italic">No stops added yet.</div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+              <div className="p-6 border-t border-border bg-muted/50 flex justify-end gap-3">
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+                  className="px-6 py-3 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-colors"
                 >
                   {modalMode === 'view' ? 'Close' : 'Cancel'}
                 </button>
                 {modalMode !== 'view' && (
                   <button 
                     onClick={handleSaveRoute}
-                    className="px-6 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-lg shadow-indigo-600/20"
+                    className="px-6 py-3 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20"
                   >
                     <Save size={18} />
                     Save Route

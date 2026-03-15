@@ -59,14 +59,14 @@ function AdminAcademics() {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
             Academics Management
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+          <p className="text-muted-foreground mt-2 font-medium">
             Manage academic years, classes, and subjects.
           </p>
         </div>
-        <button className="flex items-center justify-center gap-2 px-5 py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all active:scale-[0.98] shadow-md shadow-indigo-600/20">
+        <button className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20">
           <Settings size={20} />
           Academic Settings
         </button>
@@ -79,8 +79,8 @@ function AdminAcademics() {
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
               activeTab === tab
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                : "bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -91,41 +91,41 @@ function AdminAcademics() {
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
         {activeTab === "overview" && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4">
+            <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
                 <Calendar size={24} />
               </div>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
                 Active Year
               </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+              <p className="text-2xl font-bold text-foreground mt-1">
                 2023 - 2024
               </p>
-              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-2 bg-emerald-50 dark:bg-emerald-500/10 w-fit px-2 py-1 rounded-md">
+              <p className="text-xs font-medium text-emerald-500 mt-2 bg-emerald-500/10 w-fit px-2 py-1 rounded-md">
                 Term 1 in progress
               </p>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+            <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4">
                 <BookOpen size={24} />
               </div>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
                 Total Classes
               </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">42</p>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">
+              <p className="text-2xl font-bold text-foreground mt-1">42</p>
+              <p className="text-xs font-medium text-muted-foreground mt-2">
                 Across 12 Grades
               </p>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+            <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4">
                 <Award size={24} />
               </div>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
                 Total Subjects
               </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">18</p>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">
+              <p className="text-2xl font-bold text-foreground mt-1">18</p>
+              <p className="text-xs font-medium text-muted-foreground mt-2">
                 Active curriculum
               </p>
             </div>
@@ -133,16 +133,16 @@ function AdminAcademics() {
         )}
 
         {activeTab === "classes" && (
-          <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-              <h3 className="font-bold text-slate-900 dark:text-white text-lg">
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground text-lg">
                 Grades & Sections
               </h3>
-              <button className="text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1">
+              <button className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1">
                 <Plus size={16} /> Add Grade
               </button>
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-border">
               {[
                 { grade: "Grade 1", sections: ["A", "B", "C"], students: 85 },
                 { grade: "Grade 2", sections: ["A", "B"], students: 60 },
@@ -155,13 +155,13 @@ function AdminAcademics() {
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted transition-colors"
                 >
                   <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white text-lg">
+                    <h4 className="font-bold text-foreground text-lg">
                       {item.grade}
                     </h4>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+                    <p className="text-sm font-medium text-muted-foreground mt-1">
                       {item.students} Total Students
                     </p>
                   </div>
@@ -169,12 +169,12 @@ function AdminAcademics() {
                     {item.sections.map((sec) => (
                       <span
                         key={sec}
-                        className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 shadow-sm"
+                        className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center font-bold text-foreground shadow-sm"
                       >
                         {sec}
                       </span>
                     ))}
-                    <button className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors">
+                    <button className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors">
                       <Plus size={20} />
                     </button>
                   </div>
@@ -185,14 +185,14 @@ function AdminAcademics() {
         )}
 
         {(activeTab === "years" || activeTab === "subjects") && (
-          <div className="bg-white dark:bg-slate-900 p-12 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm text-center">
-            <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-card p-12 rounded-[1.5rem] border border-border shadow-sm text-center">
+            <div className="w-16 h-16 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-4">
               <Settings size={32} />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h3 className="text-lg font-bold text-foreground">
               Module Configuration
             </h3>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto">
+            <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
               This section allows you to configure specific details for{" "}
               {activeTab}.
             </p>
@@ -326,13 +326,13 @@ const getAssessmentIcon = (type: AssessmentType) => {
 const getAssessmentColor = (type: AssessmentType) => {
   switch (type) {
     case "Homework":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-500/10 text-blue-500 border-blue-500/20";
     case "Assignment":
-      return "bg-purple-50 text-purple-700 border-purple-200";
+      return "bg-purple-500/10 text-purple-500 border-purple-500/20";
     case "Online Exam":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
     case "Offline Exam":
-      return "bg-rose-50 text-rose-700 border-rose-200";
+      return "bg-rose-500/10 text-rose-500 border-rose-500/20";
   }
 };
 
@@ -434,20 +434,20 @@ function TeacherAcademics() {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
             Academics
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">
+          <p className="text-muted-foreground mt-2 font-medium">
             Manage assessments and grade students.
           </p>
         </div>
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit shrink-0 overflow-x-auto max-w-full scrollbar-hide">
+        <div className="flex bg-muted p-1 rounded-xl w-fit shrink-0 overflow-x-auto max-w-full scrollbar-hide">
           <button
             onClick={() => setActiveTab("assessments")}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === "assessments"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Assessments
@@ -456,8 +456,8 @@ function TeacherAcademics() {
             onClick={() => setActiveTab("gradebook")}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === "gradebook"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Gradebook
@@ -466,8 +466,8 @@ function TeacherAcademics() {
             onClick={() => setActiveTab("submissions")}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === "submissions"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Submissions
@@ -479,12 +479,12 @@ function TeacherAcademics() {
         {activeTab === "assessments" && (
           <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-bold text-foreground">
               All Assessments
             </h2>
             <button
               onClick={() => setShowNewAssessment(!showNewAssessment)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-sm"
             >
               {showNewAssessment ? (
                 <ChevronLeft size={18} />
@@ -503,11 +503,11 @@ function TeacherAcademics() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 onSubmit={handleCreateAssessment}
-                className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6"
+                className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm space-y-6"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-bold text-foreground">
                       Assessment Title
                     </label>
                     <input
@@ -515,28 +515,28 @@ function TeacherAcademics() {
                       name="title"
                       type="text"
                       placeholder="e.g. Chapter 4 Quiz"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-bold text-foreground">
                       Description / Instructions
                     </label>
                     <textarea
                       name="description"
                       rows={3}
                       placeholder="Provide clear instructions for the students..."
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none dark:text-white"
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none text-foreground"
                     ></textarea>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-bold text-foreground">
                       Type
                     </label>
                     <select
                       required
                       name="type"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none dark:text-white"
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-foreground"
                     >
                       <option value="Homework">Homework</option>
                       <option value="Assignment">Assignment</option>
@@ -545,13 +545,13 @@ function TeacherAcademics() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-bold text-foreground">
                       Class
                     </label>
                     <select
                       required
                       name="class"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none dark:text-white"
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-foreground"
                     >
                       {classes.map((c) => (
                         <option key={c} value={c}>
@@ -561,13 +561,13 @@ function TeacherAcademics() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-bold text-foreground">
                       Subject
                     </label>
                     <select
                       required
                       name="subject"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none dark:text-white"
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-foreground"
                     >
                       {subjects.map((s) => (
                         <option key={s} value={s}>
@@ -577,7 +577,7 @@ function TeacherAcademics() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-bold text-foreground">
                       Max Score
                     </label>
                     <input
@@ -586,32 +586,32 @@ function TeacherAcademics() {
                       type="number"
                       min="1"
                       defaultValue="100"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-bold text-foreground">
                       Due Date / Exam Date
                     </label>
                     <input
                       required
                       name="date"
                       type="date"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
                     />
                   </div>
                 </div>
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                <div className="pt-4 border-t border-border flex justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => setShowNewAssessment(false)}
-                    className="px-6 py-3 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                    className="px-6 py-3 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-sm"
+                    className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-sm"
                   >
                     Create Assessment
                   </button>
@@ -628,7 +628,7 @@ function TeacherAcademics() {
                 {assessments.map((assessment) => (
                   <div
                     key={assessment.id}
-                    className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group"
+                    className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all group"
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div
@@ -640,24 +640,24 @@ function TeacherAcademics() {
                       <span
                         className={`text-xs font-bold px-2.5 py-1 rounded-md ${
                           assessment.status === "Graded"
-                            ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                            ? "bg-emerald-500/10 text-emerald-500"
                             : assessment.status === "Published"
-                              ? "bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {assessment.status}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">
+                    <h3 className="font-bold text-foreground text-lg mb-1">
                       {assessment.title}
                     </h3>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
+                    <p className="text-sm font-medium text-muted-foreground mb-4">
                       {assessment.class} • {assessment.subject}
                     </p>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
-                      <div className="flex items-center gap-4 text-sm font-medium text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                      <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                           <Calendar size={16} /> {assessment.date}
                         </span>
@@ -673,7 +673,7 @@ function TeacherAcademics() {
                               setViewingSubmissionsFor(assessment);
                               setActiveTab("submissions");
                             }}
-                            className="text-slate-600 dark:text-slate-400 font-bold text-sm hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+                            className="text-muted-foreground font-bold text-sm hover:text-primary px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors"
                           >
                             View Submissions
                           </button>
@@ -685,7 +685,7 @@ function TeacherAcademics() {
                             setSelectedAssessment(assessment);
                             setActiveTab("gradebook");
                           }}
-                          className="text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600 transition-colors"
+                          className="text-primary font-bold text-sm hover:text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary transition-colors"
                         >
                           Grade Now &rarr;
                         </button>
@@ -705,9 +705,9 @@ function TeacherAcademics() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Step 1 & 2: Select Class & Subject */}
               <div className="lg:col-span-1 space-y-6">
-                <div className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm space-y-4">
-                  <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">
+                <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm space-y-4">
+                  <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
                       1
                     </span>
                     Select Class
@@ -722,8 +722,8 @@ function TeacherAcademics() {
                         }}
                         className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
                           selectedClass === cls
-                            ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                            : "bg-white border-slate-100 text-slate-600 hover:border-indigo-100"
+                            ? "bg-primary/5 border-primary/20 text-primary"
+                            : "bg-card border-border text-muted-foreground hover:border-primary/20"
                         }`}
                       >
                         {cls}
@@ -733,10 +733,10 @@ function TeacherAcademics() {
                 </div>
 
                 <div
-                  className={`bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm space-y-4 transition-opacity ${!selectedClass ? "opacity-50 pointer-events-none" : ""}`}
+                  className={`bg-card p-6 rounded-[1.5rem] border border-border shadow-sm space-y-4 transition-opacity ${!selectedClass ? "opacity-50 pointer-events-none" : ""}`}
                 >
-                  <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">
+                  <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
                       2
                     </span>
                     Select Subject
@@ -748,8 +748,8 @@ function TeacherAcademics() {
                         onClick={() => setSelectedSubject(sub)}
                         className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
                           selectedSubject === sub
-                            ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                            : "bg-white border-slate-100 text-slate-600 hover:border-indigo-100"
+                            ? "bg-primary/5 border-primary/20 text-primary"
+                            : "bg-card border-border text-muted-foreground hover:border-primary/20"
                         }`}
                       >
                         {sub}
@@ -762,17 +762,17 @@ function TeacherAcademics() {
               {/* Step 3: Select Assessment */}
               <div className="lg:col-span-2">
                 <div
-                  className={`bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm min-h-[400px] transition-opacity ${!selectedSubject ? "opacity-50 pointer-events-none" : ""}`}
+                  className={`bg-card p-6 rounded-[1.5rem] border border-border shadow-sm min-h-[400px] transition-opacity ${!selectedSubject ? "opacity-50 pointer-events-none" : ""}`}
                 >
-                  <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2 mb-6">
-                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">
+                  <h3 className="font-bold text-foreground text-lg flex items-center gap-2 mb-6">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
                       3
                     </span>
                     Select Assessment to Grade
                   </h3>
 
                   {!selectedSubject ? (
-                    <div className="h-[300px] flex flex-col items-center justify-center text-slate-400">
+                    <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground">
                       <Filter size={48} className="mb-4 opacity-20" />
                       <p>Select a class and subject first</p>
                     </div>
@@ -783,7 +783,7 @@ function TeacherAcademics() {
                           a.class === selectedClass &&
                           a.subject === selectedSubject,
                       ).length === 0 ? (
-                        <div className="text-center py-10 text-slate-500">
+                        <div className="text-center py-10 text-muted-foreground">
                           No assessments found for this subject.
                         </div>
                       ) : (
@@ -797,7 +797,7 @@ function TeacherAcademics() {
                             <button
                               key={assessment.id}
                               onClick={() => setSelectedAssessment(assessment)}
-                              className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-indigo-200 hover:shadow-sm transition-all group text-left"
+                              className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:border-primary/30 hover:shadow-sm transition-all group text-left"
                             >
                               <div className="flex items-center gap-4">
                                 <div
@@ -806,10 +806,10 @@ function TeacherAcademics() {
                                   {getAssessmentIcon(assessment.type)}
                                 </div>
                                 <div>
-                                  <h4 className="font-bold text-slate-900">
+                                  <h4 className="font-bold text-foreground">
                                     {assessment.title}
                                   </h4>
-                                  <p className="text-xs font-medium text-slate-500">
+                                  <p className="text-xs font-medium text-muted-foreground">
                                     {assessment.type} • Max:{" "}
                                     {assessment.maxScore} • {assessment.date}
                                   </p>
@@ -824,7 +824,7 @@ function TeacherAcademics() {
                                 )}
                                 <ChevronLeft
                                   size={20}
-                                  className="text-slate-400 rotate-180 group-hover:text-indigo-600 transition-colors"
+                                  className="text-muted-foreground rotate-180 group-hover:text-primary transition-colors"
                                 />
                               </div>
                             </button>
@@ -842,19 +842,19 @@ function TeacherAcademics() {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-6"
             >
-              <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center justify-between bg-card p-4 rounded-[1.5rem] border border-border shadow-sm">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setSelectedAssessment(null)}
-                    className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="w-10 h-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
                   >
                     <ChevronLeft size={20} />
                   </button>
                   <div>
-                    <h2 className="font-bold text-slate-900 dark:text-white text-lg">
+                    <h2 className="font-bold text-foreground text-lg">
                       {selectedAssessment.title}
                     </h2>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {selectedAssessment.class} • {selectedAssessment.subject}
                     </p>
                   </div>
@@ -867,29 +867,29 @@ function TeacherAcademics() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                        <th className="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider w-16 text-center">
+                      <tr className="bg-muted/30 border-b border-border">
+                        <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider w-16 text-center">
                           Roll
                         </th>
-                        <th className="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
+                        <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider">
                           Student Name
                         </th>
-                        <th className="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider w-32">
+                        <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider w-32">
                           Score (/{selectedAssessment.maxScore})
                         </th>
-                        <th className="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
+                        <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider">
                           Feedback
                         </th>
-                        <th className="p-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider w-24 text-center">
+                        <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider w-24 text-center">
                           Status
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-border">
                       {MOCK_STUDENTS.map((student) => {
                         const score =
                           grades[selectedAssessment.id]?.[student.id] || "";
@@ -903,16 +903,16 @@ function TeacherAcademics() {
                         return (
                           <tr
                             key={student.id}
-                            className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                            className="hover:bg-muted/30 transition-colors"
                           >
-                            <td className="p-4 text-center font-bold text-slate-500 dark:text-slate-400">
+                            <td className="p-4 text-center font-bold text-muted-foreground">
                               {student.rollNumber}
                             </td>
                             <td className="p-4">
-                              <p className="font-bold text-slate-900 dark:text-white">
+                              <p className="font-bold text-foreground">
                                 {student.name}
                               </p>
-                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              <p className="text-xs font-medium text-muted-foreground">
                                 {student.id}
                               </p>
                             </td>
@@ -925,7 +925,7 @@ function TeacherAcademics() {
                                 onChange={(e) =>
                                   handleGradeChange(student.id, e.target.value)
                                 }
-                                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                className="w-full px-3 py-2 bg-card border border-border rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 placeholder={`Max ${selectedAssessment.maxScore}`}
                               />
                             </td>
@@ -939,7 +939,7 @@ function TeacherAcademics() {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                className="w-full px-3 py-2 bg-card border border-border rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground"
                                 placeholder="Add feedback..."
                               />
                             </td>
@@ -948,12 +948,12 @@ function TeacherAcademics() {
                                 <span
                                   className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${
                                     percentage >= 90
-                                      ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                      ? "bg-emerald-500/10 text-emerald-500"
                                       : percentage >= 75
-                                        ? "bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400"
+                                        ? "bg-primary/10 text-primary"
                                         : percentage >= 60
-                                          ? "bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                          : "bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400"
+                                          ? "bg-amber-500/10 text-amber-500"
+                                          : "bg-destructive/10 text-destructive"
                                   }`}
                                 >
                                   {percentage >= 90
@@ -965,7 +965,7 @@ function TeacherAcademics() {
                                         : "F"}
                                 </span>
                               ) : (
-                                <span className="text-slate-300 dark:text-slate-600">-</span>
+                                <span className="text-muted-foreground/50">-</span>
                               )}
                             </td>
                           </tr>
@@ -981,13 +981,13 @@ function TeacherAcademics() {
                 <motion.div
                   initial={{ y: 100, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between"
+                  className="bg-card/90 backdrop-blur-md p-4 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-border/50 flex items-center justify-between"
                 >
                   <div className="hidden sm:block px-4">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    <p className="text-sm font-bold text-foreground">
                       Grading: {selectedAssessment.title}
                     </p>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-xs font-medium text-muted-foreground mt-0.5">
                       Remember to save before leaving
                     </p>
                   </div>
@@ -995,7 +995,7 @@ function TeacherAcademics() {
                   <button
                     onClick={handleSaveGrades}
                     disabled={isSaving}
-                    className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20"
+                    className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20"
                   >
                     {isSaving ? (
                       <Loader2 size={20} className="animate-spin" />
@@ -1018,22 +1018,22 @@ function TeacherAcademics() {
           animate={{ opacity: 1, x: 0 }}
           className="space-y-6"
         >
-          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between bg-card p-4 rounded-[1.5rem] border border-border shadow-sm">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => {
                   setViewingSubmissionsFor(null);
                   setActiveTab("assessments");
                 }}
-                className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-10 h-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <div>
-                <h2 className="font-bold text-slate-900 dark:text-white text-lg">
+                <h2 className="font-bold text-foreground text-lg">
                   Submissions: {viewingSubmissionsFor.title}
                 </h2>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                <p className="text-sm font-medium text-muted-foreground">
                   {viewingSubmissionsFor.class} • Due{" "}
                   {viewingSubmissionsFor.date}
                 </p>
@@ -1047,7 +1047,7 @@ function TeacherAcademics() {
                   setSelectedAssessment(viewingSubmissionsFor);
                   setActiveTab("gradebook");
                 }}
-                className="px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 rounded-xl font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors text-sm"
+                className="px-4 py-2 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary/20 transition-colors text-sm"
               >
                 Go to Gradebook
               </button>
@@ -1056,65 +1056,65 @@ function TeacherAcademics() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Submitted Column */}
-            <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 p-4 space-y-4">
+            <div className="bg-muted/30 rounded-[1.5rem] border border-border p-4 space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-slate-700 dark:text-slate-300">Submitted</h3>
-                <span className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                <h3 className="font-bold text-foreground">Submitted</h3>
+                <span className="bg-card text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg border border-border">
                   2
                 </span>
               </div>
 
               <div className="space-y-3">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                         BS
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white text-sm">
+                        <p className="font-bold text-foreground text-sm">
                           Bart Simpson
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                           Submitted today, 09:41 AM
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-800 mb-3">
-                    <FileText size={16} className="text-indigo-500" />
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
+                  <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border border-border mb-3">
+                    <FileText size={16} className="text-primary" />
+                    <span className="text-xs font-medium text-foreground truncate">
                       solar_system_report_final.pdf
                     </span>
                   </div>
-                  <button className="w-full py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors">
+                  <button className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors">
                     Review Submission
                   </button>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs">
                         LS
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white text-sm">
+                        <p className="font-bold text-foreground text-sm">
                           Lisa Simpson
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                           Submitted yesterday, 04:20 PM
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-800 mb-3">
-                    <FileText size={16} className="text-indigo-500" />
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
+                  <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border border-border mb-3">
+                    <FileText size={16} className="text-primary" />
+                    <span className="text-xs font-medium text-foreground truncate">
                       lisa_science_project.docx
                     </span>
                   </div>
-                  <button className="w-full py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors">
+                  <button className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors">
                     Review Submission
                   </button>
                 </div>
@@ -1122,31 +1122,31 @@ function TeacherAcademics() {
             </div>
 
             {/* Graded Column */}
-            <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 p-4 space-y-4">
+            <div className="bg-muted/30 rounded-[1.5rem] border border-border p-4 space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-slate-700 dark:text-slate-300">Graded</h3>
-                <span className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                <h3 className="font-bold text-foreground">Graded</h3>
+                <span className="bg-card text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg border border-border">
                   1
                 </span>
               </div>
 
               <div className="space-y-3">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm opacity-75">
+                <div className="bg-card p-4 rounded-xl border border-border shadow-sm opacity-75">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold text-xs">
                         MH
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white text-sm">
+                        <p className="font-bold text-foreground text-sm">
                           Milhouse Van Houten
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                           Graded on Oct 24
                         </p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md">
+                    <span className="text-sm font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
                       92/100
                     </span>
                   </div>
@@ -1155,10 +1155,10 @@ function TeacherAcademics() {
             </div>
 
             {/* Pending Column */}
-            <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 p-4 space-y-4">
+            <div className="bg-muted/30 rounded-[1.5rem] border border-border p-4 space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-slate-700 dark:text-slate-300">Pending</h3>
-                <span className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                <h3 className="font-bold text-foreground">Pending</h3>
+                <span className="bg-card text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg border border-border">
                   3
                 </span>
               </div>
@@ -1168,15 +1168,15 @@ function TeacherAcademics() {
                   (name, i) => (
                     <div
                       key={i}
-                      className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3"
+                      className="bg-card p-3 rounded-xl border border-border shadow-sm flex items-center gap-3"
                     >
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-xs">
                         {name
                           .split(" ")
                           .map((n) => n[0])
                           .join("")}
                       </div>
-                      <p className="font-bold text-slate-900 dark:text-white text-sm">{name}</p>
+                      <p className="font-bold text-foreground text-sm">{name}</p>
                     </div>
                   ),
                 )}
@@ -1292,20 +1292,20 @@ function ParentAcademics() {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
             Academic Report
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+          <p className="text-muted-foreground mt-2 font-medium">
             Viewing performance for {user?.name} ({user?.studentId})
           </p>
         </div>
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit overflow-x-auto max-w-full scrollbar-hide">
+        <div className="flex bg-muted p-1 rounded-xl w-fit overflow-x-auto max-w-full scrollbar-hide">
           <button
             onClick={() => setActiveTab("overview")}
             className={`px-4 sm:px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === "overview"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Overview
@@ -1314,8 +1314,8 @@ function ParentAcademics() {
             onClick={() => setActiveTab("assignments")}
             className={`px-4 sm:px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === "assignments"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             My Assignments
@@ -1324,8 +1324,8 @@ function ParentAcademics() {
             onClick={() => setActiveTab("assessments")}
             className={`px-4 sm:px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
               activeTab === "assessments"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Past Results
@@ -1337,15 +1337,15 @@ function ParentAcademics() {
         {activeTab === "overview" && (
           <div className="space-y-8">
           {/* GPA Card */}
-          <div className="bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-900/20 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-primary to-primary/80 rounded-[2rem] p-8 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div>
-                <p className="text-indigo-200 text-sm font-bold uppercase tracking-wider mb-2">
+                <p className="text-primary-foreground/70 text-sm font-bold uppercase tracking-wider mb-2">
                   Current GPA
                 </p>
                 <div className="flex items-end gap-3">
                   <h2 className="text-6xl font-bold tracking-tight">3.8</h2>
-                  <p className="text-indigo-300 font-medium text-xl mb-1.5">
+                  <p className="text-primary-foreground/80 font-medium text-xl mb-1.5">
                     / 4.0
                   </p>
                 </div>
@@ -1357,13 +1357,13 @@ function ParentAcademics() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center">
-                  <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider">
+                  <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-wider">
                     Total Credits
                   </p>
                   <p className="text-2xl font-bold mt-1">24</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center">
-                  <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider">
+                  <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-wider">
                     Absences
                   </p>
                   <p className="text-2xl font-bold mt-1">2</p>
@@ -1376,35 +1376,35 @@ function ParentAcademics() {
           </div>
 
           {/* Subject Breakdown */}
-          <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
-                <BookOpen size={20} className="text-indigo-600 dark:text-indigo-400" />
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
+              <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
+                <BookOpen size={20} className="text-primary" />
                 Subject Breakdown
               </h3>
-              <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1 rounded-full">
+              <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
                 Term 1
               </span>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-border">
               {subjects.map((sub, i) => (
                 <div
                   key={i}
-                  className="p-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  className="p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex-1">
-                    <p className="font-bold text-slate-900 dark:text-white text-lg">
+                    <p className="font-bold text-foreground text-lg">
                       {sub.name}
                     </p>
                     <div className="flex items-center gap-4 mt-2">
-                      <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden max-w-[200px]">
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden max-w-[200px]">
                         <div
                           className={`h-full rounded-full ${
                             sub.score >= 90
                               ? "bg-emerald-500"
                               : sub.score >= 80
-                                ? "bg-indigo-500"
+                                ? "bg-primary"
                                 : sub.score >= 70
                                   ? "bg-amber-500"
                                   : "bg-red-500"
@@ -1412,7 +1412,7 @@ function ParentAcademics() {
                           style={{ width: `${sub.score}%` }}
                         />
                       </div>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      <span className="text-xs font-bold text-muted-foreground">
                         {sub.score}%
                       </span>
                     </div>
@@ -1422,12 +1422,12 @@ function ParentAcademics() {
                     <div
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm border ${
                         sub.grade.startsWith("A")
-                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20"
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                           : sub.grade.startsWith("B")
-                            ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-100 dark:border-indigo-500/20"
+                            ? "bg-primary/10 text-primary border-primary/20"
                             : sub.grade.startsWith("C")
-                              ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-500/20"
-                              : "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-100 dark:border-red-500/20"
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              : "bg-destructive/10 text-destructive border-destructive/20"
                       }`}
                     >
                       {sub.grade}
@@ -1447,11 +1447,11 @@ function ParentAcademics() {
             {/* To Do */}
             <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-rose-500"></div>
                   To Do
                 </h3>
-                <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg">
+                <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
                   2
                 </span>
               </div>
@@ -1464,7 +1464,7 @@ function ParentAcademics() {
               ).map((assessment) => (
                 <div
                   key={assessment.id}
-                  className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                  className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
                   onClick={() => setSelectedAssignment(assessment)}
                 >
                   <div
@@ -1472,17 +1472,17 @@ function ParentAcademics() {
                   >
                     {assessment.subject}
                   </div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <h4 className="font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
                     {assessment.title}
                   </h4>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-4">
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
                     <Calendar size={14} /> Due {assessment.date}
                   </p>
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800">
-                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                  <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                    <span className="text-xs font-bold text-muted-foreground">
                       {assessment.type}
                     </span>
-                    <button className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="text-primary bg-primary/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
                       <Plus size={16} />
                     </button>
                   </div>
@@ -1493,36 +1493,36 @@ function ParentAcademics() {
             {/* In Progress */}
             <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                   In Progress
                 </h3>
-                <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg">
+                <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
                   1
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer group">
-                <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20">
+              <div className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group">
+                <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
                   Science
                 </div>
-                <h4 className="font-bold text-slate-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <h4 className="font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
                   Solar System Project
                 </h4>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-4">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
                   <Calendar size={14} /> Due Nov 05
                 </p>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mb-3">
+                <div className="w-full bg-muted rounded-full h-1.5 mb-3">
                   <div
                     className="bg-amber-500 h-1.5 rounded-full"
                     style={{ width: "45%" }}
                   ></div>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800">
-                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                  <span className="text-xs font-bold text-muted-foreground">
                     Assignment
                   </span>
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                  <span className="text-xs font-bold text-amber-500">
                     45% Complete
                   </span>
                 </div>
@@ -1532,28 +1532,28 @@ function ParentAcademics() {
             {/* Completed */}
             <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                   Completed
                 </h3>
-                <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg">
+                <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
                   1
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm opacity-75">
-                <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20">
+              <div className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm opacity-75">
+                <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-blue-500/10 text-blue-500 border-blue-500/20">
                   Mathematics
                 </div>
-                <h4 className="font-bold text-slate-900 dark:text-white mb-1 line-through decoration-slate-300 dark:decoration-slate-700">
+                <h4 className="font-bold text-foreground mb-1 line-through decoration-muted-foreground">
                   Algebra Chapter 1
                 </h4>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-4">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
                   <CheckCircle2 size={14} className="text-emerald-500" />{" "}
                   Submitted Oct 14
                 </p>
-                <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md">
+                <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                  <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
                     Graded: 10/10
                   </span>
                 </div>
@@ -1566,14 +1566,14 @@ function ParentAcademics() {
       {/* Assignment Submission Modal */}
       <AnimatePresence>
         {selectedAssignment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 dark:border-slate-800 max-h-[90vh] flex flex-col"
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-border max-h-[90vh] flex flex-col"
             >
-              <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-start">
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/30 flex justify-between items-start">
                 <div>
                   <div
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border w-fit mb-3 ${getAssessmentColor(selectedAssignment.type as AssessmentType)}`}
@@ -1583,10 +1583,10 @@ function ParentAcademics() {
                     )}
                     {selectedAssignment.type}
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">
                     {selectedAssignment.title}
                   </h2>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-4">
+                  <p className="text-sm font-medium text-muted-foreground mt-2 flex items-center gap-4">
                     <span>{selectedAssignment.subject}</span>
                     <span className="flex items-center gap-1">
                       <Calendar size={14} /> Due {selectedAssignment.date}
@@ -1598,7 +1598,7 @@ function ParentAcademics() {
                 </div>
                 <button
                   onClick={() => setSelectedAssignment(null)}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
                 >
                   <ChevronLeft size={24} className="rotate-180" />
                 </button>
@@ -1606,49 +1606,49 @@ function ParentAcademics() {
 
               <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-8">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-3">
                     Instructions
                   </h3>
-                  <p className="text-slate-600 leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed">
                     {selectedAssignment.description ||
                       "No additional instructions provided."}
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
                     Your Work
                   </h3>
 
                   {/* Upload Area */}
-                  <div className="border-2 border-dashed border-slate-200 rounded-[1.5rem] p-8 text-center hover:bg-slate-50 hover:border-indigo-300 transition-colors relative group">
+                  <div className="border-2 border-dashed border-border rounded-[1.5rem] p-8 text-center hover:bg-muted/50 hover:border-primary/30 transition-colors relative group">
                     <input
                       type="file"
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       onChange={handleFileUpload}
                       disabled={isUploading}
                     />
-                    <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                       {isUploading ? (
                         <Loader2 size={24} className="animate-spin" />
                       ) : (
                         <UploadCloud size={28} />
                       )}
                     </div>
-                    <p className="font-bold text-slate-900 text-lg mb-1">
+                    <p className="font-bold text-foreground text-lg mb-1">
                       {isUploading
                         ? "Uploading..."
                         : "Click to upload or drag and drop"}
                     </p>
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-muted-foreground">
                       PDF, DOCX, PPTX, or Images (max. 10MB)
                     </p>
                   </div>
 
                   {/* Private Comment */}
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="bg-muted/30 p-4 rounded-2xl border border-border">
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                         {user?.name
                           .split(" ")
                           .map((n) => n[0])
@@ -1657,7 +1657,7 @@ function ParentAcademics() {
                       <div className="flex-1">
                         <textarea
                           placeholder="Add a private comment to your teacher..."
-                          className="w-full bg-transparent border-none focus:ring-0 resize-none text-sm placeholder:text-slate-400 text-slate-900"
+                          className="w-full bg-transparent border-none focus:ring-0 resize-none text-sm placeholder:text-muted-foreground text-foreground"
                           rows={2}
                         ></textarea>
                       </div>
@@ -1666,16 +1666,16 @@ function ParentAcademics() {
                 </div>
               </div>
 
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+              <div className="p-6 border-t border-border bg-muted/30 flex justify-end gap-3">
                 <button
                   onClick={() => setSelectedAssignment(null)}
-                  className="px-6 py-3 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+                  className="px-6 py-3 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   disabled={isUploading}
-                  className="px-8 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-[0.98] shadow-md shadow-indigo-600/20 flex items-center gap-2"
+                  className="px-8 py-3 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center gap-2"
                 >
                   {isUploading ? (
                     <Loader2 size={18} className="animate-spin" />
@@ -1700,8 +1700,8 @@ function ParentAcademics() {
                 onClick={() => setFilterSubject(sub)}
                 className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
                   filterSubject === sub
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card text-muted-foreground border-border hover:bg-muted"
                 }`}
               >
                 {sub}
@@ -1716,7 +1716,7 @@ function ParentAcademics() {
               return (
                 <div
                   key={assessment.id}
-                  className="bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col h-full"
+                  className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm flex flex-col h-full"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div
@@ -1725,40 +1725,40 @@ function ParentAcademics() {
                       {getAssessmentIcon(assessment.type as AssessmentType)}
                       {assessment.type}
                     </div>
-                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
                       <Clock size={14} />
                       {assessment.date}
                     </span>
                   </div>
 
                   <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 text-lg mb-1">
+                    <h3 className="font-bold text-foreground text-lg mb-1">
                       {assessment.title}
                     </h3>
-                    <p className="text-sm font-medium text-slate-500 mb-4">
+                    <p className="text-sm font-medium text-muted-foreground mb-4">
                       {assessment.subject}
                     </p>
 
                     {assessment.feedback && (
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-4">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      <div className="bg-muted/30 p-3 rounded-xl border border-border mb-4">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
                           Teacher Feedback
                         </p>
-                        <p className="text-sm text-slate-700 italic">
+                        <p className="text-sm text-foreground italic">
                           &quot;{assessment.feedback}&quot;
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
+                  <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-auto">
                     <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                         Score
                       </p>
-                      <p className="text-lg font-bold text-slate-900">
+                      <p className="text-lg font-bold text-foreground">
                         {assessment.score}{" "}
-                        <span className="text-sm text-slate-400">
+                        <span className="text-sm text-muted-foreground">
                           / {assessment.maxScore}
                         </span>
                       </p>
@@ -1766,12 +1766,12 @@ function ParentAcademics() {
                     <div
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shadow-sm border ${
                         percentage >= 90
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                           : percentage >= 75
-                            ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                            ? "bg-primary/10 text-primary border-primary/20"
                             : percentage >= 60
-                              ? "bg-amber-50 text-amber-700 border-amber-100"
-                              : "bg-red-50 text-red-700 border-red-100"
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              : "bg-destructive/10 text-destructive border-destructive/20"
                       }`}
                     >
                       {percentage >= 90

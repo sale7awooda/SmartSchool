@@ -27,11 +27,11 @@ const PERIODS = [
 ];
 
 const INITIAL_SCHEDULE = [
-  { id: 'c1', grade: 'Grade 1', period: 1, subject: 'Math', teacher: 'Mr. Smith', room: '101', color: 'bg-blue-100 text-blue-800' },
-  { id: 'c2', grade: 'Grade 1', period: 2, subject: 'English', teacher: 'Mrs. Davis', room: '102', color: 'bg-emerald-100 text-emerald-800' },
-  { id: 'c3', grade: 'Grade 2', period: 1, subject: 'Science', teacher: 'Dr. Brown', room: 'Lab 1', color: 'bg-purple-100 text-purple-800' },
-  { id: 'c4', grade: 'Grade 3', period: 3, subject: 'History', teacher: 'Ms. Wilson', room: '201', color: 'bg-amber-100 text-amber-800' },
-  { id: 'c5', grade: 'Grade 4', period: 4, subject: 'Art', teacher: 'Mr. Taylor', room: 'Art Room', color: 'bg-pink-100 text-pink-800' },
+  { id: 'c1', grade: 'Grade 1', period: 1, subject: 'Math', teacher: 'Mr. Smith', room: '101', color: 'bg-blue-500/20 text-blue-500' },
+  { id: 'c2', grade: 'Grade 1', period: 2, subject: 'English', teacher: 'Mrs. Davis', room: '102', color: 'bg-emerald-500/20 text-emerald-500' },
+  { id: 'c3', grade: 'Grade 2', period: 1, subject: 'Science', teacher: 'Dr. Brown', room: 'Lab 1', color: 'bg-purple-500/20 text-purple-500' },
+  { id: 'c4', grade: 'Grade 3', period: 3, subject: 'History', teacher: 'Ms. Wilson', room: '201', color: 'bg-amber-500/10 text-amber-500' },
+  { id: 'c5', grade: 'Grade 4', period: 4, subject: 'Art', teacher: 'Mr. Taylor', room: 'Art Room', color: 'bg-pink-500/10 text-pink-500' },
 ];
 
 export default function AdminScheduleView() {
@@ -48,22 +48,22 @@ export default function AdminScheduleView() {
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-200">
+          <div className="flex items-center bg-muted rounded-xl p-1 border border-border">
             <button 
               onClick={handlePreviousDay}
-              className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors"
+              className="p-2 text-muted-foreground hover:text-primary hover:bg-card rounded-lg transition-colors"
             >
               <ChevronLeft size={20} />
             </button>
-            <div className="px-4 py-2 font-bold text-slate-700 min-w-[140px] text-center flex items-center justify-center gap-2">
-              <CalendarDays size={18} className="text-indigo-500" />
+            <div className="px-4 py-2 font-bold text-foreground min-w-[140px] text-center flex items-center justify-center gap-2">
+              <CalendarDays size={18} className="text-primary" />
               {format(selectedDate, 'EEEE, MMM d')}
             </div>
             <button 
               onClick={handleNextDay}
-              className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors"
+              className="p-2 text-muted-foreground hover:text-primary hover:bg-card rounded-lg transition-colors"
             >
               <ChevronRight size={20} />
             </button>
@@ -73,7 +73,7 @@ export default function AdminScheduleView() {
         <div className="flex items-center gap-3">
           <Link 
             href="/dashboard/schedule/wizard"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
           >
             <Wand2 size={16} />
             Timetable Wizard
@@ -82,21 +82,21 @@ export default function AdminScheduleView() {
       </div>
 
       {/* Master Schedule Grid */}
-      <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
+      <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden overflow-x-auto">
         <div className="min-w-[1000px]">
           {/* Header Row (Periods) */}
-          <div className="grid grid-cols-[120px_repeat(7,1fr)] border-b border-slate-100 bg-slate-50/80">
-            <div className="p-4 border-r border-slate-100 flex items-center justify-center font-bold text-slate-500">
+          <div className="grid grid-cols-[120px_repeat(7,1fr)] border-b border-border bg-muted/80">
+            <div className="p-4 border-r border-border flex items-center justify-center font-bold text-muted-foreground">
               Grades
             </div>
             {PERIODS.map((period, index) => (
-              <div key={index} className="p-3 border-r border-slate-100 last:border-0 flex flex-col items-center justify-center text-center">
+              <div key={index} className="p-3 border-r border-border last:border-0 flex flex-col items-center justify-center text-center">
                 {typeof period.id === 'string' ? (
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{period.label}</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{period.label}</span>
                 ) : (
                   <>
-                    <span className="text-xs font-bold text-slate-700">Period {period.id}</span>
-                    <span className="text-[10px] font-medium text-slate-500 mt-1">{period.time}</span>
+                    <span className="text-xs font-bold text-foreground">Period {period.id}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground mt-1">{period.time}</span>
                   </>
                 )}
               </div>
@@ -108,7 +108,7 @@ export default function AdminScheduleView() {
             {GRADES.map(grade => (
               <div key={grade} className="grid grid-cols-[120px_repeat(7,1fr)]">
                 {/* Grade Column */}
-                <div className="p-4 border-r border-slate-100 flex items-center justify-center bg-slate-50/30 font-bold text-slate-700">
+                <div className="p-4 border-r border-border flex items-center justify-center bg-muted/30 font-bold text-foreground">
                   {grade}
                 </div>
 
@@ -116,7 +116,7 @@ export default function AdminScheduleView() {
                 {PERIODS.map((period, index) => {
                   if (typeof period.id === 'string') {
                     return (
-                      <div key={`${grade}-break-${index}`} className="p-2 border-r border-slate-100 bg-slate-50/50 flex items-center justify-center">
+                      <div key={`${grade}-break-${index}`} className="p-2 border-r border-border bg-muted/50 flex items-center justify-center">
                         <div className="w-2 h-2 rounded-full bg-slate-200"></div>
                       </div>
                     );
@@ -127,7 +127,7 @@ export default function AdminScheduleView() {
                   return (
                     <div 
                       key={`${grade}-${period.id}`}
-                      className="p-2 border-r border-slate-100 last:border-0 min-h-[100px] transition-colors"
+                      className="p-2 border-r border-border last:border-0 min-h-[100px] transition-colors"
                     >
                       {classData ? (
                         <div
@@ -144,8 +144,8 @@ export default function AdminScheduleView() {
                           </p>
                         </div>
                       ) : (
-                        <div className="h-full rounded-xl border border-dashed border-slate-200 bg-slate-50/30 flex items-center justify-center">
-                          <span className="text-[10px] text-slate-400 font-medium">Free</span>
+                        <div className="h-full rounded-xl border border-dashed border-border bg-muted/30 flex items-center justify-center">
+                          <span className="text-[10px] text-muted-foreground font-medium">Free</span>
                         </div>
                       )}
                     </div>
@@ -157,7 +157,7 @@ export default function AdminScheduleView() {
         </div>
       </div>
       
-      <div className="bg-blue-50 text-blue-800 p-4 rounded-xl flex items-start gap-3 text-sm">
+      <div className="bg-blue-500/10 text-blue-500 p-4 rounded-xl flex items-start gap-3 text-sm">
         <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
         <div>
           <p className="font-bold">Read-Only Master Schedule</p>

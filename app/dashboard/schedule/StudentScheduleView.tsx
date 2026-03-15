@@ -64,14 +64,14 @@ export default function StudentScheduleView() {
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold shadow-inner">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold shadow-inner">
             {selectedStudent.name.charAt(0)}
           </div>
           <div>
-            <h3 className="font-bold text-slate-900">{selectedStudent.name}</h3>
-            <p className="text-xs font-medium text-slate-500">{selectedStudent.grade} • ID: {selectedStudent.id}</p>
+            <h3 className="font-bold text-foreground">{selectedStudent.name}</h3>
+            <p className="text-xs font-medium text-muted-foreground">{selectedStudent.grade} • ID: {selectedStudent.id}</p>
           </div>
         </div>
 
@@ -80,7 +80,7 @@ export default function StudentScheduleView() {
             <select 
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors cursor-pointer"
+              className="appearance-none pl-4 pr-10 py-2.5 bg-muted border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors cursor-pointer"
             >
               {availableStudents.map(student => (
                 <option key={student.id} value={student.id}>
@@ -88,28 +88,28 @@ export default function StudentScheduleView() {
                 </option>
               ))}
             </select>
-            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           </div>
         )}
       </div>
 
       {/* Weekly Schedule Grid */}
-      <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
+      <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden overflow-x-auto">
         <div className="min-w-[1000px]">
           {/* Header Row (Periods) */}
-          <div className="grid grid-cols-[120px_repeat(8,1fr)] border-b border-slate-100 bg-slate-50/80">
-            <div className="p-4 border-r border-slate-100 flex items-center justify-center font-bold text-slate-500">
-              <CalendarDays size={20} className="mr-2 text-indigo-500" />
+          <div className="grid grid-cols-[120px_repeat(8,1fr)] border-b border-border bg-muted/80">
+            <div className="p-4 border-r border-border flex items-center justify-center font-bold text-muted-foreground">
+              <CalendarDays size={20} className="mr-2 text-primary" />
               Days
             </div>
             {PERIODS.map((period, index) => (
-              <div key={index} className="p-3 border-r border-slate-100 last:border-0 flex flex-col items-center justify-center text-center">
+              <div key={index} className="p-3 border-r border-border last:border-0 flex flex-col items-center justify-center text-center">
                 {typeof period.id === 'string' ? (
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{period.label}</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{period.label}</span>
                 ) : (
                   <>
-                    <span className="text-xs font-bold text-slate-700">Period {period.id}</span>
-                    <span className="text-[10px] font-medium text-slate-500 mt-1">{period.time}</span>
+                    <span className="text-xs font-bold text-foreground">Period {period.id}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground mt-1">{period.time}</span>
                   </>
                 )}
               </div>
@@ -121,7 +121,7 @@ export default function StudentScheduleView() {
             {DAYS.map(day => (
               <div key={day.id} className="grid grid-cols-[120px_repeat(8,1fr)]">
                 {/* Day Column */}
-                <div className="p-4 border-r border-slate-100 flex items-center justify-center bg-slate-50/30 font-bold text-slate-700">
+                <div className="p-4 border-r border-border flex items-center justify-center bg-muted/30 font-bold text-foreground">
                   {day.name}
                 </div>
 
@@ -129,7 +129,7 @@ export default function StudentScheduleView() {
                 {PERIODS.map((period, index) => {
                   if (typeof period.id === 'string') {
                     return (
-                      <div key={`${day.id}-break-${index}`} className="p-2 border-r border-slate-100 bg-slate-50/50 flex items-center justify-center">
+                      <div key={`${day.id}-break-${index}`} className="p-2 border-r border-border bg-muted/50 flex items-center justify-center">
                         <div className="w-2 h-2 rounded-full bg-slate-200"></div>
                       </div>
                     );
@@ -140,7 +140,7 @@ export default function StudentScheduleView() {
                   return (
                     <div 
                       key={`${day.id}-${period.id}`}
-                      className="p-2 border-r border-slate-100 last:border-0 min-h-[100px] transition-colors"
+                      className="p-2 border-r border-border last:border-0 min-h-[100px] transition-colors"
                     >
                       {classData ? (
                         <div
@@ -157,8 +157,8 @@ export default function StudentScheduleView() {
                           </p>
                         </div>
                       ) : (
-                        <div className="h-full rounded-xl border border-dashed border-slate-200 bg-slate-50/30 flex items-center justify-center">
-                          <span className="text-[10px] text-slate-400 font-medium">Free</span>
+                        <div className="h-full rounded-xl border border-dashed border-border bg-muted/30 flex items-center justify-center">
+                          <span className="text-[10px] text-muted-foreground font-medium">Free</span>
                         </div>
                       )}
                     </div>

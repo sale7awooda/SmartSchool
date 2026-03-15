@@ -15,10 +15,10 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const SYSTEM_SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Art', 'Physical Education', 'Music', 'Computer Science'];
 const SYSTEM_TEACHERS = ['Mr. Smith', 'Mrs. Davis', 'Dr. Brown', 'Ms. Wilson', 'Mr. Taylor', 'Ms. Anderson', 'Mr. Thomas', 'Mrs. Jackson', 'Mr. White'];
 const COLORS = [
-  'bg-blue-100 text-blue-800 border-blue-200', 
-  'bg-emerald-100 text-emerald-800 border-emerald-200', 
-  'bg-purple-100 text-purple-800 border-purple-200', 
-  'bg-amber-100 text-amber-800 border-amber-200', 
+  'bg-blue-500/20 text-blue-800 border-blue-200', 
+  'bg-emerald-500/20 text-emerald-800 border-emerald-500/20', 
+  'bg-purple-500/20 text-purple-800 border-purple-500/20', 
+  'bg-amber-100 text-amber-800 border-amber-500/20', 
   'bg-pink-100 text-pink-800 border-pink-200', 
   'bg-orange-100 text-orange-800 border-orange-200'
 ];
@@ -216,13 +216,13 @@ export default function TimetableWizard() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push('/dashboard/schedule')}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+            className="p-2 hover:bg-muted rounded-xl transition-colors"
           >
-            <ArrowLeft size={20} className="text-slate-500" />
+            <ArrowLeft size={20} className="text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Timetable Wizard</h1>
-            <p className="text-sm text-slate-500">Create or modify the master schedule</p>
+            <h1 className="text-2xl font-bold text-foreground">Timetable Wizard</h1>
+            <p className="text-sm text-muted-foreground">Create or modify the master schedule</p>
           </div>
         </div>
         
@@ -230,19 +230,19 @@ export default function TimetableWizard() {
           <div className="flex items-center gap-2">
             <button 
               onClick={() => handleSaveDraft(1)}
-              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm"
+              className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm"
             >
               Save Draft 1
             </button>
             <button 
               onClick={() => handleSaveDraft(2)}
-              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm"
+              className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm"
             >
               Save Draft 2
             </button>
             <button 
               onClick={handlePublish}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
+              className="px-4 py-2 bg-emerald-500 text-primary-foreground rounded-xl font-bold text-sm hover:bg-emerald-600 transition-colors shadow-sm flex items-center gap-2"
             >
               <Save size={16} />
               Publish Main
@@ -255,7 +255,7 @@ export default function TimetableWizard() {
         <motion.div 
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }} 
-          className="bg-emerald-50 text-emerald-700 p-3 rounded-xl flex items-center gap-2 text-sm font-medium border border-emerald-100"
+          className="bg-emerald-500/10 text-emerald-500 p-3 rounded-xl flex items-center gap-2 text-sm font-medium border border-emerald-500/20"
         >
           <CheckCircle2 size={16} />
           {draftSaved} saved successfully.
@@ -263,11 +263,11 @@ export default function TimetableWizard() {
       )}
 
       {/* Stepper */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="bg-card p-4 rounded-2xl border border-border shadow-sm">
         <div className="flex items-center justify-between max-w-3xl mx-auto relative">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 rounded-full -z-10"></div>
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted rounded-full -z-10"></div>
           <div 
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full -z-10 transition-all duration-500"
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary rounded-full -z-10 transition-all duration-500"
             style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
           ></div>
           
@@ -277,17 +277,17 @@ export default function TimetableWizard() {
             const isCurrent = currentStep === step.id;
             
             return (
-              <div key={step.id} className="flex flex-col items-center gap-2 bg-white px-2">
+              <div key={step.id} className="flex flex-col items-center gap-2 bg-card px-2">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
-                  isActive ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-400'
+                  isActive ? 'bg-primary border-primary text-primary-foreground' : 'bg-card border-border text-muted-foreground'
                 }`}>
                   <Icon size={18} />
                 </div>
                 <div className="text-center">
-                  <p className={`text-sm font-bold ${isCurrent ? 'text-indigo-900' : isActive ? 'text-slate-700' : 'text-slate-400'}`}>
+                  <p className={`text-sm font-bold ${isCurrent ? 'text-indigo-900' : isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {step.title}
                   </p>
-                  <p className="text-[10px] text-slate-500 hidden sm:block">{step.description}</p>
+                  <p className="text-[10px] text-muted-foreground hidden sm:block">{step.description}</p>
                 </div>
               </div>
             );
@@ -296,7 +296,7 @@ export default function TimetableWizard() {
       </div>
 
       {/* Step Content */}
-      <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6 min-h-[400px]">
+      <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 min-h-[400px]">
         <AnimatePresence mode="wait">
           {currentStep === 1 && (
             <motion.div 
@@ -306,46 +306,46 @@ export default function TimetableWizard() {
               exit={{ opacity: 0, x: -20 }}
               className="max-w-2xl mx-auto space-y-6"
             >
-              <h2 className="text-xl font-bold text-slate-900">General Constraints</h2>
-              <p className="text-slate-500 text-sm">Define the basic structure of your school week.</p>
+              <h2 className="text-xl font-bold text-foreground">General Constraints</h2>
+              <p className="text-muted-foreground text-sm">Define the basic structure of your school week.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Days per Week</label>
+                  <label className="text-sm font-bold text-foreground">Days per Week</label>
                   <input 
                     type="number" 
                     min="1" max="7"
                     value={constraints.daysPerWeek}
                     onChange={(e) => setConstraints({...constraints, daysPerWeek: parseInt(e.target.value) || 5})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Periods per Day</label>
+                  <label className="text-sm font-bold text-foreground">Periods per Day</label>
                   <input 
                     type="number" 
                     min="1" max="10"
                     value={constraints.periodsPerDay}
                     onChange={(e) => setConstraints({...constraints, periodsPerDay: parseInt(e.target.value) || 6})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Period Length (mins)</label>
+                  <label className="text-sm font-bold text-foreground">Period Length (mins)</label>
                   <input 
                     type="number" 
                     value={constraints.periodLength}
                     onChange={(e) => setConstraints({...constraints, periodLength: parseInt(e.target.value) || 50})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Breakfast Break Length (mins)</label>
+                  <label className="text-sm font-bold text-foreground">Breakfast Break Length (mins)</label>
                   <input 
                     type="number" 
                     value={constraints.breakLength}
                     onChange={(e) => setConstraints({...constraints, breakLength: parseInt(e.target.value) || 30})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   />
                 </div>
               </div>
@@ -361,23 +361,23 @@ export default function TimetableWizard() {
               className="max-w-5xl mx-auto space-y-6"
             >
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Subject Mapping</h2>
-                <p className="text-slate-500 text-sm">Assign subjects and required classes per week to each grade.</p>
+                <h2 className="text-xl font-bold text-foreground">Subject Mapping</h2>
+                <p className="text-muted-foreground text-sm">Assign subjects and required classes per week to each grade.</p>
               </div>
 
               {/* Progress Indicator */}
-              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+              <div className="bg-muted p-6 rounded-2xl border border-border">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-slate-700">Mapping Progress</h3>
-                  <span className="text-sm font-bold text-indigo-600">{totalMapped} / {totalAvailable} Periods</span>
+                  <h3 className="font-bold text-foreground">Mapping Progress</h3>
+                  <span className="text-sm font-bold text-primary">{totalMapped} / {totalAvailable} Periods</span>
                 </div>
                 <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                    className="h-full bg-primary rounded-full transition-all duration-500"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Based on {constraints.periodsPerDay} periods/day over {constraints.daysPerWeek} days for {GRADES.length} grades.
                 </p>
               </div>
@@ -387,21 +387,21 @@ export default function TimetableWizard() {
                 <select 
                   value={newMapping.grade}
                   onChange={e => setNewMapping({...newMapping, grade: e.target.value})}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 >
                   {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
                 <select 
                   value={newMapping.subject}
                   onChange={e => setNewMapping({...newMapping, subject: e.target.value})}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 >
                   {SYSTEM_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <select 
                   value={newMapping.teacher}
                   onChange={e => setNewMapping({...newMapping, teacher: e.target.value})}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 >
                   {SYSTEM_TEACHERS.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -409,31 +409,31 @@ export default function TimetableWizard() {
                   type="number" min="1" placeholder="Classes/Week"
                   value={newMapping.classesPerWeek}
                   onChange={e => setNewMapping({...newMapping, classesPerWeek: parseInt(e.target.value) || 1})}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 />
                 <button 
                   onClick={handleAddMapping}
                   disabled={!newMapping.subject || !newMapping.teacher}
-                  className="p-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="p-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Plus size={18} /> Add
                 </button>
               </div>
 
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="border border-border rounded-xl overflow-hidden">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 border-b border-slate-200">
+                  <thead className="bg-muted border-b border-border">
                     <tr>
-                      <th className="p-4 font-bold text-slate-700">Grade</th>
-                      <th className="p-4 font-bold text-slate-700">Subject</th>
-                      <th className="p-4 font-bold text-slate-700">Teacher</th>
-                      <th className="p-4 font-bold text-slate-700">Classes / Week</th>
-                      <th className="p-4 font-bold text-slate-700">Actions</th>
+                      <th className="p-4 font-bold text-foreground">Grade</th>
+                      <th className="p-4 font-bold text-foreground">Subject</th>
+                      <th className="p-4 font-bold text-foreground">Teacher</th>
+                      <th className="p-4 font-bold text-foreground">Classes / Week</th>
+                      <th className="p-4 font-bold text-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {mappings.map((mapping) => (
-                      <tr key={mapping.id} className="hover:bg-slate-50/50">
+                      <tr key={mapping.id} className="hover:bg-muted/50">
                         <td className="p-4 font-medium">{mapping.grade}</td>
                         <td className="p-4">{mapping.subject}</td>
                         <td className="p-4">{mapping.teacher}</td>
@@ -441,7 +441,7 @@ export default function TimetableWizard() {
                         <td className="p-4">
                           <button 
                             onClick={() => handleRemoveMapping(mapping.id)}
-                            className="text-red-500 hover:text-red-700 font-medium text-xs flex items-center gap-1"
+                            className="text-red-500 hover:text-destructive font-medium text-xs flex items-center gap-1"
                           >
                             <Trash2 size={14} /> Remove
                           </button>
@@ -450,7 +450,7 @@ export default function TimetableWizard() {
                     ))}
                     {mappings.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-500">
+                        <td colSpan={5} className="p-8 text-center text-muted-foreground">
                           No subjects mapped yet. Add one above.
                         </td>
                       </tr>
@@ -471,13 +471,13 @@ export default function TimetableWizard() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Timetable Builder</h2>
-                  <p className="text-slate-500 text-sm">Drag and drop to resolve conflicts, or auto-generate based on mappings.</p>
+                  <h2 className="text-xl font-bold text-foreground">Timetable Builder</h2>
+                  <p className="text-muted-foreground text-sm">Drag and drop to resolve conflicts, or auto-generate based on mappings.</p>
                 </div>
                 <button 
                   onClick={handleGenerateTimetable}
                   disabled={isGenerating}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
                 >
                   {isGenerating ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -495,7 +495,7 @@ export default function TimetableWizard() {
                     key={day}
                     onClick={() => setSelectedDay(day)}
                     className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition-colors ${
-                      selectedDay === day ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      selectedDay === day ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-slate-200'
                     }`}
                   >
                     {day}
@@ -503,42 +503,42 @@ export default function TimetableWizard() {
                 ))}
               </div>
 
-              <div className="border border-slate-100 rounded-2xl overflow-hidden overflow-x-auto bg-slate-50/30">
+              <div className="border border-border rounded-2xl overflow-hidden overflow-x-auto bg-muted/30">
                 <DragDropContext onDragEnd={handleDragEnd}>
                   <div className="min-w-[1000px]">
                     <div 
-                      className="grid border-b border-slate-200 bg-white"
+                      className="grid border-b border-border bg-card"
                       style={{ gridTemplateColumns: `120px repeat(${periods.length}, minmax(120px, 1fr))` }}
                     >
-                      <div className="p-4 border-r border-slate-200 flex items-center justify-center font-bold text-slate-500">
+                      <div className="p-4 border-r border-border flex items-center justify-center font-bold text-muted-foreground">
                         Grades
                       </div>
                       {periods.map((period, index) => (
-                        <div key={index} className="p-3 border-r border-slate-200 last:border-0 flex flex-col items-center justify-center text-center">
+                        <div key={index} className="p-3 border-r border-border last:border-0 flex flex-col items-center justify-center text-center">
                           {period.id === 'break' ? (
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{period.label}</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{period.label}</span>
                           ) : (
-                            <span className="text-xs font-bold text-slate-700">{period.label}</span>
+                            <span className="text-xs font-bold text-foreground">{period.label}</span>
                           )}
                         </div>
                       ))}
                     </div>
 
-                    <div className="divide-y divide-slate-200 bg-white">
+                    <div className="divide-y divide-slate-200 bg-card">
                       {GRADES.map(grade => (
                         <div 
                           key={grade} 
                           className="grid"
                           style={{ gridTemplateColumns: `120px repeat(${periods.length}, minmax(120px, 1fr))` }}
                         >
-                          <div className="p-4 border-r border-slate-200 flex items-center justify-center bg-slate-50/50 font-bold text-slate-700">
+                          <div className="p-4 border-r border-border flex items-center justify-center bg-muted/50 font-bold text-foreground">
                             {grade}
                           </div>
 
                           {periods.map((period, index) => {
                             if (period.id === 'break') {
                               return (
-                                <div key={`${grade}-break-${index}`} className="p-2 border-r border-slate-200 bg-slate-50/50 flex items-center justify-center">
+                                <div key={`${grade}-break-${index}`} className="p-2 border-r border-border bg-muted/50 flex items-center justify-center">
                                   <div className="w-2 h-2 rounded-full bg-slate-300"></div>
                                 </div>
                               );
@@ -554,8 +554,8 @@ export default function TimetableWizard() {
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
                                     onClick={() => !classData && setSelectedSlot({ grade, period: period.id as number })}
-                                    className={`p-2 border-r border-slate-200 last:border-0 min-h-[100px] transition-colors ${
-                                      snapshot.isDraggingOver ? 'bg-indigo-50' : !classData ? 'hover:bg-slate-50 cursor-pointer' : ''
+                                    className={`p-2 border-r border-border last:border-0 min-h-[100px] transition-colors ${
+                                      snapshot.isDraggingOver ? 'bg-primary/10' : !classData ? 'hover:bg-muted cursor-pointer' : ''
                                     }`}
                                   >
                                     {classData ? (
@@ -578,7 +578,7 @@ export default function TimetableWizard() {
                                                     e.stopPropagation(); 
                                                     setSchedule(schedule.filter(s => s.id !== classData.id)); 
                                                   }}
-                                                  className="opacity-0 hover:opacity-100 group-hover:opacity-100 text-slate-500 hover:text-red-500 transition-opacity"
+                                                  className="opacity-0 hover:opacity-100 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
                                                 >
                                                   <X size={12} />
                                                 </button>
@@ -594,8 +594,8 @@ export default function TimetableWizard() {
                                         )}
                                       </Draggable>
                                     ) : (
-                                      <div className="h-full rounded-xl border border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                        <Plus size={16} className="text-slate-400" />
+                                      <div className="h-full rounded-xl border border-dashed border-border bg-muted/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                        <Plus size={16} className="text-muted-foreground" />
                                       </div>
                                     )}
                                     {provided.placeholder}
@@ -620,7 +620,7 @@ export default function TimetableWizard() {
         <button
           onClick={handleBack}
           disabled={currentStep === 1}
-          className="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Back
         </button>
@@ -628,13 +628,13 @@ export default function TimetableWizard() {
         {currentStep < 3 ? (
           <button
             onClick={handleNext}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm"
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-sm"
           >
             Next Step
             <ArrowRight size={16} />
           </button>
         ) : (
-          <div className="text-sm text-slate-500 flex items-center gap-2">
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
             <AlertCircle size={16} />
             Don&apos;t forget to save your drafts or publish.
           </div>
@@ -650,22 +650,22 @@ export default function TimetableWizard() {
           >
             <motion.div 
               initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
+              className="bg-card rounded-2xl p-6 w-full max-w-md shadow-xl"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-slate-900">Add Class</h3>
-                <button onClick={() => setSelectedSlot(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                  <X size={20} className="text-slate-500" />
+                <h3 className="text-lg font-bold text-foreground">Add Class</h3>
+                <button onClick={() => setSelectedSlot(null)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                  <X size={20} className="text-muted-foreground" />
                 </button>
               </div>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Subject & Teacher</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">Subject & Teacher</label>
                   <select 
                     value={slotForm.mappingId}
                     onChange={(e) => setSlotForm({...slotForm, mappingId: e.target.value})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   >
                     <option value="">Select a mapped subject...</option>
                     {mappings.filter(m => m.grade === selectedSlot.grade).map(m => (
@@ -675,20 +675,20 @@ export default function TimetableWizard() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Room</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">Room</label>
                   <input 
                     type="text"
                     placeholder="e.g. Room 101"
                     value={slotForm.room}
                     onChange={(e) => setSlotForm({...slotForm, room: e.target.value})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   />
                 </div>
                 
                 <button 
                   onClick={handleAddClass}
                   disabled={!slotForm.mappingId}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   Add to Schedule
                 </button>

@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   if (isLoading || !user) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 dark:text-slate-200">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Loading...</div>;
   }
 
   const getNavItems = () => {
@@ -95,22 +95,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = getNavItems();
 
   return (
-    <div className="min-h-screen w-full bg-slate-50/50 dark:bg-slate-950 flex flex-col md:flex-row font-sans transition-colors">
+    <div className="min-h-screen w-full bg-muted/30 dark:bg-background flex flex-col md:flex-row font-sans transition-colors">
       
       {/* Desktop Sidebar */}
       <aside 
-        className={`hidden md:flex flex-col bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 fixed h-full z-20 shadow-sm transition-all duration-300 ${
+        className={`hidden md:flex flex-col bg-card border-border fixed h-full z-20 shadow-sm transition-all duration-300 ${
           isCollapsed ? 'w-20' : 'w-56'
         } ${isRTL ? 'right-0 border-l' : 'left-0 border-r'}`}
       >
-        <div className="p-4 border-b border-slate-100/50 dark:border-slate-800 flex items-center justify-between h-24">
+        <div className="p-4 border-b border-border/50 flex items-center justify-between h-24">
           <div className={`flex items-center gap-4 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 p-1.5">
               <Logo className="w-full h-full" />
             </div>
             <div className="min-w-0 leading-tight">
-              <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">Smart</h2>
-              <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 tracking-tight">School</h2>
+              <h2 className="text-lg font-bold text-primary tracking-tight">Smart</h2>
+              <h2 className="text-lg font-bold text-primary tracking-tight">School</h2>
             </div>
           </div>
           
@@ -122,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`absolute top-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full p-1 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all z-30 ${
+            className={`absolute top-6 bg-card border border-border rounded-full p-1 text-muted-foreground hover:text-primary hover:border-primary/50 shadow-sm transition-all z-30 ${
               isRTL ? '-left-3 rotate-0' : '-right-3 rotate-0'
             } ${isCollapsed ? (isRTL ? 'rotate-0' : 'rotate-180') : (isRTL ? 'rotate-180' : 'rotate-0')}`}
           >
@@ -142,11 +142,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 title={isCollapsed ? item.name : undefined}
                 className={`flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-semibold transition-all group relative ${
                   isActive 
-                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-500/20' 
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
+                    ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20' 
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 } ${isCollapsed ? 'justify-center' : ''}`}
               >
-                <item.icon size={24} className={`shrink-0 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                <item.icon size={24} className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
                 
                 {!isCollapsed && (
                   <span className="truncate">{item.name}</span>
@@ -154,9 +154,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 {/* Tooltip for collapsed state */}
                 {isCollapsed && (
-                  <div className={`absolute ml-4 px-2.5 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 ${isRTL ? 'right-full mr-4' : 'left-full ml-4'}`}>
+                  <div className={`absolute ml-4 px-2.5 py-1.5 bg-foreground text-background text-xs font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 ${isRTL ? 'right-full mr-4' : 'left-full ml-4'}`}>
                     {item.name}
-                    <div className={`absolute top-1/2 -translate-y-1/2 border-4 border-transparent ${isRTL ? '-right-1 border-l-slate-800' : '-left-1 border-r-slate-800'}`} />
+                    <div className={`absolute top-1/2 -translate-y-1/2 border-4 border-transparent ${isRTL ? '-right-1 border-l-foreground' : '-left-1 border-r-foreground'}`} />
                   </div>
                 )}
               </Link>
@@ -164,14 +164,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div className="p-3 border-t border-slate-100/50 dark:border-slate-800">
+        <div className="p-3 border-t border-border/50">
           {user.role === 'parent' && user.studentIds && user.studentIds.length > 1 && !isCollapsed && (
             <div className="mb-4 px-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Switch Student</label>
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Switch Student</label>
               <select 
                 value={user.studentId} 
                 onChange={(e) => switchStudent(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full bg-background border border-border text-foreground text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 {user.studentIds.map(id => (
                   <option key={id} value={id}>Student: {id}</option>
@@ -181,7 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
           
           <div className="px-2 py-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Smart School v1.0</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Smart School v1.0</p>
           </div>
         </div>
       </aside>
@@ -189,26 +189,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Mobile Drawer Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="md:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
+          className="md:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Mobile Drawer */}
-      <aside className={`md:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-56 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}`}>
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <aside className={`md:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-56 bg-card shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}`}>
+        <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center p-1.5">
               <Logo className="w-full h-full" />
             </div>
             <div className="leading-tight">
-              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Smart</h2>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">School</h2>
+              <h2 className="text-xl font-black text-foreground tracking-tighter">Smart</h2>
+              <h2 className="text-xl font-black text-foreground tracking-tighter">School</h2>
             </div>
           </div>
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
+            className="p-2 text-muted-foreground hover:bg-muted rounded-full"
           >
             {isRTL ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
           </button>
@@ -226,11 +226,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all ${
                   isActive 
-                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-500/20' 
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
+                    ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20' 
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <item.icon size={24} className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
+                <item.icon size={24} className={isActive ? 'text-primary' : 'text-muted-foreground'} />
                 {item.name}
               </Link>
             );
@@ -250,7 +250,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
 
       {/* Mobile Bottom Navigation (Quick Links) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-lg border-t border-border z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="flex justify-around items-center h-16 px-2">
           {navItems.slice(0, 5).map((item) => {
             const isActive = item.href === '/dashboard' 
@@ -261,10 +261,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.name}
                 href={item.href}
                 className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
-                  isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-indigo-50 dark:bg-indigo-500/10' : ''}`}>
+                <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/10' : ''}`}>
                   <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
                 <span className={`text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}>{item.name}</span>

@@ -79,10 +79,10 @@ export default function HRPage() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {
-      case 'principal': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'teacher': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
-      case 'superintendent': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'principal': return 'bg-purple-500/20 text-purple-500 border-purple-500/20';
+      case 'teacher': return 'bg-primary/20 text-primary border-primary/20';
+      case 'superintendent': return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -90,11 +90,11 @@ export default function HRPage() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Human Resources</h1>
-          <p className="text-slate-500 mt-2 font-medium">Manage staff directory, leave requests, payroll, and documents.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Human Resources</h1>
+          <p className="text-muted-foreground mt-2 font-medium">Manage staff directory, leave requests, payroll, and documents.</p>
         </div>
         {isAdmin && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
             <Plus size={16} />
             Add Employee
           </button>
@@ -102,11 +102,11 @@ export default function HRPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex overflow-x-auto scrollbar-hide bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm shrink-0">
+      <div className="flex overflow-x-auto scrollbar-hide bg-card p-1.5 rounded-2xl border border-border shadow-sm shrink-0">
         {isAdmin && (
           <button 
             onClick={() => setActiveTab('directory')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'directory' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'directory' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
           >
             <Users size={18} />
             Staff Directory
@@ -114,28 +114,28 @@ export default function HRPage() {
         )}
         <button 
           onClick={() => setActiveTab('leave')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'leave' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'leave' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
         >
           <Calendar size={18} />
           Leave Management
         </button>
         <button 
           onClick={() => setActiveTab('payroll')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'payroll' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'payroll' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
         >
           <DollarSign size={18} />
           Payroll
         </button>
         <button 
           onClick={() => setActiveTab('financials')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'financials' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'financials' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
         >
           <Banknote size={18} />
           Loans & Fines
         </button>
         <button 
           onClick={() => setActiveTab('documents')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'documents' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'documents' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
         >
           <FileText size={18} />
           Documents & Policies
@@ -180,20 +180,20 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+      <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Staff Directory</h2>
-            <p className="text-sm font-medium text-slate-500 mt-1">Manage employee profiles and contact information.</p>
+            <h2 className="text-xl font-bold text-foreground">Staff Directory</h2>
+            <p className="text-sm font-medium text-muted-foreground mt-1">Manage employee profiles and contact information.</p>
           </div>
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input 
               type="text" 
               placeholder="Search staff..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
+              className="pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-64"
             />
           </div>
         </div>
@@ -201,45 +201,45 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white border-b border-slate-100">
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role & Dept</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              <tr className="bg-card border-b border-border">
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Employee</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Role & Dept</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Contact</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {filteredStaff.length > 0 ? filteredStaff.map((staff) => (
-                <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={staff.id} className="hover:bg-accent/50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold shrink-0">
                         {staff.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-sm">{staff.name}</p>
-                        <p className="text-xs text-slate-500 font-medium">ID: {staff.id}</p>
+                        <p className="font-bold text-foreground text-sm">{staff.name}</p>
+                        <p className="text-xs text-muted-foreground font-medium">ID: {staff.id}</p>
                       </div>
                     </div>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-bold text-slate-700">{staff.role}</p>
-                    <p className="text-xs text-slate-500 font-medium">{staff.department}</p>
+                    <p className="text-sm font-bold text-foreground">{staff.role}</p>
+                    <p className="text-xs text-muted-foreground font-medium">{staff.department}</p>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-1">
-                      <p className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-                        <Mail size={12} className="text-slate-400" /> {staff.email}
+                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <Mail size={12} className="text-muted-foreground" /> {staff.email}
                       </p>
-                      <p className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-                        <Phone size={12} className="text-slate-400" /> {staff.phone}
+                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <Phone size={12} className="text-muted-foreground" /> {staff.phone}
                       </p>
                     </div>
                   </td>
                   <td className="p-4">
                     <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                      staff.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      staff.status === 'Active' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
                     }`}>
                       {staff.status}
                     </span>
@@ -247,7 +247,7 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
                   <td className="p-4 text-right">
                     <button 
                       onClick={() => onSelectStaff(staff)}
-                      className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors"
+                      className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg text-xs font-bold hover:bg-secondary/80 transition-colors"
                     >
                       View Profile
                     </button>
@@ -255,7 +255,7 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">No staff found matching your search.</td>
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">No staff found matching your search.</td>
                 </tr>
               )}
             </tbody>
@@ -271,14 +271,14 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+      <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">{isAdmin ? 'Leave Requests' : 'My Leave Requests'}</h2>
-            <p className="text-sm font-medium text-slate-500 mt-1">{isAdmin ? 'Review and approve staff time off.' : 'Track your time off requests.'}</p>
+            <h2 className="text-xl font-bold text-foreground">{isAdmin ? 'Leave Requests' : 'My Leave Requests'}</h2>
+            <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Review and approve staff time off.' : 'Track your time off requests.'}</p>
           </div>
           {!isAdmin && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
               <Plus size={16} />
               Apply for Leave
             </button>
@@ -288,34 +288,34 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white border-b border-slate-100">
-                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>}
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Leave Type</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Duration</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>}
+              <tr className="bg-card border-b border-border">
+                {isAdmin && <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Employee</th>}
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Leave Type</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Duration</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+                {isAdmin && <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {displayLeaves.length > 0 ? displayLeaves.map((leave) => (
-                <tr key={leave.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={leave.id} className="hover:bg-accent/50 transition-colors">
                   {isAdmin && (
                     <td className="p-4">
-                      <p className="font-bold text-slate-900 text-sm">{leave.staff}</p>
+                      <p className="font-bold text-foreground text-sm">{leave.staff}</p>
                     </td>
                   )}
                   <td className="p-4">
-                    <p className="text-sm font-bold text-slate-700">{leave.type}</p>
+                    <p className="text-sm font-bold text-foreground">{leave.type}</p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-medium text-slate-700">{leave.startDate} to {leave.endDate}</p>
-                    <p className="text-xs text-slate-500 font-medium">{leave.days} days</p>
+                    <p className="text-sm font-medium text-foreground">{leave.startDate} to {leave.endDate}</p>
+                    <p className="text-xs text-muted-foreground font-medium">{leave.days} days</p>
                   </td>
                   <td className="p-4">
                     <span className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 w-fit ${
-                      leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 
-                      leave.status === 'Rejected' ? 'bg-rose-100 text-rose-700' : 
-                      'bg-amber-100 text-amber-700'
+                      leave.status === 'Approved' ? 'bg-emerald-500/20 text-emerald-500' : 
+                      leave.status === 'Rejected' ? 'bg-destructive/20 text-destructive' : 
+                      'bg-amber-500/20 text-amber-500'
                     }`}>
                       {leave.status === 'Approved' && <CheckCircle2 size={12} />}
                       {leave.status === 'Rejected' && <XCircle size={12} />}
@@ -329,26 +329,26 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
                         <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => toast.success('Leave approved')}
-                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Approve"
+                            className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors" title="Approve"
                           >
                             <CheckCircle2 size={18} />
                           </button>
                           <button 
                             onClick={() => toast.error('Leave rejected')}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Reject"
+                            className="p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors" title="Reject"
                           >
                             <XCircle size={18} />
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 font-medium">Processed</span>
+                        <span className="text-xs text-muted-foreground font-medium">Processed</span>
                       )}
                     </td>
                   )}
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-slate-500">No leave requests found.</td>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-muted-foreground">No leave requests found.</td>
                 </tr>
               )}
             </tbody>
@@ -364,14 +364,14 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+      <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">{isAdmin ? 'Payroll Processing' : 'My Payslips'}</h2>
-            <p className="text-sm font-medium text-slate-500 mt-1">{isAdmin ? 'Manage salaries and generate payslips.' : 'View and download your payslips.'}</p>
+            <h2 className="text-xl font-bold text-foreground">{isAdmin ? 'Payroll Processing' : 'My Payslips'}</h2>
+            <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Manage salaries and generate payslips.' : 'View and download your payslips.'}</p>
           </div>
           {isAdmin && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
               <DollarSign size={16} />
               Run Payroll
             </button>
@@ -381,36 +381,36 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white border-b border-slate-100">
-                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>}
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Pay Period</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Net Pay</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              <tr className="bg-card border-b border-border">
+                {isAdmin && <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Employee</th>}
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Pay Period</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Net Pay</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {displayPayslips.length > 0 ? displayPayslips.map((slip) => (
-                <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={slip.id} className="hover:bg-accent/50 transition-colors">
                   {isAdmin && (
                     <td className="p-4">
-                      <p className="font-bold text-slate-900 text-sm">{slip.staff}</p>
+                      <p className="font-bold text-foreground text-sm">{slip.staff}</p>
                     </td>
                   )}
                   <td className="p-4">
-                    <p className="text-sm font-bold text-slate-700">{slip.month}</p>
-                    <p className="text-xs text-slate-500 font-medium">Processed: {slip.date}</p>
+                    <p className="text-sm font-bold text-foreground">{slip.month}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Processed: {slip.date}</p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-black text-slate-900">{slip.amount}</p>
+                    <p className="text-sm font-black text-foreground">{slip.amount}</p>
                   </td>
                   <td className="p-4">
-                    <span className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700">
+                    <span className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-500">
                       {slip.status}
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    <button className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-2 ml-auto">
+                    <button className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg text-xs font-bold hover:bg-secondary/80 transition-colors flex items-center gap-2 ml-auto">
                       <Download size={14} />
                       Payslip
                     </button>
@@ -418,7 +418,7 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-slate-500">No payslips found.</td>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-muted-foreground">No payslips found.</td>
                 </tr>
               )}
             </tbody>
@@ -434,14 +434,14 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+      <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">{isAdmin ? 'Loans, Bonuses & Fines' : 'My Loans & Fines'}</h2>
-            <p className="text-sm font-medium text-slate-500 mt-1">{isAdmin ? 'Manage staff financial additions and deductions.' : 'Track your bonuses, loans, and fines.'}</p>
+            <h2 className="text-xl font-bold text-foreground">{isAdmin ? 'Loans, Bonuses & Fines' : 'My Loans & Fines'}</h2>
+            <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Manage staff financial additions and deductions.' : 'Track your bonuses, loans, and fines.'}</p>
           </div>
           {!isAdmin && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
               <Plus size={16} />
               Apply for Loan
             </button>
@@ -451,39 +451,39 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white border-b border-slate-100">
-                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>}
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Type</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+              <tr className="bg-card border-b border-border">
+                {isAdmin && <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Employee</th>}
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Amount</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Date</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {displayFinancials.length > 0 ? displayFinancials.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={item.id} className="hover:bg-accent/50 transition-colors">
                   {isAdmin && (
                     <td className="p-4">
-                      <p className="font-bold text-slate-900 text-sm">{item.staff}</p>
+                      <p className="font-bold text-foreground text-sm">{item.staff}</p>
                     </td>
                   )}
                   <td className="p-4">
-                    <p className="text-sm font-bold text-slate-700">{item.type}</p>
-                    <p className="text-xs text-slate-500">{item.description}</p>
+                    <p className="text-sm font-bold text-foreground">{item.type}</p>
+                    <p className="text-xs text-muted-foreground">{item.description}</p>
                   </td>
                   <td className="p-4">
-                    <p className={`text-sm font-black ${item.type === 'Fine' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    <p className={`text-sm font-black ${item.type === 'Fine' ? 'text-destructive' : 'text-emerald-500'}`}>
                       {item.type === 'Fine' ? '-' : '+'}{item.amount}
                     </p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-medium text-slate-700">{item.date}</p>
+                    <p className="text-sm font-medium text-foreground">{item.date}</p>
                   </td>
                   <td className="p-4">
                     <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                      item.status === 'Approved' || item.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 
-                      item.status === 'Active' ? 'bg-indigo-100 text-indigo-700' : 
-                      'bg-amber-100 text-amber-700'
+                      item.status === 'Approved' || item.status === 'Paid' ? 'bg-emerald-500/20 text-emerald-500' : 
+                      item.status === 'Active' ? 'bg-primary/20 text-primary' : 
+                      'bg-amber-500/20 text-amber-500'
                     }`}>
                       {item.status}
                     </span>
@@ -491,7 +491,7 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-slate-500">No financial records found.</td>
+                  <td colSpan={isAdmin ? 5 : 4} className="p-8 text-center text-muted-foreground">No financial records found.</td>
                 </tr>
               )}
             </tbody>
@@ -506,37 +506,37 @@ function DocumentsTab() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-indigo-600 rounded-[2rem] shadow-sm p-6 sm:p-8 text-white relative overflow-hidden">
+        <div className="bg-primary rounded-[2rem] shadow-sm p-6 sm:p-8 text-primary-foreground relative overflow-hidden">
           <div className="absolute top-0 right-0 p-6 opacity-10">
             <FileText size={100} />
           </div>
           <h2 className="text-xl font-bold mb-2 relative z-10">Employee Handbook</h2>
-          <p className="text-indigo-100 text-sm font-medium mb-6 relative z-10">Updated for 2023-2024 academic year. Contains all policies and guidelines.</p>
-          <button className="w-full py-3 bg-white text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors relative z-10 flex items-center justify-center gap-2">
+          <p className="text-primary-foreground/80 text-sm font-medium mb-6 relative z-10">Updated for 2023-2024 academic year. Contains all policies and guidelines.</p>
+          <button className="w-full py-3 bg-background text-primary rounded-xl font-bold text-sm hover:bg-accent transition-colors relative z-10 flex items-center justify-center gap-2">
             <Download size={16} />
             Download PDF
           </button>
         </div>
 
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+        <div className="bg-card rounded-[2rem] border border-border shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-4">
             <FileText size={24} />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Benefits Guide</h2>
-          <p className="text-slate-500 text-sm font-medium mb-6">Health, dental, and retirement plan information for full-time staff.</p>
-          <button className="w-full py-3 bg-slate-50 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+          <h2 className="text-xl font-bold text-foreground mb-2">Benefits Guide</h2>
+          <p className="text-muted-foreground text-sm font-medium mb-6">Health, dental, and retirement plan information for full-time staff.</p>
+          <button className="w-full py-3 bg-muted text-foreground rounded-xl font-bold text-sm hover:bg-accent transition-colors flex items-center justify-center gap-2">
             <Download size={16} />
             Download PDF
           </button>
         </div>
 
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-4">
+        <div className="bg-card rounded-[2rem] border border-border shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-4">
             <FileText size={24} />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Tax Forms (W-4)</h2>
-          <p className="text-slate-500 text-sm font-medium mb-6">Standard tax withholding forms for the current fiscal year.</p>
-          <button className="w-full py-3 bg-slate-50 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+          <h2 className="text-xl font-bold text-foreground mb-2">Tax Forms (W-4)</h2>
+          <p className="text-muted-foreground text-sm font-medium mb-6">Standard tax withholding forms for the current fiscal year.</p>
+          <button className="w-full py-3 bg-muted text-foreground rounded-xl font-bold text-sm hover:bg-accent transition-colors flex items-center justify-center gap-2">
             <Download size={16} />
             Download PDF
           </button>

@@ -114,15 +114,15 @@ export default function TakeExamPage() {
   if (isFinished) {
     return (
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-2xl mx-auto mt-12 text-center space-y-6">
-        <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="w-24 h-24 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 size={48} />
         </div>
-        <h1 className="text-3xl font-bold text-slate-900">Exam Submitted Successfully!</h1>
-        <p className="text-slate-500 text-lg">Your answers have been recorded. You can view your results once the teacher publishes them.</p>
+        <h1 className="text-3xl font-bold text-foreground">Exam Submitted Successfully!</h1>
+        <p className="text-muted-foreground text-lg">Your answers have been recorded. You can view your results once the teacher publishes them.</p>
         <div className="pt-8">
           <button 
             onClick={() => router.push('/dashboard/exams')}
-            className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm"
+            className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-sm"
           >
             Return to Dashboard
           </button>
@@ -140,26 +140,26 @@ export default function TakeExamPage() {
   return (
     <div className="max-w-5xl mx-auto pb-20">
       {/* Top Bar */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 py-4 mb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:backdrop-blur-none sm:border-none sm:py-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white sm:p-4 sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-sm">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-md border-b border-border py-4 mb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:backdrop-blur-none sm:border-none sm:py-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card sm:p-4 sm:rounded-2xl sm:border sm:border-border sm:shadow-sm">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{MOCK_EXAM.title}</h1>
-            <p className="text-sm font-medium text-slate-500">{MOCK_EXAM.subject} • {MOCK_EXAM.totalMarks} Marks</p>
+            <h1 className="text-xl font-bold text-foreground">{MOCK_EXAM.title}</h1>
+            <p className="text-sm font-medium text-muted-foreground">{MOCK_EXAM.subject} • {MOCK_EXAM.totalMarks} Marks</p>
           </div>
           
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-slate-600">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <CheckCircle2 size={18} className="text-emerald-500" />
               <span className="font-bold text-sm">{answeredCount} / {MOCK_EXAM.questions.length} Answered</span>
             </div>
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold ${timeLeft < 300 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-slate-100 text-slate-700'}`}>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold ${timeLeft < 300 ? 'bg-destructive/10 text-destructive animate-pulse' : 'bg-muted text-foreground'}`}>
               <Clock size={18} />
               <span className="font-mono text-lg tracking-wider">{formatTime(timeLeft)}</span>
             </div>
             <button 
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Exam'}
             </button>
@@ -169,7 +169,7 @@ export default function TakeExamPage() {
         {/* Progress Bar */}
         <div className="h-1.5 bg-slate-200 w-full mt-4 sm:rounded-full overflow-hidden">
           <div 
-            className="h-full bg-emerald-500 transition-all duration-300"
+            className="h-full bg-emerald-500/100 transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -183,24 +183,24 @@ export default function TakeExamPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6 sm:p-8"
+            className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8"
           >
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center font-bold text-lg">
+                <span className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold text-lg">
                   {currentQuestionIndex + 1}
                 </span>
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
                   Question {currentQuestionIndex + 1} of {MOCK_EXAM.questions.length}
                 </span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold">
+                <span className="px-3 py-1 bg-muted text-muted-foreground rounded-lg text-sm font-bold">
                   {currentQuestion.marks} Marks
                 </span>
                 <button 
                   onClick={() => toggleFlag(currentQuestion.id)}
-                  className={`p-2 rounded-lg transition-colors ${flagged[currentQuestion.id] ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-slate-100'}`}
+                  className={`p-2 rounded-lg transition-colors ${flagged[currentQuestion.id] ? 'bg-amber-100 text-amber-500' : 'text-muted-foreground hover:bg-muted'}`}
                   title="Flag for review"
                 >
                   <Flag size={20} className={flagged[currentQuestion.id] ? 'fill-current' : ''} />
@@ -208,7 +208,7 @@ export default function TakeExamPage() {
               </div>
             </div>
 
-            <h2 className="text-xl font-medium text-slate-900 mb-8 leading-relaxed">
+            <h2 className="text-xl font-medium text-foreground mb-8 leading-relaxed">
               {currentQuestion.text}
             </h2>
 
@@ -217,12 +217,12 @@ export default function TakeExamPage() {
                 currentQuestion.options?.map((opt, idx) => (
                   <label 
                     key={idx} 
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${answers[currentQuestion.id] === idx ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${answers[currentQuestion.id] === idx ? 'border-primary bg-primary/10/50' : 'border-border bg-card hover:border-border'}`}
                   >
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${answers[currentQuestion.id] === idx ? 'border-indigo-600' : 'border-slate-300'}`}>
-                      {answers[currentQuestion.id] === idx && <div className="w-3 h-3 bg-indigo-600 rounded-full" />}
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${answers[currentQuestion.id] === idx ? 'border-primary' : 'border-border'}`}>
+                      {answers[currentQuestion.id] === idx && <div className="w-3 h-3 bg-primary rounded-full" />}
                     </div>
-                    <span className={`text-lg ${answers[currentQuestion.id] === idx ? 'text-indigo-900 font-medium' : 'text-slate-700'}`}>
+                    <span className={`text-lg ${answers[currentQuestion.id] === idx ? 'text-indigo-900 font-medium' : 'text-foreground'}`}>
                       {opt}
                     </span>
                   </label>
@@ -232,7 +232,7 @@ export default function TakeExamPage() {
                   placeholder="Type your answer here..."
                   value={answers[currentQuestion.id] || ''}
                   onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 min-h-[200px] resize-y text-lg"
+                  className="w-full p-4 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary min-h-[200px] resize-y text-lg"
                 />
               )}
             </div>
@@ -243,7 +243,7 @@ export default function TakeExamPage() {
             <button 
               onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
               disabled={isFirstQuestion}
-              className="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-3 bg-card border border-border text-foreground rounded-xl font-bold hover:bg-muted transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <ChevronLeft size={20} />
               Previous
@@ -251,7 +251,7 @@ export default function TakeExamPage() {
             <button 
               onClick={() => setCurrentQuestionIndex(prev => Math.min(MOCK_EXAM.questions.length - 1, prev + 1))}
               disabled={isLastQuestion}
-              className="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-3 bg-card border border-border text-foreground rounded-xl font-bold hover:bg-muted transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               Next
               <ChevronRight size={20} />
@@ -261,8 +261,8 @@ export default function TakeExamPage() {
 
         {/* Sidebar Navigation */}
         <div className="hidden lg:block">
-          <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6 sticky top-24">
-            <h3 className="font-bold text-slate-900 mb-4">Question Navigator</h3>
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sticky top-24">
+            <h3 className="font-bold text-foreground mb-4">Question Navigator</h3>
             <div className="grid grid-cols-4 gap-2">
               {MOCK_EXAM.questions.map((q, idx) => {
                 const isAnswered = answers[q.id] !== undefined && answers[q.id] !== '';
@@ -276,29 +276,29 @@ export default function TakeExamPage() {
                     className={`
                       relative w-full aspect-square rounded-xl flex items-center justify-center font-bold text-sm transition-all
                       ${isCurrent ? 'ring-2 ring-indigo-600 ring-offset-2' : ''}
-                      ${isAnswered ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}
+                      ${isAnswered ? 'bg-emerald-500/20 text-emerald-500' : 'bg-muted text-muted-foreground hover:bg-slate-200'}
                     `}
                   >
                     {idx + 1}
                     {isFlagged && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white" />
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500/100 rounded-full border-2 border-white" />
                     )}
                   </button>
                 );
               })}
             </div>
             
-            <div className="mt-6 space-y-3 pt-6 border-t border-slate-100">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <div className="w-4 h-4 rounded-md bg-emerald-100" />
+            <div className="mt-6 space-y-3 pt-6 border-t border-border">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="w-4 h-4 rounded-md bg-emerald-500/20" />
                 <span>Answered</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <div className="w-4 h-4 rounded-md bg-slate-100" />
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="w-4 h-4 rounded-md bg-muted" />
                 <span>Unanswered</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <div className="w-4 h-4 rounded-full bg-amber-500 border-2 border-white" />
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="w-4 h-4 rounded-full bg-amber-500/100 border-2 border-white" />
                 <span>Flagged for review</span>
               </div>
             </div>

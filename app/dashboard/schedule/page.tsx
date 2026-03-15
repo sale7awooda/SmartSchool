@@ -42,11 +42,11 @@ export default function SchedulePage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm">
+          <button className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors flex items-center gap-2 shadow-sm">
             <Filter size={16} />
             Filter
           </button>
-          <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2">
+          <button className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2">
             <CalendarDays size={16} />
             Sync Calendar
           </button>

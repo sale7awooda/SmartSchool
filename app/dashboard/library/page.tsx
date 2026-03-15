@@ -42,11 +42,11 @@ export default function LibraryPage() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Library Management</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Browse catalog, manage check-outs, and track fines.</p>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white tracking-tight">Library Management</h1>
+          <p className="text-muted-foreground dark:text-muted-foreground mt-2 font-medium">Browse catalog, manage check-outs, and track fines.</p>
         </div>
         {isAdmin && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">
+          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
             <Plus size={16} />
             Add Book
           </button>
@@ -54,17 +54,17 @@ export default function LibraryPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
+      <div className="flex overflow-x-auto scrollbar-hide bg-card dark:bg-slate-900 p-1.5 rounded-2xl border border-border dark:border-slate-800 shadow-sm shrink-0">
         <button 
           onClick={() => setActiveTab('catalog')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'catalog' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'catalog' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
         >
           <BookOpen size={18} />
           Catalog
         </button>
         <button 
           onClick={() => setActiveTab('loans')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'loans' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'loans' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
         >
           <BookMarked size={18} />
           Active Loans
@@ -72,7 +72,7 @@ export default function LibraryPage() {
         {isAdmin && (
           <button 
             onClick={() => setActiveTab('fines')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'fines' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'fines' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
           >
             <AlertCircle size={18} />
             Overdue & Fines
@@ -96,14 +96,14 @@ function CatalogTab({ isAdmin }: { isAdmin: boolean }) {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input 
             type="text" 
             placeholder="Search by title, author, or ISBN..." 
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm text-foreground placeholder:text-muted-foreground"
           />
         </div>
-        <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+        <button className="flex items-center justify-center gap-2 px-4 py-3 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm">
           <Filter size={16} />
           Filters
         </button>
@@ -111,8 +111,8 @@ function CatalogTab({ isAdmin }: { isAdmin: boolean }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-6 gap-4">
         {MOCK_BOOKS.map(book => (
-          <div key={book.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-all group">
-            <div className="aspect-[3/4] relative bg-slate-100 dark:bg-slate-800">
+          <div key={book.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-all group">
+            <div className="aspect-[3/4] relative bg-muted">
               <Image 
                 src={book.cover} 
                 alt={book.title} 
@@ -122,25 +122,25 @@ function CatalogTab({ isAdmin }: { isAdmin: boolean }) {
               />
               <div className="absolute top-3 right-3">
                 <span className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm backdrop-blur-md ${
-                  book.status === 'Available' ? 'bg-emerald-500/90 text-white' : 'bg-amber-500/90 text-white'
+                  book.status === 'Available' ? 'bg-emerald-500/100/90 text-white' : 'bg-amber-500/100/90 text-white'
                 }`}>
                   {book.status}
                 </span>
               </div>
             </div>
             <div className="p-4">
-              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1 uppercase tracking-wider">{book.category}</p>
-              <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight mb-1 line-clamp-1" title={book.title}>{book.title}</h3>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">{book.author}</p>
+              <p className="text-xs font-bold text-primary mb-1 uppercase tracking-wider">{book.category}</p>
+              <h3 className="font-bold text-foreground text-lg leading-tight mb-1 line-clamp-1" title={book.title}>{book.title}</h3>
+              <p className="text-sm font-medium text-muted-foreground mb-3">{book.author}</p>
               
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-medium text-slate-400 dark:text-slate-500">ISBN: {book.isbn}</span>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <span className="text-xs font-medium text-muted-foreground">ISBN: {book.isbn}</span>
                 {isAdmin ? (
-                  <button className="text-indigo-600 dark:text-indigo-400 text-sm font-bold hover:underline">Manage</button>
+                  <button className="text-primary text-sm font-bold hover:underline">Manage</button>
                 ) : (
                   <button 
                     disabled={book.status !== 'Available'}
-                    className={`text-sm font-bold ${book.status === 'Available' ? 'text-indigo-600 dark:text-indigo-400 hover:underline' : 'text-slate-400 dark:text-slate-500 cursor-not-allowed'}`}
+                    className={`text-sm font-bold ${book.status === 'Available' ? 'text-primary hover:underline' : 'text-muted-foreground cursor-not-allowed'}`}
                   >
                     Reserve
                   </button>
@@ -157,19 +157,19 @@ function CatalogTab({ isAdmin }: { isAdmin: boolean }) {
 function LoansTab({ isAdmin }: { isAdmin: boolean }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/50">
+      <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Loans</h2>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Currently checked out books</p>
+            <h2 className="text-xl font-bold text-foreground">Active Loans</h2>
+            <p className="text-sm font-medium text-muted-foreground mt-1">Currently checked out books</p>
           </div>
           {isAdmin && (
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input 
                 type="text" 
                 placeholder="Search borrower or book..." 
-                className="pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-64 text-foreground placeholder:text-muted-foreground"
               />
             </div>
           )}
@@ -178,43 +178,43 @@ function LoansTab({ isAdmin }: { isAdmin: boolean }) {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Book Details</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Borrower</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Issue Date</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Due Date</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                {isAdmin && <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>}
+              <tr className="bg-card border-b border-border">
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Book Details</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Borrower</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Issue Date</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Due Date</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+                {isAdmin && <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border">
               {MOCK_LOANS.map((loan) => (
-                <tr key={loan.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr key={loan.id} className="hover:bg-muted/50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                         <BookOpen size={20} />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white text-sm">{loan.bookTitle}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">ID: {loan.bookId}</p>
+                        <p className="font-bold text-foreground text-sm">{loan.bookTitle}</p>
+                        <p className="text-xs text-muted-foreground font-medium">ID: {loan.bookId}</p>
                       </div>
                     </div>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{loan.borrower}</p>
+                    <p className="text-sm font-bold text-foreground">{loan.borrower}</p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{loan.issueDate}</p>
+                    <p className="text-sm font-medium text-foreground">{loan.issueDate}</p>
                   </td>
                   <td className="p-4">
-                    <p className={`text-sm font-bold ${loan.status === 'Overdue' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                    <p className={`text-sm font-bold ${loan.status === 'Overdue' ? 'text-destructive dark:text-rose-400' : 'text-foreground'}`}>
                       {loan.dueDate}
                     </p>
                   </td>
                   <td className="p-4">
                     <span className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 w-fit ${
-                      loan.status === 'Active' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                      loan.status === 'Active' ? 'bg-emerald-500/20 dark:bg-emerald-500/100/10 text-emerald-500 dark:text-emerald-500' : 'bg-destructive/20 dark:bg-destructive/100/10 text-destructive dark:text-rose-400'
                     }`}>
                       {loan.status === 'Active' ? <Clock size={12} /> : <AlertCircle size={12} />}
                       {loan.status}
@@ -222,7 +222,7 @@ function LoansTab({ isAdmin }: { isAdmin: boolean }) {
                   </td>
                   {isAdmin && (
                     <td className="p-4 text-right">
-                      <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                      <button className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-xs font-bold hover:bg-muted/80 transition-colors">
                         Mark Returned
                       </button>
                     </td>
@@ -242,40 +242,40 @@ function FinesTab() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-rose-50/30 dark:bg-rose-500/5">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Overdue & Fines</h2>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Manage overdue books and collect fines.</p>
+      <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border bg-destructive/10/30 dark:bg-destructive/100/5">
+          <h2 className="text-xl font-bold text-foreground">Overdue & Fines</h2>
+          <p className="text-sm font-medium text-muted-foreground mt-1">Manage overdue books and collect fines.</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Borrower</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Book</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Due Date</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fine Amount</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
+              <tr className="bg-card border-b border-border">
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Borrower</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Book</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Due Date</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Fine Amount</th>
+                <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border">
               {overdueLoans.map((loan) => (
-                <tr key={loan.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr key={loan.id} className="hover:bg-muted/50 transition-colors">
                   <td className="p-4">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">{loan.borrower}</p>
+                    <p className="text-sm font-bold text-foreground">{loan.borrower}</p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{loan.bookTitle}</p>
+                    <p className="text-sm font-bold text-foreground">{loan.bookTitle}</p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-bold text-rose-600 dark:text-rose-400">{loan.dueDate}</p>
+                    <p className="text-sm font-bold text-destructive dark:text-rose-400">{loan.dueDate}</p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-black text-slate-900 dark:text-white">{loan.fine}</p>
+                    <p className="text-sm font-black text-foreground">{loan.fine}</p>
                   </td>
                   <td className="p-4 text-right">
-                    <button className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors">
+                    <button className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors">
                       Collect Fine & Return
                     </button>
                   </td>
@@ -283,7 +283,7 @@ function FinesTab() {
               ))}
               {overdueLoans.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground font-medium">
                     No overdue books or fines.
                   </td>
                 </tr>
