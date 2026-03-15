@@ -70,6 +70,26 @@ function AdminDashboard() {
         </div>
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+          <h3 className="text-xl font-bold text-foreground mb-6">Quick Actions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link 
+              href="/dashboard/students?add=true" 
+              className="flex items-center justify-center gap-2 p-4 bg-primary/10 text-primary hover:bg-primary/20 rounded-2xl font-bold transition-all active:scale-[0.98]"
+            >
+              <Users size={20} />
+              Register Student
+            </Link>
+            <Link 
+              href="/dashboard/fees" 
+              className="flex items-center justify-center gap-2 p-4 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-2xl font-bold transition-all active:scale-[0.98]"
+            >
+              <CreditCard size={20} />
+              Manage Fees
+            </Link>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
           <h3 className="text-xl font-bold text-foreground mb-6">Urgent Alerts</h3>
           <div className="space-y-5">
             {MOCK_NOTICES.filter(n => n.isImportant).slice(0, 3).map((notice) => (

@@ -23,7 +23,8 @@ import {
   Award,
   Book,
   ChevronRight,
-  Banknote
+  Banknote,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import StaffProfileModal from '@/components/StaffProfileModal';
@@ -63,6 +64,10 @@ export default function HRPage() {
   const [selectedStaff, setSelectedStaff] = useState<typeof MOCK_STAFF[0] | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'overview' | 'qualifications' | 'schedule' | 'leave' | 'payroll' | 'financials'>('overview');
 
+  // Modal States
+  const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
+  const [isSubmittingEmployee, setIsSubmittingEmployee] = useState(false);
+
   if (!user) return null;
 
   if (!can('view', 'hr')) {
@@ -90,6 +95,15 @@ export default function HRPage() {
     }
   };
 
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingEmployee(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSubmittingEmployee(false);
+    toast.success("Employee added successfully");
+    setIsAddEmployeeOpen(false);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
@@ -98,7 +112,10 @@ export default function HRPage() {
           <p className="text-muted-foreground mt-2 font-medium">Manage staff directory, leave requests, payroll, and documents.</p>
         </div>
         {isAdmin && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+          <button 
+            onClick={() => setIsAddEmployeeOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+          >
             <Plus size={16} />
             Add Employee
           </button>
@@ -167,6 +184,80 @@ export default function HRPage() {
             MOCK_PAYSLIPS={MOCK_PAYSLIPS}
             MOCK_FINANCIALS={MOCK_FINANCIALS}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAddEmployeeOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Employee</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Enter the details for the new staff member.</p>
+              </div>
+              
+              <form onSubmit={handleAddEmployee} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">First Name</label>
+                    <input required type="text" placeholder="John" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Last Name</label>
+                    <input required type="text" placeholder="Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Email Address</label>
+                  <input required type="email" placeholder="john.doe@school.edu" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Role</label>
+                    <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                      <option value="teacher">Teacher</option>
+                      <option value="staff">Staff</option>
+                      <option value="schoolAdmin">Administrator</option>
+                      <option value="accountant">Accountant</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Department</label>
+                    <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                      <option value="Academics">Academics</option>
+                      <option value="Administration">Administration</option>
+                      <option value="Maintenance">Maintenance</option>
+                      <option value="Finance">Finance</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddEmployeeOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingEmployee}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingEmployee ? <Loader2 size={20} className="animate-spin" /> : 'Add Employee'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </motion.div>
@@ -272,6 +363,17 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
 
 function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
   const displayLeaves = isAdmin ? MOCK_LEAVE_REQUESTS : MOCK_LEAVE_REQUESTS.filter(l => l.staff === userName);
+  const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
+  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
+
+  const handleApplyLeave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingLeave(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSubmittingLeave(false);
+    toast.success("Leave request submitted successfully");
+    setIsApplyLeaveOpen(false);
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
@@ -282,7 +384,10 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
             <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Review and approve staff time off.' : 'Track your time off requests.'}</p>
           </div>
           {!isAdmin && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+            <button 
+              onClick={() => setIsApplyLeaveOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+            >
               <Plus size={16} />
               Apply for Leave
             </button>
@@ -359,12 +464,86 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
           </table>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isApplyLeaveOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Apply for Leave</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Submit a new time off request.</p>
+              </div>
+              
+              <form onSubmit={handleApplyLeave} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Leave Type</label>
+                  <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <option value="sick">Sick Leave</option>
+                    <option value="annual">Annual Leave</option>
+                    <option value="personal">Personal Leave</option>
+                    <option value="unpaid">Unpaid Leave</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Start Date</label>
+                    <input required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">End Date</label>
+                    <input required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Reason</label>
+                  <textarea required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsApplyLeaveOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingLeave}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingLeave ? <Loader2 size={20} className="animate-spin" /> : 'Submit Request'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
 
 function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
   const displayPayslips = isAdmin ? MOCK_PAYSLIPS : MOCK_PAYSLIPS.filter(p => p.staff === userName);
+  const [isRunPayrollOpen, setIsRunPayrollOpen] = useState(false);
+  const [isRunningPayroll, setIsRunningPayroll] = useState(false);
+
+  const handleRunPayroll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsRunningPayroll(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsRunningPayroll(false);
+    toast.success("Payroll processed successfully");
+    setIsRunPayrollOpen(false);
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
@@ -375,7 +554,10 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
             <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Manage salaries and generate payslips.' : 'View and download your payslips.'}</p>
           </div>
           {isAdmin && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+            <button 
+              onClick={() => setIsRunPayrollOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+            >
               <DollarSign size={16} />
               Run Payroll
             </button>
@@ -429,12 +611,73 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
           </table>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isRunPayrollOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Run Payroll</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Process salaries for the current period.</p>
+              </div>
+              
+              <form onSubmit={handleRunPayroll} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 mb-6 text-center">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Total Estimated Payout</p>
+                  <span className="font-black text-primary text-4xl">$145,200</span>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Pay Period</label>
+                  <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <option value="oct2023">October 2023</option>
+                    <option value="nov2023">November 2023</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsRunPayrollOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isRunningPayroll}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isRunningPayroll ? <Loader2 size={20} className="animate-spin" /> : 'Confirm & Run'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
 
 function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
   const displayFinancials = isAdmin ? MOCK_FINANCIALS : MOCK_FINANCIALS.filter(f => f.staff === userName);
+  const [isApplyLoanOpen, setIsApplyLoanOpen] = useState(false);
+  const [isSubmittingLoan, setIsSubmittingLoan] = useState(false);
+
+  const handleApplyLoan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingLoan(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSubmittingLoan(false);
+    toast.success("Loan application submitted successfully");
+    setIsApplyLoanOpen(false);
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
@@ -445,7 +688,10 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
             <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Manage staff financial additions and deductions.' : 'Track your bonuses, loans, and fines.'}</p>
           </div>
           {!isAdmin && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+            <button 
+              onClick={() => setIsApplyLoanOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+            >
               <Plus size={16} />
               Apply for Loan
             </button>
@@ -502,6 +748,53 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
           </table>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isApplyLoanOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Apply for Loan / Advance</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Submit a request for a salary advance or loan.</p>
+              </div>
+              
+              <form onSubmit={handleApplyLoan} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Amount Requested ($)</label>
+                  <input required type="number" min="1" step="0.01" placeholder="0.00" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Reason</label>
+                  <textarea required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsApplyLoanOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingLoan}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingLoan ? <Loader2 size={20} className="animate-spin" /> : 'Submit Request'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -1,14 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { MOCK_STUDENTS, MOCK_PARENTS, User, Student } from '@/lib/mock-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
-  MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown
+  MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown,
+  Plus, X, Loader2, Camera, UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
 
 type DirectoryTab = 'students' | 'parents';
 type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
@@ -20,6 +23,33 @@ export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('overview');
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    studentId: '',
+    grade: '',
+    dob: '',
+    gender: 'Male',
+    bloodGroup: 'A+',
+    address: '',
+    parentName: '',
+    parentPhone: '',
+    photo: null as string | null
+  });
+
+  const isAdmin = isRole(['schoolAdmin', 'superadmin']);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true' && isAdmin) {
+      const timer = setTimeout(() => {
+        setIsAddStudentOpen(true);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, isAdmin]);
 
   if (!user) return null;
 
@@ -67,9 +97,20 @@ export default function StudentsPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Students Directory</h1>
-        <p className="text-muted-foreground mt-2 font-medium">Find contact information and detailed profiles for students and parents.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Students Directory</h1>
+          <p className="text-muted-foreground mt-2 font-medium">Find contact information and detailed profiles for students and parents.</p>
+        </div>
+        {isAdmin && (
+          <button 
+            onClick={() => setIsAddStudentOpen(true)}
+            className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
+          >
+            <UserPlus size={20} />
+            Add Student
+          </button>
+        )}
       </div>
 
       <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
@@ -187,6 +228,234 @@ export default function StudentsPage() {
       </div>
       </div>
 
+      <AnimatePresence>
+        {isAddStudentOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">Register New Student</h2>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">Add a new student to the school database.</p>
+                </div>
+                <button 
+                  onClick={() => setIsAddStudentOpen(false)}
+                  className="p-2 hover:bg-muted rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsSubmitting(true);
+                  
+                  // Simulate API call
+                  await new Promise(resolve => setTimeout(resolve, 1500));
+                  
+                  setIsSubmitting(false);
+                  toast.success("Student registered successfully", {
+                    description: `${formData.name} has been added to Grade ${formData.grade}.`
+                  });
+                  setIsAddStudentOpen(false);
+                  // Reset form
+                  setFormData({
+                    name: '',
+                    studentId: '',
+                    grade: '',
+                    dob: '',
+                    gender: 'Male',
+                    bloodGroup: 'A+',
+                    address: '',
+                    parentName: '',
+                    parentPhone: '',
+                    photo: null
+                  });
+                }} 
+                className="p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar"
+              >
+                <div className="flex flex-col items-center gap-4 py-4 border-b border-border mb-6">
+                  <div 
+                    onClick={() => {
+                      // Simulate image upload
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            setFormData(prev => ({ ...prev, photo: e.target?.result as string }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      };
+                      input.click();
+                    }}
+                    className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-muted-foreground relative group cursor-pointer border-2 border-dashed border-border hover:border-primary/50 transition-colors overflow-hidden"
+                  >
+                    {formData.photo ? (
+                      <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera size={32} />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <Plus size={24} className="text-white" />
+                    </div>
+                  </div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    {formData.photo ? 'Change Photo' : 'Upload Photo'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">Full Name</label>
+                    <input 
+                      required 
+                      type="text" 
+                      placeholder="e.g., Bart Simpson" 
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">Student ID</label>
+                    <input 
+                      required 
+                      type="text" 
+                      placeholder="e.g., STU004" 
+                      value={formData.studentId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, studentId: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">Grade</label>
+                    <select 
+                      required 
+                      value={formData.grade}
+                      onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
+                    >
+                      <option value="">Select Grade</option>
+                      <option value="1">Grade 1</option>
+                      <option value="2">Grade 2</option>
+                      <option value="3">Grade 3</option>
+                      <option value="4">Grade 4</option>
+                      <option value="5">Grade 5</option>
+                      <option value="6">Grade 6</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">Date of Birth</label>
+                    <input 
+                      required 
+                      type="date" 
+                      value={formData.dob}
+                      onChange={(e) => setFormData(prev => ({ ...prev, dob: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">Gender</label>
+                    <select 
+                      required 
+                      value={formData.gender}
+                      onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">Blood Group</label>
+                    <select 
+                      value={formData.bloodGroup}
+                      onChange={(e) => setFormData(prev => ({ ...prev, bloodGroup: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
+                    >
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">Residential Address</label>
+                  <textarea 
+                    rows={3} 
+                    placeholder="Enter full address..." 
+                    value={formData.address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium resize-none"
+                  ></textarea>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <h3 className="font-bold text-foreground mb-4">Parent/Guardian Information</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-foreground">Parent Name</label>
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder="e.g., Homer Simpson" 
+                        value={formData.parentName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-foreground">Contact Number</label>
+                      <input 
+                        required 
+                        type="tel" 
+                        placeholder="+1 234 567 890" 
+                        value={formData.parentPhone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddStudentOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Register Student'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {selectedPerson && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 dark:bg-slate-950/60 backdrop-blur-sm">

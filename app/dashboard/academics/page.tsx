@@ -57,6 +57,23 @@ function AdminAcademics() {
     "overview" | "years" | "classes" | "subjects"
   >("overview");
 
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAddGradeOpen, setIsAddGradeOpen] = useState(false);
+  const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
+  const [selectedGradeForSection, setSelectedGradeForSection] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAction = async (e: React.FormEvent, action: string) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSubmitting(false);
+    toast.success(`${action} completed successfully`);
+    setIsSettingsOpen(false);
+    setIsAddGradeOpen(false);
+    setIsAddSectionOpen(false);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -72,7 +89,10 @@ function AdminAcademics() {
             Manage academic years, classes, and subjects.
           </p>
         </div>
-        <button className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20">
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
+        >
           <Settings size={20} />
           Academic Settings
         </button>
@@ -144,7 +164,10 @@ function AdminAcademics() {
               <h3 className="font-bold text-foreground text-lg">
                 Grades & Sections
               </h3>
-              <button className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1">
+              <button 
+                onClick={() => setIsAddGradeOpen(true)}
+                className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1"
+              >
                 <Plus size={16} /> Add Grade
               </button>
             </div>
@@ -180,7 +203,13 @@ function AdminAcademics() {
                         {sec}
                       </span>
                     ))}
-                    <button className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors">
+                    <button 
+                      onClick={() => {
+                        setSelectedGradeForSection(item.grade);
+                        setIsAddSectionOpen(true);
+                      }}
+                      className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
+                    >
                       <Plus size={20} />
                     </button>
                   </div>
@@ -205,6 +234,139 @@ function AdminAcademics() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Academic Settings</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Configure global academic parameters.</p>
+              </div>
+              
+              <form onSubmit={(e) => handleAction(e, 'Settings updated')} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Current Academic Year</label>
+                  <select className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <option>2023 - 2024</option>
+                    <option>2024 - 2025</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Active Term</label>
+                  <select className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <option>Term 1</option>
+                    <option>Term 2</option>
+                    <option>Term 3</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsSettingsOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {isAddGradeOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Grade</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new grade level.</p>
+              </div>
+              
+              <form onSubmit={(e) => handleAction(e, 'Grade added')} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Grade Name</label>
+                  <input required type="text" placeholder="e.g., Grade 5" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddGradeOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Grade'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {isAddSectionOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add Section to {selectedGradeForSection}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new section for this grade.</p>
+              </div>
+              
+              <form onSubmit={(e) => handleAction(e, 'Section added')} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Section Name</label>
+                  <input required type="text" placeholder="e.g., C" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddSectionOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Section'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -361,6 +523,22 @@ function TeacherAcademics() {
   // Submissions State
   const [viewingSubmissionsFor, setViewingSubmissionsFor] =
     useState<Assessment | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedSubmissionToReview, setSelectedSubmissionToReview] = useState<any>(null);
+
+  const handleReviewSubmission = (submission: any) => {
+    setSelectedSubmissionToReview(submission);
+    setIsReviewModalOpen(true);
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSaving(false);
+    toast.success("Submission graded successfully");
+    setIsReviewModalOpen(false);
+  };
 
   // Mock state for grades: { assessmentId: { studentId: score } }
   const [grades, setGrades] = useState<Record<string, Record<string, string>>>(
@@ -1093,7 +1271,10 @@ function TeacherAcademics() {
                       solar_system_report_final.pdf
                     </span>
                   </div>
-                  <button className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors">
+                  <button 
+                    onClick={() => handleReviewSubmission({ name: "Bart Simpson", file: "solar_system_report_final.pdf" })}
+                    className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors"
+                  >
                     Review Submission
                   </button>
                 </div>
@@ -1120,7 +1301,10 @@ function TeacherAcademics() {
                       lisa_science_project.docx
                     </span>
                   </div>
-                  <button className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors">
+                  <button 
+                    onClick={() => handleReviewSubmission({ name: "Lisa Simpson", file: "lisa_science_project.docx" })}
+                    className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors"
+                  >
                     Review Submission
                   </button>
                 </div>
@@ -1191,6 +1375,115 @@ function TeacherAcademics() {
           </div>
         </motion.div>
       )}
+
+      {/* Review Submission Modal */}
+      <AnimatePresence>
+        {isReviewModalOpen && selectedSubmissionToReview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-border max-h-[90vh] flex flex-col"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/30 flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">
+                    Review Submission
+                  </h2>
+                  <p className="text-sm font-medium text-muted-foreground mt-2 flex items-center gap-4">
+                    <span>Student: {selectedSubmissionToReview.studentName}</span>
+                    <span>Assessment: {selectedSubmissionToReview.assessmentTitle}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsReviewModalOpen(false)}
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
+                >
+                  <ChevronLeft size={24} className="rotate-180" />
+                </button>
+              </div>
+
+              <form onSubmit={submitReview} className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                    Student Work
+                  </h3>
+                  <div className="bg-muted/50 p-4 rounded-2xl border border-border">
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {selectedSubmissionToReview.content || "No text content provided."}
+                    </p>
+                  </div>
+                  {selectedSubmissionToReview.files && (
+                    <div className="flex flex-wrap gap-3">
+                      {selectedSubmissionToReview.files.map((file: string, i: number) => (
+                        <div key={i} className="flex items-center gap-2 p-3 bg-card border border-border rounded-xl text-sm font-medium text-foreground">
+                          <FileText size={16} className="text-primary" />
+                          {file}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">
+                      Grade / Score (Max: {selectedSubmissionToReview.maxScore || 100})
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      max={selectedSubmissionToReview.maxScore || 100}
+                      className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground font-bold"
+                      placeholder="Enter score..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">
+                      Status
+                    </label>
+                    <select className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-foreground font-bold">
+                      <option value="Graded">Graded</option>
+                      <option value="Needs Revision">Needs Revision</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">
+                    Feedback for Student
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none text-foreground"
+                    placeholder="Provide constructive feedback..."
+                  ></textarea>
+                </div>
+
+                <div className="pt-6 border-t border-border flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsReviewModalOpen(false)}
+                    className="px-6 py-3 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                  >
+                    {isSaving ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
+                    Submit Grade
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       </div>
     </motion.div>
   );

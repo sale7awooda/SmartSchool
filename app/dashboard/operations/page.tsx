@@ -22,7 +22,8 @@ import {
   Wrench, 
   Laptop, 
   MonitorPlay,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -191,6 +192,18 @@ function HRTab() {
 
 function VisitorsTab() {
   const { can } = usePermissions();
+  const [isNewCheckInOpen, setIsNewCheckInOpen] = useState(false);
+  const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
+
+  const handleNewCheckIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingCheckIn(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSubmittingCheckIn(false);
+    toast.success("Visitor checked in successfully");
+    setIsNewCheckInOpen(false);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
@@ -209,7 +222,10 @@ function VisitorsTab() {
               />
             </div>
             {can('create', 'operations') && (
-              <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+              <button 
+                onClick={() => setIsNewCheckInOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+              >
                 <Plus size={16} />
                 New Check-in
               </button>
@@ -282,12 +298,76 @@ function VisitorsTab() {
           </table>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isNewCheckInOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">New Visitor Check-in</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Register a new visitor on campus.</p>
+              </div>
+              
+              <form onSubmit={handleNewCheckIn} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Visitor Name</label>
+                  <input required type="text" placeholder="Jane Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Purpose of Visit</label>
+                  <input required type="text" placeholder="e.g., Parent-Teacher Meeting" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Host (Staff Member)</label>
+                  <input required type="text" placeholder="e.g., Edna Krabappel" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsNewCheckInOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingCheckIn}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingCheckIn ? <Loader2 size={20} className="animate-spin" /> : 'Check In & Print Badge'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
 
 function HealthTab() {
   const { can } = usePermissions();
+  const [isLogIncidentOpen, setIsLogIncidentOpen] = useState(false);
+  const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
+
+  const handleLogIncident = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingIncident(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSubmittingIncident(false);
+    toast.success("Medical incident logged successfully");
+    setIsLogIncidentOpen(false);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -337,7 +417,10 @@ function HealthTab() {
               />
             </div>
             {can('create', 'operations') && (
-              <button className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-xl font-bold text-sm hover:bg-destructive/90 transition-colors shadow-sm whitespace-nowrap">
+              <button 
+                onClick={() => setIsLogIncidentOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-xl font-bold text-sm hover:bg-destructive/90 transition-colors shadow-sm whitespace-nowrap"
+              >
                 <Plus size={16} />
                 Log Incident
               </button>
@@ -385,12 +468,76 @@ function HealthTab() {
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {isLogIncidentOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-destructive/10 shrink-0">
+                <h2 className="text-2xl font-bold text-destructive tracking-tight">Log Medical Incident</h2>
+                <p className="text-sm font-medium text-destructive/80 mt-2">Record a student clinic visit or incident.</p>
+              </div>
+              
+              <form onSubmit={handleLogIncident} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Student Name</label>
+                  <input required type="text" placeholder="e.g., Bart Simpson" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Incident / Symptoms</label>
+                  <textarea required rows={3} placeholder="Describe the reason for the visit..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Treatment Provided</label>
+                  <textarea required rows={2} placeholder="e.g., Bandage applied, rested for 15 mins" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsLogIncidentOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingIncident}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-destructive hover:bg-destructive/90 transition-all active:scale-[0.98] shadow-md shadow-destructive/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingIncident ? <Loader2 size={20} className="animate-spin" /> : 'Save Record'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
 
 function InventoryTab() {
   const { can } = usePermissions();
+  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
+  const [isSubmittingAsset, setIsSubmittingAsset] = useState(false);
+
+  const handleAddAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingAsset(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsSubmittingAsset(false);
+    toast.success("Asset added successfully");
+    setIsAddAssetOpen(false);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
@@ -409,7 +556,10 @@ function InventoryTab() {
               />
             </div>
             {can('create', 'operations') && (
-              <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+              <button 
+                onClick={() => setIsAddAssetOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+              >
                 <Plus size={16} />
                 Add Asset
               </button>
@@ -478,6 +628,69 @@ function InventoryTab() {
           </table>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isAddAssetOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Asset</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Register a new item in the school inventory.</p>
+              </div>
+              
+              <form onSubmit={handleAddAsset} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Asset Name</label>
+                  <input required type="text" placeholder="e.g., Dell Latitude 3420" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Category</label>
+                    <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                      <option value="laptop">Laptop</option>
+                      <option value="projector">Projector</option>
+                      <option value="sports">Sports Equipment</option>
+                      <option value="furniture">Furniture</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Assigned To</label>
+                    <input required type="text" placeholder="e.g., Room 101" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Next Maintenance Date</label>
+                  <input type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddAssetOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingAsset}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingAsset ? <Loader2 size={20} className="animate-spin" /> : 'Add Asset'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
