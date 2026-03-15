@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   UserCog, 
@@ -57,15 +58,18 @@ const MOCK_FINANCIALS = [
 
 export default function HRPage() {
   const { user } = useAuth();
+  const { can, isAdmin: checkIsAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState<'directory' | 'leave' | 'payroll' | 'financials' | 'documents'>('directory');
   const [selectedStaff, setSelectedStaff] = useState<typeof MOCK_STAFF[0] | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'overview' | 'qualifications' | 'schedule' | 'leave' | 'payroll' | 'financials'>('overview');
 
-  if (!user || !['superadmin', 'schoolAdmin', 'staff', 'teacher', 'accountant'].includes(user.role)) {
-    return null;
+  if (!user) return null;
+
+  if (!can('view', 'hr')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
   }
 
-  const isAdmin = ['superadmin', 'schoolAdmin'].includes(user.role);
+  const isAdmin = checkIsAdmin();
 
   // If not admin, default to their own profile view and hide directory tab
   if (!isAdmin && activeTab === 'directory') {

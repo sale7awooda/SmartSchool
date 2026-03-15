@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { 
   MOCK_BUS_ROUTES, 
   MOCK_STUDENTS, 
@@ -37,6 +38,7 @@ import { toast } from 'sonner';
 
 export default function TransportPage() {
   const { user } = useAuth();
+  const { can, isAdmin, isRole } = usePermissions();
   const [activeTab, setActiveTab] = useState<'routes' | 'tracking'>('routes');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -64,9 +66,12 @@ export default function TransportPage() {
 
   if (!user) return null;
 
-  const isAdmin = ['superadmin', 'schoolAdmin'].includes(user.role);
-  const isParent = user.role === 'parent';
-  const isStaff = user.role === 'staff' || user.role === 'teacher';
+  if (!can('view', 'transport')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
+  const isParent = isRole(['parent']);
+  const isStaff = isRole(['staff', 'teacher']);
 
   // For Parents: Find their child's bus route
   const parentStudent = isParent && user.studentId 
@@ -330,7 +335,7 @@ export default function TransportPage() {
       )}
 
       {/* Admin View */}
-      {isAdmin && (
+      {isAdmin() && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card p-4 rounded-[1.5rem] border border-border shadow-sm">
             <div className="flex flex-wrap gap-2">

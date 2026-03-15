@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   TrendingUp, 
@@ -61,10 +62,11 @@ const PREDICTIVE_ALERTS = [
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [activeTab, setActiveTab] = useState<'overview' | 'academic' | 'attendance' | 'financial' | 'predictive'>('overview');
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
-  if (!user || !['superadmin', 'schoolAdmin'].includes(user.role)) {
+  if (!user || !can('view', 'analytics')) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center">

@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { usePermissions } from '@/lib/permissions';
 
 // Mock data for the master schedule
 const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
@@ -37,6 +38,7 @@ const INITIAL_SCHEDULE = [
 export default function AdminScheduleView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
+  const { can } = usePermissions();
 
   const handlePreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
   const handleNextDay = () => setSelectedDate(prev => addDays(prev, 1));
@@ -71,13 +73,15 @@ export default function AdminScheduleView() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link 
-            href="/dashboard/schedule/wizard"
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
-          >
-            <Wand2 size={16} />
-            Timetable Wizard
-          </Link>
+          {can('create', 'schedule') && (
+            <Link 
+              href="/dashboard/schedule/wizard"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
+            >
+              <Wand2 size={16} />
+              Timetable Wizard
+            </Link>
+          )}
         </div>
       </div>
 

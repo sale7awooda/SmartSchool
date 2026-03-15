@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { motion } from 'motion/react';
 import { 
   User, 
@@ -30,6 +31,7 @@ import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { can, isAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin'>('profile');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -56,14 +58,14 @@ export default function SettingsPage() {
         <div className="lg:w-64 flex-shrink-0">
           <nav className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
             {[
-              { id: 'profile', label: 'Profile Information', icon: User },
-              { id: 'general', label: 'General Settings', icon: Building },
-              { id: 'security', label: 'Security & Password', icon: Lock },
-              { id: 'notifications', label: 'Notifications', icon: Bell },
-              { id: 'roles', label: 'Roles & Permissions', icon: Users },
-              { id: 'academics', label: 'Academics', icon: BookOpen },
-              { id: 'admin', label: 'System & Preferences', icon: Settings },
-            ].map((tab) => {
+              { id: 'profile', label: 'Profile Information', icon: User, show: true },
+              { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
+              { id: 'security', label: 'Security & Password', icon: Lock, show: true },
+              { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
+              { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
+              { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
+              { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
+            ].filter(tab => tab.show).map((tab) => {
               return (
                 <button
                   key={tab.id}

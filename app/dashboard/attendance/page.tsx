@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { MOCK_STUDENTS } from '@/lib/mock-db';
 import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -11,12 +12,17 @@ type AttendanceStatus = 'present' | 'absent' | 'late' | null;
 
 export default function AttendancePage() {
   const { user } = useAuth();
+  const { can, isRole } = usePermissions();
   
   if (!user) return null;
 
-  if (user.role === 'teacher') return <TeacherAttendance />;
-  if (user.role === 'parent') return <ParentAttendance />;
-  if (user.role === 'schoolAdmin' || user.role === 'superadmin') return <AdminAttendance />;
+  if (!can('view', 'attendance')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
+  if (isRole('teacher')) return <TeacherAttendance />;
+  if (isRole(['parent', 'student'])) return <ParentAttendance />;
+  if (isRole(['schoolAdmin', 'superadmin'])) return <AdminAttendance />;
 
   return <div className="p-4">You do not have permission to view this page.</div>;
 }

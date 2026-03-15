@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { useLanguage } from '@/lib/language-context';
 import { 
   LayoutDashboard, 
@@ -44,6 +45,7 @@ const MOCK_FINANCIALS = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, switchStudent, isLoading } = useAuth();
+  const { can } = usePermissions();
   const { t, isRTL } = useLanguage();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -74,22 +76,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const getNavItems = () => {
     const items = [
-      { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard, roles: ['superadmin', 'schoolAdmin', 'accountant', 'teacher', 'parent', 'staff', 'student'] },
-      { name: t('academics'), href: '/dashboard/academics', icon: BookOpen, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent'] },
-      { name: t('students'), href: '/dashboard/students', icon: Users, roles: ['superadmin', 'schoolAdmin', 'teacher'] },
-      { name: t('exams'), href: '/dashboard/exams', icon: FileText, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent', 'student'] },
-      { name: t('schedule'), href: '/dashboard/schedule', icon: CalendarDays, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent', 'student'] },
-      { name: t('attendance'), href: '/dashboard/attendance', icon: CalendarCheck, roles: ['schoolAdmin', 'teacher', 'parent'] },
-      { name: t('library'), href: '/dashboard/library', icon: Library, roles: ['superadmin', 'schoolAdmin', 'teacher', 'student', 'staff'] },
-      { name: t('fees'), href: '/dashboard/fees', icon: CreditCard, roles: ['schoolAdmin', 'accountant', 'parent'] },
-      { name: t('hr'), href: '/dashboard/hr', icon: UserCog, roles: ['superadmin', 'schoolAdmin', 'staff'] },
-      { name: t('transport'), href: '/dashboard/transport', icon: Bus, roles: ['superadmin', 'schoolAdmin', 'teacher', 'parent', 'staff'] },
-      { name: t('operations'), href: '/dashboard/operations', icon: Briefcase, roles: ['superadmin', 'schoolAdmin', 'staff', 'teacher'] },
-      { name: t('analytics'), href: '/dashboard/analytics', icon: TrendingUp, roles: ['superadmin', 'schoolAdmin'] },
-      { name: t('communication'), href: '/dashboard/communication', icon: MessageSquare, roles: ['superadmin', 'schoolAdmin', 'accountant', 'teacher', 'parent', 'staff', 'student'] },
-      { name: t('settings'), href: '/dashboard/settings', icon: Settings, roles: ['superadmin', 'schoolAdmin', 'accountant', 'teacher', 'parent', 'staff', 'student'] },
+      { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard, show: true },
+      { name: t('academics'), href: '/dashboard/academics', icon: BookOpen, show: can('view', 'academics') },
+      { name: t('students'), href: '/dashboard/students', icon: Users, show: can('view', 'students') },
+      { name: t('exams'), href: '/dashboard/exams', icon: FileText, show: can('view', 'exams') },
+      { name: t('schedule'), href: '/dashboard/schedule', icon: CalendarDays, show: can('view', 'schedule') },
+      { name: t('attendance'), href: '/dashboard/attendance', icon: CalendarCheck, show: can('view', 'academics') || can('view', 'students') },
+      { name: t('library'), href: '/dashboard/library', icon: Library, show: can('view', 'library') },
+      { name: t('fees'), href: '/dashboard/fees', icon: CreditCard, show: can('view', 'academics') || user.role === 'accountant' || user.role === 'parent' },
+      { name: t('hr'), href: '/dashboard/hr', icon: UserCog, show: can('view', 'staff') },
+      { name: t('transport'), href: '/dashboard/transport', icon: Bus, show: can('view', 'transport') },
+      { name: t('operations'), href: '/dashboard/operations', icon: Briefcase, show: can('manage', 'all') || user.role === 'staff' },
+      { name: t('analytics'), href: '/dashboard/analytics', icon: TrendingUp, show: can('manage', 'all') },
+      { name: t('communication'), href: '/dashboard/communication', icon: MessageSquare, show: can('view', 'communication') },
+      { name: t('settings'), href: '/dashboard/settings', icon: Settings, show: can('view', 'settings') },
     ];
-    return items.filter(item => item.roles.includes(user.role));
+    return items.filter(item => item.show);
   };
 
   const navItems = getNavItems();

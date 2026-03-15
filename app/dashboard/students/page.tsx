@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { MOCK_STUDENTS, MOCK_PARENTS, User, Student } from '@/lib/mock-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
@@ -14,6 +15,7 @@ type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
 
 export default function StudentsPage() {
   const { user } = useAuth();
+  const { can, isRole } = usePermissions();
   const [activeTab, setActiveTab] = useState<DirectoryTab>('students');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
@@ -21,12 +23,28 @@ export default function StudentsPage() {
 
   if (!user) return null;
 
-  if (!['superadmin', 'schoolAdmin', 'teacher'].includes(user.role)) {
+  if (!can('view', 'students')) {
     return <div className="p-4">You do not have permission to view this page.</div>;
   }
 
-  const filteredStudents = MOCK_STUDENTS.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredParents = MOCK_PARENTS.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
+  let studentMembers = MOCK_STUDENTS;
+  let parentMembers = MOCK_PARENTS;
+
+  if (isRole('teacher')) {
+    // Teachers see their students and parents of their students
+    parentMembers = parentMembers.filter(p => studentMembers.some(s => s.id === p.studentId));
+  } else if (isRole('student')) {
+    // Students see only themselves
+    studentMembers = studentMembers.filter(s => s.id === user.id || s.id === user.studentId);
+    parentMembers = [];
+  } else if (isRole('parent')) {
+    // Parents see their children and themselves
+    studentMembers = studentMembers.filter(s => s.id === user.studentId);
+    parentMembers = parentMembers.filter(p => p.id === user.id);
+  }
+
+  const filteredStudents = studentMembers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredParents = parentMembers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const isStudent = (person: User | Student): person is Student => {
     return 'grade' in person;

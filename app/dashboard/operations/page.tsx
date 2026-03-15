@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Briefcase, 
@@ -54,9 +55,14 @@ const MOCK_INVENTORY = [
 
 export default function OperationsPage() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [activeTab, setActiveTab] = useState<'visitors' | 'health' | 'inventory'>('visitors');
 
   if (!user) return null;
+
+  if (!can('view', 'operations')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">
@@ -184,6 +190,7 @@ function HRTab() {
 }
 
 function VisitorsTab() {
+  const { can } = usePermissions();
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
@@ -201,10 +208,12 @@ function VisitorsTab() {
                 className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
-              <Plus size={16} />
-              New Check-in
-            </button>
+            {can('create', 'operations') && (
+              <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+                <Plus size={16} />
+                New Check-in
+              </button>
+            )}
           </div>
         </div>
 
@@ -248,7 +257,7 @@ function VisitorsTab() {
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {visitor.status === 'Active' && (
+                      {visitor.status === 'Active' && can('manage', 'operations') && (
                         <>
                           <button 
                             onClick={() => toast.success('Badge sent to printer')}
@@ -278,6 +287,7 @@ function VisitorsTab() {
 }
 
 function HealthTab() {
+  const { can } = usePermissions();
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -326,10 +336,12 @@ function HealthTab() {
                 className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-xl font-bold text-sm hover:bg-destructive/90 transition-colors shadow-sm whitespace-nowrap">
-              <Plus size={16} />
-              Log Incident
-            </button>
+            {can('create', 'operations') && (
+              <button className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-xl font-bold text-sm hover:bg-destructive/90 transition-colors shadow-sm whitespace-nowrap">
+                <Plus size={16} />
+                Log Incident
+              </button>
+            )}
           </div>
         </div>
 
@@ -378,6 +390,7 @@ function HealthTab() {
 }
 
 function InventoryTab() {
+  const { can } = usePermissions();
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
       <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
@@ -395,10 +408,12 @@ function InventoryTab() {
                 className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
-              <Plus size={16} />
-              Add Asset
-            </button>
+            {can('create', 'operations') && (
+              <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
+                <Plus size={16} />
+                Add Asset
+              </button>
+            )}
           </div>
         </div>
 
@@ -448,12 +463,14 @@ function InventoryTab() {
                     </p>
                   </td>
                   <td className="p-4 text-right">
-                    <button 
-                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" 
-                      title="Schedule Maintenance"
-                    >
-                      <Wrench size={18} />
-                    </button>
+                    {can('manage', 'operations') && (
+                      <button 
+                        className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" 
+                        title="Schedule Maintenance"
+                      >
+                        <Wrench size={18} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

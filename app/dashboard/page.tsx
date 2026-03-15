@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { MOCK_STATS, MOCK_NOTICES } from '@/lib/mock-db';
 import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
@@ -8,12 +9,13 @@ import { motion } from 'motion/react';
 
 export default function DashboardHome() {
   const { user } = useAuth();
+  const { isRole } = usePermissions();
 
   if (!user) return null;
 
-  if (user.role === 'parent') return <ParentDashboard />;
-  if (user.role === 'teacher') return <TeacherDashboard />;
-  if (user.role === 'accountant') return <AccountantDashboard />;
+  if (isRole('parent')) return <ParentDashboard />;
+  if (isRole('teacher')) return <TeacherDashboard />;
+  if (isRole('accountant')) return <AccountantDashboard />;
   return <AdminDashboard />;
 }
 

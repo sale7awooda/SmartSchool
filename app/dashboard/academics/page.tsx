@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { usePermissions } from "@/lib/permissions";
 import { MOCK_STUDENTS } from "@/lib/mock-db";
 import {
   BookOpen,
@@ -32,12 +33,17 @@ import { toast } from "sonner";
 
 export default function AcademicsPage() {
   const { user } = useAuth();
+  const { can, isRole } = usePermissions();
 
   if (!user) return null;
 
-  if (user.role === "teacher") return <TeacherAcademics />;
-  if (user.role === "parent") return <ParentAcademics />;
-  if (user.role === "schoolAdmin" || user.role === "superadmin")
+  if (!can('view', 'academics')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
+  if (isRole("teacher")) return <TeacherAcademics />;
+  if (isRole(["parent", "student"])) return <ParentAcademics />;
+  if (isRole(["schoolAdmin", "superadmin"]))
     return <AdminAcademics />;
 
   return (

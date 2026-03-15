@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { Notice, MOCK_USERS, MOCK_PARENTS, MOCK_NOTICES } from '@/lib/mock-db';
 import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2, Send, Search, Smartphone, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -21,6 +22,7 @@ const MOCK_MESSAGES = [
 
 export default function CommunicationPage() {
   const { user } = useAuth();
+  const { can, isAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState<'notices' | 'messages' | 'broadcasts'>('notices');
   
   // Notices State
@@ -41,8 +43,11 @@ export default function CommunicationPage() {
 
   if (!user) return null;
 
-  const isAdmin = ['superadmin', 'schoolAdmin'].includes(user.role);
-  const canCreateNotice = ['superadmin', 'schoolAdmin', 'accountant'].includes(user.role);
+  if (!can('view', 'communication')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
+  const canCreateNotice = can('create', 'communication');
 
   const visibleNotices = MOCK_NOTICES.filter(notice => {
     if (notice.targetAudience === 'all') return true;
@@ -108,7 +113,7 @@ export default function CommunicationPage() {
           >
             Direct Messages
           </button>
-          {isAdmin && (
+          {isAdmin() && (
             <button 
               onClick={() => setActiveTab('broadcasts')}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'broadcasts' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
@@ -269,7 +274,7 @@ export default function CommunicationPage() {
       )}
 
       {/* Broadcasts Tab (Admin Only) */}
-      {activeTab === 'broadcasts' && isAdmin && (
+      {activeTab === 'broadcasts' && isAdmin() && (
         <div className="flex-1 bg-card rounded-[2rem] border border-border shadow-sm p-8 max-w-3xl mx-auto w-full">
           <div className="mb-8 text-center">
             <div className="w-16 h-16 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mx-auto mb-4">

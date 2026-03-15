@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { motion } from 'motion/react';
 import { 
   CalendarDays, 
@@ -11,11 +12,16 @@ import StudentScheduleView from './StudentScheduleView';
 
 export default function SchedulePage() {
   const { user } = useAuth();
+  const { can, isRole } = usePermissions();
   
   if (!user) return null;
 
+  if (!can('view', 'schedule')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
   // Render Admin View for privileged roles
-  if (['superadmin', 'schoolAdmin', 'accountant', 'staff'].includes(user.role)) {
+  if (isRole(['superadmin', 'schoolAdmin', 'accountant', 'staff'])) {
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">
         <div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { MOCK_USERS, MOCK_STUDENTS, MOCK_PARENTS, User, Student } from '@/lib/mock-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
@@ -15,6 +16,7 @@ type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline' | 'schedule' 
 
 export default function DirectoryPage() {
   const { user } = useAuth();
+  const { can, isRole, isAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState<DirectoryTab>('staff');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
@@ -22,14 +24,34 @@ export default function DirectoryPage() {
 
   if (!user) return null;
 
-  if (!['superadmin', 'schoolAdmin', 'teacher'].includes(user.role)) {
+  if (!can('view', 'users') && !can('view', 'staff') && !can('view', 'students')) {
     return <div className="p-4">You do not have permission to view this page.</div>;
   }
 
-  const staffMembers = MOCK_USERS.filter(u => u.role !== 'parent' && u.role !== 'superadmin' && u.role !== 'student');
+  // Filter data based on role
+  let staffMembers = MOCK_USERS.filter(u => u.role !== 'parent' && u.role !== 'superadmin' && u.role !== 'student');
+  let studentMembers = MOCK_STUDENTS;
+  let parentMembers = MOCK_PARENTS;
+
+  if (isRole('teacher')) {
+    // Teachers see their students and other staff
+    // Assuming teacher sees all students for now, or we could filter by teacherId if it existed
+    parentMembers = parentMembers.filter(p => studentMembers.some(s => s.id === p.studentId));
+  } else if (isRole('student')) {
+    // Students see only themselves and their teachers
+    studentMembers = studentMembers.filter(s => s.id === user.id || s.id === user.studentId);
+    parentMembers = []; // Students don't see parents directory
+    staffMembers = staffMembers.filter(s => s.role === 'teacher'); // Only see teachers
+  } else if (isRole('parent')) {
+    // Parents see their children and their children's teachers
+    studentMembers = studentMembers.filter(s => s.id === user.studentId);
+    parentMembers = parentMembers.filter(p => p.id === user.id);
+    staffMembers = staffMembers.filter(s => s.role === 'teacher'); // Only see teachers
+  }
+
   const filteredStaff = staffMembers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.role.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredStudents = MOCK_STUDENTS.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredParents = MOCK_PARENTS.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredStudents = studentMembers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredParents = parentMembers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const isStudent = (person: User | Student): person is Student => {
     return 'grade' in person;
@@ -64,7 +86,12 @@ export default function DirectoryPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card p-4 rounded-[1.5rem] border border-border shadow-sm">
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide w-full sm:w-auto">
-            {(['staff', 'students', 'parents'] as const).map((tab) => (
+            {(['staff', 'students', 'parents'] as const).filter(tab => {
+              if (tab === 'staff') return can('view', 'staff');
+              if (tab === 'students') return can('view', 'students');
+              if (tab === 'parents') return can('view', 'users') || isRole('teacher');
+              return false;
+            }).map((tab) => (
               <button
                 key={tab}
                 onClick={() => { setActiveTab(tab); setSearchQuery(''); }}

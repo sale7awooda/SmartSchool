@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Library, 
@@ -32,11 +33,16 @@ const MOCK_LOANS = [
 
 export default function LibraryPage() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [activeTab, setActiveTab] = useState<'catalog' | 'loans' | 'fines'>('catalog');
 
   if (!user) return null;
 
-  const isAdmin = ['superadmin', 'schoolAdmin', 'staff'].includes(user.role);
+  if (!can('view', 'library')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
+  const isAdmin = can('manage', 'library') || can('create', 'library');
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">

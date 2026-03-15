@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { MOCK_STUDENTS, FeeInvoice } from '@/lib/mock-db';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,16 +17,22 @@ const MOCK_INVOICES: FeeInvoice[] = [
 
 export default function FeesPage() {
   const { user } = useAuth();
+  const { can, isRole } = usePermissions();
   
   if (!user) return null;
 
-  if (user.role === 'accountant' || user.role === 'schoolAdmin' || user.role === 'superadmin') return <AccountantFees />;
-  if (user.role === 'parent') return <ParentFees />;
+  if (!can('view', 'fees')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
+  if (isRole(['accountant', 'schoolAdmin', 'superadmin'])) return <AccountantFees />;
+  if (isRole('parent')) return <ParentFees />;
 
   return <div className="p-4">You do not have permission to view this page.</div>;
 }
 
 function AccountantFees() {
+  const { can } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'overdue'>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<FeeInvoice | null>(null);
@@ -55,10 +62,12 @@ function AccountantFees() {
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Fee Management</h1>
           <p className="text-muted-foreground mt-2 font-medium">Track and record student payments.</p>
         </div>
-        <button className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20">
-          <Plus size={20} />
-          New Invoice
-        </button>
+        {can('create', 'fees') && (
+          <button className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20">
+            <Plus size={20} />
+            New Invoice
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-3 sm:gap-6">
@@ -138,7 +147,7 @@ function AccountantFees() {
                 
                 <div className="flex items-center justify-between sm:justify-end gap-5 sm:w-auto w-full border-t sm:border-0 border-border pt-4 sm:pt-0">
                   <p className="text-2xl font-bold text-foreground">${invoice.amount}</p>
-                  {invoice.status !== 'paid' && (
+                  {invoice.status !== 'paid' && can('manage', 'fees') && (
                     <button 
                       onClick={() => setSelectedInvoice(invoice)}
                       className="px-5 py-2.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl text-sm font-bold transition-colors"

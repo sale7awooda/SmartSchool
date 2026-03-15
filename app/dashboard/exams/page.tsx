@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
 import { motion } from 'motion/react';
 import { 
   FileText, 
@@ -56,13 +57,18 @@ const EXAMS = [
 
 export default function ExamsPage() {
   const { user } = useAuth();
+  const { can, isRole } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   if (!user) return null;
 
-  const isStudent = user.role === 'student';
-  const isTeacherOrAdmin = ['teacher', 'schoolAdmin', 'superadmin'].includes(user.role);
+  if (!can('view', 'exams')) {
+    return <div className="p-4">You do not have permission to view this page.</div>;
+  }
+
+  const isStudent = isRole('student');
+  const isTeacherOrAdmin = can('manage', 'exams') || can('create', 'exams');
 
   const filteredExams = EXAMS.filter(exam => {
     const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -95,7 +101,7 @@ export default function ExamsPage() {
           </p>
         </div>
         
-        {isTeacherOrAdmin && (
+        {can('create', 'exams') && (
           <Link 
             href="/dashboard/exams/create"
             className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
