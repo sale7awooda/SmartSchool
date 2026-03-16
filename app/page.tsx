@@ -7,14 +7,11 @@ import { GraduationCap, UserCircle, Users, ArrowRight, Loader2, ShieldCheck, Boo
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function LoginPage() {
-  const [loginType, setLoginType] = useState<'staff' | 'parent'>('staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [studentId, setStudentId] = useState('');
-  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { loginStaff, loginParent } = useAuth();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,11 +19,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (loginType === 'staff') {
-        await loginStaff(email);
-      } else {
-        await loginParent(studentId, phone);
-      }
+      await login(email, password);
     } catch (err: any) {
       setError(err.message || 'Failed to login');
     } finally {
@@ -39,11 +32,11 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      if (role === 'admin') await loginStaff('admin@school.com');
-      else if (role === 'teacher') await loginStaff('teacher@school.com');
-      else if (role === 'accountant') await loginStaff('accountant@school.com');
-      else if (role === 'parent') await loginParent('STU001', '555-0123');
-      else if (role === 'student') await loginStaff('student@school.com');
+      if (role === 'admin') await login('admin@school.com');
+      else if (role === 'teacher') await login('teacher@school.com');
+      else if (role === 'accountant') await login('accountant@school.com');
+      else if (role === 'parent') await login('parent@school.com');
+      else if (role === 'student') await login('student@school.com');
     } catch (err: any) {
       setError(err.message || 'Failed to login');
     } finally {
@@ -60,44 +53,41 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md z-10">
         {/* Logo & Header */}
-        <div className="text-center mb-0 relative">
+        <div className="text-center mb-8 relative">
           <motion.div 
             initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="relative inline-flex items-center justify-center w-32 h-32 rounded-[2.5rem] bg-card shadow-xl mb-2 p-4 group cursor-default"
+            className="relative inline-flex items-center justify-center w-64 h-32 mb-4 group cursor-default"
           >
-            {/* Glow Effect */}
-            <div className="absolute inset-0 bg-primary/20 rounded-[2.5rem] blur-2xl group-hover:bg-primary/40 transition-all duration-500 -z-10" />
-            
             {/* Floating Elements */}
             <motion.div 
               animate={{ y: [0, -5, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-2 -right-2 w-10 h-10 bg-card rounded-xl shadow-md flex items-center justify-center text-primary"
+              className="absolute -top-4 -right-4 w-16 h-16 bg-card rounded-2xl shadow-lg flex items-center justify-center text-primary"
             >
-              <GraduationCap size={20} />
+              <GraduationCap size={32} />
             </motion.div>
             <motion.div 
               animate={{ y: [0, 5, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute -bottom-2 -left-2 w-8 h-8 bg-card rounded-lg shadow-md flex items-center justify-center text-emerald-500"
+              className="absolute -bottom-4 -left-4 w-12 h-12 bg-card rounded-xl shadow-lg flex items-center justify-center text-emerald-500"
             >
-              <BookOpen size={16} />
+              <BookOpen size={24} />
             </motion.div>
 
-            <Logo className="w-full h-full transform group-hover:scale-110 transition-transform duration-500" />
+            <Logo className="w-full h-full transform group-hover:scale-105 transition-transform duration-500" withBackground={false} />
           </motion.div>
           
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mb-4"
+            className="mb-8"
           >
-            <h1 className="text-4xl font-black text-primary-foreground tracking-tighter mb-1">Smart School</h1>
-            <div className="inline-block px-3 py-1 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 backdrop-blur-sm">
-              <p className="text-primary-foreground text-[10px] font-bold tracking-wider uppercase">Your digital campus, simplified.</p>
+            <h1 className="text-4xl font-black text-primary-foreground tracking-tighter mb-2">Smart School</h1>
+            <div className="inline-block px-4 py-1.5 rounded-full bg-primary-foreground/20 border border-primary-foreground/30 backdrop-blur-md">
+              <p className="text-primary-foreground text-xs font-bold tracking-wider uppercase">Your digital campus, simplified.</p>
             </div>
           </motion.div>
         </div>
@@ -106,107 +96,38 @@ export default function LoginPage() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card rounded-[2rem] shadow-xl border border-border overflow-hidden"
+          className="bg-card rounded-[2rem] shadow-2xl border border-border overflow-hidden"
         >
-          {/* Tabs */}
-          <div className="flex p-2 bg-muted/50 border-b border-border">
-            <button
-              onClick={() => { setLoginType('staff'); setError(''); }}
-              className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 rounded-xl transition-all ${
-                loginType === 'staff' 
-                  ? 'bg-card text-primary shadow-sm ring-1 ring-border' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              <UserCircle size={18} />
-              Staff & Admin
-            </button>
-            <button
-              onClick={() => { setLoginType('parent'); setError(''); }}
-              className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 rounded-xl transition-all ${
-                loginType === 'parent' 
-                  ? 'bg-card text-primary shadow-sm ring-1 ring-border' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              <Users size={18} />
-              Parents
-            </button>
-          </div>
-
           {/* Form */}
-          <div className="p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <AnimatePresence mode="wait">
-                {loginType === 'staff' ? (
-                  <motion.div
-                    key="staff"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">Email Address</label>
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="admin@school.com"
-                        className="w-full px-4 py-3.5 rounded-xl border border-input bg-background focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-sm font-semibold text-foreground">Password</label>
-                        <a href="#" className="text-xs font-medium text-primary hover:text-primary/80">Forgot?</a>
-                      </div>
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full px-4 py-3.5 rounded-xl border border-input bg-background focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground"
-                      />
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="parent"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">Student ID</label>
-                      <input
-                        type="text"
-                        required
-                        value={studentId}
-                        onChange={(e) => setStudentId(e.target.value)}
-                        placeholder="e.g. STU001"
-                        className="w-full px-4 py-3.5 rounded-xl border border-input bg-background focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground uppercase"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-1.5">Registered Phone Number</label>
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="e.g. 5551234"
-                        className="w-full px-4 py-3.5 rounded-xl border border-input bg-background focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          <div className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@school.com"
+                    className="w-full px-4 py-4 rounded-xl border border-input bg-background focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-sm font-semibold text-foreground">Password</label>
+                    <a href="#" className="text-xs font-medium text-primary hover:text-primary/80">Forgot?</a>
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-4 rounded-xl border border-input bg-background focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
 
               {error && (
                 <motion.div 

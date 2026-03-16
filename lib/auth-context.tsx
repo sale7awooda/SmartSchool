@@ -7,8 +7,7 @@ import { User } from './mock-db';
 
 interface AuthContextType {
   user: User | null;
-  loginStaff: (email: string, password?: string) => Promise<void>;
-  loginParent: (studentId: string, phone: string) => Promise<void>;
+  login: (email: string, password?: string) => Promise<void>;
   logout: () => void;
   switchStudent: (studentId: string) => void;
   isLoading: boolean;
@@ -111,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading, pathname, router]);
 
-  const loginStaff = async (email: string, password = 'password123') => {
+  const login = async (email: string, password = 'password123') => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -122,13 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     router.push('/dashboard');
-  };
-
-  const loginParent = async (studentId: string, phone: string) => {
-    // In a real app, you'd use phone auth or a custom function
-    // For now, we'll assume the parent has an email account linked to their student
-    // This is a placeholder for the real parent auth logic
-    throw new Error('Parent login via Student ID/Phone requires Supabase Phone Auth configuration.');
   };
 
   const switchStudent = (studentId: string) => {
@@ -145,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginStaff, loginParent, logout, switchStudent, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, switchStudent, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
