@@ -25,7 +25,7 @@ export default function FeesPage() {
     return <div className="p-4">You do not have permission to view this page.</div>;
   }
 
-  if (isRole(['accountant', 'schoolAdmin', 'superadmin'])) return <AccountantFees />;
+  if (isRole(['accountant', 'admin'])) return <AccountantFees />;
   if (isRole('parent')) return <ParentFees />;
 
   return <div className="p-4">You do not have permission to view this page.</div>;

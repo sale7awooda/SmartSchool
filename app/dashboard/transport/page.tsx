@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { fetchRoute, searchAddress } from '@/lib/routing';
 import { 
-  MOCK_BUS_ROUTES, 
-  MOCK_STUDENTS, 
-  MOCK_DRIVERS, 
-  MOCK_USERS,
   BusRoute, 
   Student,
-  BusStop
+  BusStop,
+  MOCK_STUDENTS,
+  MOCK_USERS,
+  MOCK_DRIVERS
 } from '@/lib/mock-db';
 import { 
   MapPin, 
@@ -48,7 +48,7 @@ export default function TransportPage() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Admin State
-  const [routes, setRoutes] = useState<BusRoute[]>(MOCK_BUS_ROUTES);
+  const [routes, setRoutes] = useState<BusRoute[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [currentRoute, setCurrentRoute] = useState<Partial<BusRoute>>({});
@@ -68,32 +68,55 @@ export default function TransportPage() {
   const [droppedOffStudents, setDroppedOffStudents] = useState<string[]>([]);
 
   // Supabase Realtime state
-  const [supabase, setSupabase] = useState<any>(null);
+  const supabase = createClient();
   const [channels, setChannels] = useState<Record<string, RealtimeChannel>>({});
   const [liveBusLocations, setLiveBusLocations] = useState<Record<string, {lat: number, lng: number}>>({});
   
   // GPS Broadcasting state
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [gpsInterval, setGpsInterval] = useState(60000); // Default 1 minute
+  const [parentStudent, setParentStudent] = useState<any>(null);
 
   useEffect(() => {
-    // Initialize Supabase client
-    const url = typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_URL') : null;
-    const key = typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_ANON_KEY') : null;
+    const fetchRoutes = async () => {
+      const { data, error } = await supabase
+        .from('bus_routes')
+        .select(`
+          *,
+          stops:bus_stops(*)
+        `)
+        .order('route_number');
+      
+      if (error) {
+        console.error('Error fetching routes:', error);
+        return;
+      }
+
+      if (data) {
+        setRoutes(data as any);
+      }
+    };
+
+    fetchRoutes();
+
+    // Subscribe to route updates
+    const channel = supabase
+      .channel('public:bus_routes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bus_routes' }, () => {
+        fetchRoutes();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  useEffect(() => {
     const savedInterval = typeof window !== 'undefined' ? localStorage.getItem('GPS_UPDATE_INTERVAL') : null;
     
     if (savedInterval) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setGpsInterval(parseInt(savedInterval) * 60000);
-    }
-    
-    if (url && key) {
-      const client = createClient(url, key);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSupabase(client);
-      console.log('Connected to Supabase Realtime');
-    } else {
-      console.warn('Supabase URL or Key not found. Please configure in Settings > Advanced Configurations.');
     }
   }, []);
 
@@ -134,53 +157,67 @@ export default function TransportPage() {
     
     const isParent = user?.role === 'parent';
     const isStaff = user?.role === 'staff' || user?.role === 'teacher';
-    const isAdminRole = user?.role === 'schoolAdmin';
+    const isAdminRole = user?.role === 'admin';
 
-    const parentStudent = isParent && user?.studentId 
-      ? MOCK_STUDENTS.find(s => s.id === user.studentId) 
-      : null;
-    
-    const parentRoute = parentStudent?.busRouteId 
-      ? routes.find(r => r.id === parentStudent.busRouteId) 
-      : null;
+    const fetchParentStudent = async () => {
+      if (isParent && user?.studentId) {
+        const { data } = await supabase
+          .from('students')
+          .select('*')
+          .eq('id', user.studentId)
+          .single();
+        return data;
+      }
+      return null;
+    };
 
-    const staffRoute = isStaff 
-      ? routes.find(r => r.attendantId === user?.id || r.driverId === user?.id) 
-      : null;
+    const setupChannels = async () => {
+      const studentData = await fetchParentStudent();
+      setParentStudent(studentData);
+      
+      const parentRoute = studentData?.bus_route_id 
+        ? routes.find(r => r.id === studentData.bus_route_id) 
+        : null;
 
-    const routeIdsToJoin: string[] = [];
-    if (isParent && parentRoute) {
-      routeIdsToJoin.push(parentRoute.id);
-    } else if (isStaff && staffRoute) {
-      routeIdsToJoin.push(staffRoute.id);
-    } else if (isAdminRole) {
-      // Admins join all active routes for fleet tracking
-      routes.forEach(route => {
-        if (route.status !== 'Not Started') {
-          routeIdsToJoin.push(route.id);
-        }
+      const staffRoute = isStaff 
+        ? routes.find(r => r.attendant_id === user?.id || r.driver_id === user?.id) 
+        : null;
+
+      const routeIdsToJoin: string[] = [];
+      if (isParent && parentRoute) {
+        routeIdsToJoin.push(parentRoute.id);
+      } else if (isStaff && staffRoute) {
+        routeIdsToJoin.push(staffRoute.id);
+      } else if (isAdminRole) {
+        // Admins join all active routes for fleet tracking
+        routes.forEach(route => {
+          if (route.status !== 'Not Started') {
+            routeIdsToJoin.push(route.id);
+          }
+        });
+      }
+
+      const newChannels: Record<string, RealtimeChannel> = {};
+
+      routeIdsToJoin.forEach(routeId => {
+        const channel = supabase.channel(`route:${routeId}`)
+          .on('broadcast', { event: 'location_update' }, (payload: any) => {
+            setLiveBusLocations(prev => ({
+              ...prev,
+              [payload.payload.routeId]: { lat: payload.payload.lat, lng: payload.payload.lng }
+            }));
+          })
+          .subscribe();
+        newChannels[routeId] = channel;
       });
-    }
 
-    const newChannels: Record<string, RealtimeChannel> = {};
+      setChannels(newChannels);
+    };
 
-    routeIdsToJoin.forEach(routeId => {
-      const channel = supabase.channel(`route:${routeId}`)
-        .on('broadcast', { event: 'location_update' }, (payload: any) => {
-          setLiveBusLocations(prev => ({
-            ...prev,
-            [payload.payload.routeId]: { lat: payload.payload.lat, lng: payload.payload.lng }
-          }));
-        })
-        .subscribe();
-      newChannels[routeId] = channel;
-    });
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChannels(newChannels);
+    setupChannels();
 
     return () => {
-      Object.values(newChannels).forEach(channel => {
+      Object.values(channels).forEach(channel => {
         supabase.removeChannel(channel);
       });
     };
@@ -193,29 +230,48 @@ export default function TransportPage() {
     if (isBroadcasting && supabase) {
       const isStaff = user?.role === 'staff' || user?.role === 'teacher';
       const staffRoute = isStaff 
-        ? routes.find(r => r.attendantId === user?.id || r.driverId === user?.id) 
+        ? routes.find(r => r.attendant_id === user?.id || r.driver_id === user?.id) 
         : null;
 
       if (staffRoute && channels[staffRoute.id]) {
         toast.success(`Started broadcasting GPS every ${gpsInterval / 60000} minute(s).`);
         
         intervalId = setInterval(() => {
-          setLiveBusLocations(prev => {
-            const currentLoc = prev[staffRoute.id] || { lat: 39.7850, lng: -89.6450 };
-            const newLat = currentLoc.lat + (Math.random() - 0.5) * 0.01;
-            const newLng = currentLoc.lng + (Math.random() - 0.5) * 0.01;
-            
-            channels[staffRoute.id].send({
-              type: 'broadcast',
-              event: 'location_update',
-              payload: { routeId: staffRoute.id, lat: newLat, lng: newLng }
+          if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition((position) => {
+              const { latitude, longitude } = position.coords;
+              
+              channels[staffRoute.id].send({
+                type: 'broadcast',
+                event: 'location_update',
+                payload: { routeId: staffRoute.id, lat: latitude, lng: longitude }
+              });
+
+              setLiveBusLocations(prev => ({
+                ...prev,
+                [staffRoute.id]: { lat: latitude, lng: longitude }
+              }));
+            }, (error) => {
+              console.error("Geolocation error:", error);
+              // Fallback to simulation if geolocation fails
+              setLiveBusLocations(prev => {
+                const currentLoc = prev[staffRoute.id] || { lat: 39.7850, lng: -89.6450 };
+                const newLat = currentLoc.lat + (Math.random() - 0.5) * 0.001;
+                const newLng = currentLoc.lng + (Math.random() - 0.5) * 0.001;
+                
+                channels[staffRoute.id].send({
+                  type: 'broadcast',
+                  event: 'location_update',
+                  payload: { routeId: staffRoute.id, lat: newLat, lng: newLng }
+                });
+                
+                return {
+                  ...prev,
+                  [staffRoute.id]: { lat: newLat, lng: newLng }
+                };
+              });
             });
-            
-            return {
-              ...prev,
-              [staffRoute.id]: { lat: newLat, lng: newLng }
-            };
-          });
+          }
         }, gpsInterval);
       }
     }
@@ -235,23 +291,19 @@ export default function TransportPage() {
   const isStaff = isRole(['staff', 'teacher']);
 
   // For Parents: Find their child's bus route
-  const parentStudent = isParent && user.studentId 
-    ? MOCK_STUDENTS.find(s => s.id === user.studentId) 
-    : null;
-  
-  const parentRoute = parentStudent?.busRouteId 
-    ? routes.find(r => r.id === parentStudent.busRouteId) 
+  const parentRoute = parentStudent?.bus_route_id 
+    ? routes.find(r => r.id === parentStudent.bus_route_id) 
     : null;
 
   // For Staff: Find assigned route
   const staffRoute = isStaff 
-    ? routes.find(r => r.attendantId === user.id) 
+    ? routes.find(r => r.attendant_id === user.id) 
     : null;
 
   // Filter routes for Admin view
   const filteredRoutes = routes.filter(route => 
-    route.routeNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    route.busNumber.toLowerCase().includes(searchQuery.toLowerCase())
+    route.route_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    route.bus_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleStatusUpdate = (routeId: string, newStatus: string) => {
@@ -270,9 +322,9 @@ export default function TransportPage() {
     setCurrentRoute(route ? { ...route } : { 
       stops: [], 
       status: 'Not Started',
-      routeNumber: '',
-      busNumber: '',
-      driverId: '',
+      route_number: '',
+      bus_number: '',
+      driver_id: '',
     });
     setIsModalOpen(true);
     setActiveDropdown(null);
@@ -295,7 +347,7 @@ export default function TransportPage() {
   };
 
   const handleSaveRoute = () => {
-    if (!currentRoute.routeNumber || !currentRoute.busNumber || !currentRoute.driverId) {
+    if (!currentRoute.route_number || !currentRoute.bus_number || !currentRoute.driver_id) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -405,7 +457,7 @@ export default function TransportPage() {
                         </span>
                         {parentRoute.status}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-1">{parentRoute.liveStatus}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{parentRoute.live_status}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Est. Arrival</p>
@@ -466,8 +518,8 @@ export default function TransportPage() {
                       <User size={32} />
                     </div>
                     <div>
-                      <p className="font-bold text-lg text-foreground">{MOCK_DRIVERS.find(d => d.id === parentRoute.driverId)?.name}</p>
-                      <p className="text-sm text-muted-foreground">License: {MOCK_DRIVERS.find(d => d.id === parentRoute.driverId)?.licenseNumber}</p>
+                      <p className="font-bold text-lg text-foreground">{MOCK_DRIVERS.find(d => d.id === parentRoute.driver_id)?.name}</p>
+                      <p className="text-sm text-muted-foreground">License: {MOCK_DRIVERS.find(d => d.id === parentRoute.driver_id)?.licenseNumber}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -475,11 +527,11 @@ export default function TransportPage() {
                       <Phone size={18} />
                       Call Driver
                     </button>
-                    {parentRoute.attendantName && (
+                    {parentRoute.attendant_name && (
                       <div className="p-4 bg-muted rounded-xl border border-border">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Bus Attendant</p>
-                        <p className="font-bold text-foreground">{parentRoute.attendantName}</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">{parentRoute.attendantPhone}</p>
+                        <p className="font-bold text-foreground">{parentRoute.attendant_name}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{parentRoute.attendant_phone}</p>
                       </div>
                     )}
                   </div>
@@ -490,11 +542,11 @@ export default function TransportPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
                       <span className="text-sm font-medium text-muted-foreground">Bus Number</span>
-                      <span className="font-bold text-foreground">{parentRoute.busNumber}</span>
+                      <span className="font-bold text-foreground">{parentRoute.bus_number}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
                       <span className="text-sm font-medium text-muted-foreground">Route ID</span>
-                      <span className="font-bold text-foreground">{parentRoute.routeNumber}</span>
+                      <span className="font-bold text-foreground">{parentRoute.route_number}</span>
                     </div>
                   </div>
                 </div>
@@ -557,8 +609,8 @@ export default function TransportPage() {
                 <div key={route.id} className="bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-md transition-all group relative">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-bold text-foreground">{route.routeNumber}</h3>
-                      <p className="text-sm font-medium text-muted-foreground">{route.busNumber}</p>
+                      <h3 className="text-xl font-bold text-foreground">{route.route_number}</h3>
+                      <p className="text-sm font-medium text-muted-foreground">{route.bus_number}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                       route.status === 'In Transit' ? 'bg-emerald-500/100/20 text-emerald-500' :
@@ -572,11 +624,11 @@ export default function TransportPage() {
                   <div className="space-y-3 mb-6">
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <User size={16} className="text-muted-foreground" />
-                      <span>Driver: {MOCK_DRIVERS.find(d => d.id === route.driverId)?.name}</span>
+                      <span>Driver: {MOCK_DRIVERS.find(d => d.id === route.driver_id)?.name}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <MapPin size={16} className="text-muted-foreground" />
-                      <span>{route.currentLocation || 'Unknown Location'}</span>
+                      <span>{route.current_location || 'Unknown Location'}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <Clock size={16} className="text-muted-foreground" />
@@ -660,7 +712,7 @@ export default function TransportPage() {
               <div className="bg-primary text-primary-foreground p-6 rounded-[2rem] shadow-lg shadow-primary/20 relative overflow-hidden">
                 <div className="relative z-10">
                   <p className="text-indigo-100 font-medium mb-1">Current Route</p>
-                  <h2 className="text-3xl font-bold">{staffRoute.routeNumber}</h2>
+                  <h2 className="text-3xl font-bold">{staffRoute.route_number}</h2>
                   <p className="text-indigo-100 mt-2 flex items-center gap-2">
                     <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
                     Live Tracking Active
@@ -685,7 +737,7 @@ export default function TransportPage() {
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 bg-card/90 backdrop-blur-md p-3 rounded-xl border border-border shadow-sm flex items-center justify-between z-10">
                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Location</p>
-                   <p className="text-sm font-bold text-foreground">{staffRoute.currentLocation}</p>
+                   <p className="text-sm font-bold text-foreground">{staffRoute.current_location}</p>
                 </div>
               </div>
 
@@ -834,8 +886,8 @@ export default function TransportPage() {
                     <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Route Number</label>
                     <input 
                       type="text" 
-                      value={currentRoute.routeNumber || ''}
-                      onChange={(e) => setCurrentRoute({...currentRoute, routeNumber: e.target.value})}
+                      value={currentRoute.route_number || ''}
+                      onChange={(e) => setCurrentRoute({...currentRoute, route_number: e.target.value})}
                       disabled={modalMode === 'view'}
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       placeholder="e.g. R-101"
@@ -845,8 +897,8 @@ export default function TransportPage() {
                     <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Bus Number</label>
                     <input 
                       type="text" 
-                      value={currentRoute.busNumber || ''}
-                      onChange={(e) => setCurrentRoute({...currentRoute, busNumber: e.target.value})}
+                      value={currentRoute.bus_number || ''}
+                      onChange={(e) => setCurrentRoute({...currentRoute, bus_number: e.target.value})}
                       disabled={modalMode === 'view'}
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       placeholder="e.g. BUS-42"
@@ -858,8 +910,8 @@ export default function TransportPage() {
                   <div>
                     <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Driver</label>
                     <select 
-                      value={currentRoute.driverId || ''}
-                      onChange={(e) => setCurrentRoute({...currentRoute, driverId: e.target.value})}
+                      value={currentRoute.driver_id || ''}
+                      onChange={(e) => setCurrentRoute({...currentRoute, driver_id: e.target.value})}
                       disabled={modalMode === 'view'}
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
@@ -872,14 +924,14 @@ export default function TransportPage() {
                   <div>
                     <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Attendant (Supervisor)</label>
                     <select 
-                      value={currentRoute.attendantId || ''}
+                      value={currentRoute.attendant_id || ''}
                       onChange={(e) => {
                         const attendant = MOCK_USERS.find(u => u.id === e.target.value);
                         setCurrentRoute({
                           ...currentRoute, 
-                          attendantId: e.target.value,
-                          attendantName: attendant?.name,
-                          attendantPhone: attendant?.phone
+                          attendant_id: e.target.value,
+                          attendant_name: attendant?.name,
+                          attendant_phone: attendant?.phone
                         });
                       }}
                       disabled={modalMode === 'view'}

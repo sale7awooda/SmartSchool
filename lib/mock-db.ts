@@ -1,4 +1,4 @@
-export type Role = 'superadmin' | 'schoolAdmin' | 'accountant' | 'teacher' | 'staff' | 'parent' | 'student';
+export type Role = 'admin' | 'accountant' | 'staff' | 'teacher' | 'parent' | 'student';
 
 export interface StaffProfile {
   department: string;
@@ -78,6 +78,8 @@ export interface Student {
   timeline?: TimelineEvent[];
   busRouteId?: string;
   stopId?: string;
+  merits?: number;
+  demerits?: number;
 }
 
 export interface FeeInvoice {
@@ -99,6 +101,16 @@ export interface Notice {
   authorRole: string;
   isImportant: boolean;
   targetAudience: 'all' | 'parents' | 'staff';
+}
+
+export interface Parent {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  studentId?: string;
+  studentIds?: string[];
+  role: 'parent';
 }
 
 export const MOCK_NOTICES: Notice[] = [
@@ -139,26 +151,26 @@ export interface Driver {
 
 export interface BusRoute {
   id: string;
-  routeNumber: string; // e.g., "R-101"
-  busNumber: string; // e.g., "BUS-42"
-  driverId: string;
-  attendantId?: string; // ID of the staff member assigned
-  attendantName?: string;
-  attendantPhone?: string;
+  route_number: string; // e.g., "R-101"
+  bus_number: string; // e.g., "BUS-42"
+  driver_id: string;
+  attendant_id?: string; // ID of the staff member assigned
+  attendant_name?: string;
+  attendant_phone?: string;
   stops: BusStop[];
   status: 'Not Started' | 'In Transit' | 'Arrived at School' | 'Completed';
-  currentLocation?: string; // Description or coordinates
-  liveStatus?: string; // e.g., "Approaching Main St."
+  current_location?: string; // Description or coordinates
+  live_status?: string; // e.g., "Approaching Main St."
 }
 
 // Mock Database for the MVP
 export const MOCK_USERS: User[] = [
-  { id: '1', name: 'System Owner', email: 'super@school.com', role: 'superadmin' },
+  { id: '1', name: 'System Owner', email: 'super@school.com', role: 'admin' },
   { 
     id: '2', 
     name: 'Principal Skinner', 
     email: 'admin@school.com', 
-    role: 'schoolAdmin',
+    role: 'admin',
     staffProfile: {
       department: 'Administration',
       designation: 'Principal',
@@ -227,15 +239,15 @@ export const MOCK_DRIVERS: Driver[] = [
 export const MOCK_BUS_ROUTES: BusRoute[] = [
   {
     id: 'route1',
-    routeNumber: 'R-01',
-    busNumber: 'BUS-66',
-    driverId: '7',
-    attendantId: '5', // Willie MacDougal
-    attendantName: 'Groundskeeper Willie',
-    attendantPhone: '555-0103',
+    route_number: 'R-01',
+    bus_number: 'BUS-66',
+    driver_id: '7',
+    attendant_id: '5', // Willie MacDougal
+    attendant_name: 'Groundskeeper Willie',
+    attendant_phone: '555-0103',
     status: 'In Transit',
-    currentLocation: 'Evergreen Terrace',
-    liveStatus: 'Approaching 742 Evergreen Terrace',
+    current_location: 'Evergreen Terrace',
+    live_status: 'Approaching 742 Evergreen Terrace',
     stops: [
       { id: 's1', name: 'Evergreen Terrace', arrivalTime: '07:30 AM', coordinates: { lat: 39.7817, lng: -89.6501 }, studentId: 'STU001' },
       { id: 's2', name: 'Kwik-E-Mart', arrivalTime: '07:45 AM', coordinates: { lat: 39.7900, lng: -89.6400 }, studentId: 'STU003' },

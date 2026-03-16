@@ -51,8 +51,8 @@ export default function CommunicationPage() {
 
   const visibleNotices = MOCK_NOTICES.filter(notice => {
     if (notice.targetAudience === 'all') return true;
-    if (notice.targetAudience === 'staff' && ['superadmin', 'schoolAdmin', 'accountant', 'teacher', 'staff'].includes(user.role)) return true;
-    if (notice.targetAudience === 'parents' && ['superadmin', 'schoolAdmin', 'accountant', 'parent'].includes(user.role)) return true;
+    if (notice.targetAudience === 'staff' && ['admin', 'accountant', 'teacher', 'staff'].includes(user.role)) return true;
+    if (notice.targetAudience === 'parents' && ['admin', 'accountant', 'parent'].includes(user.role)) return true;
     return false;
   });
 

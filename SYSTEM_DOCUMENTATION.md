@@ -13,7 +13,7 @@ The system is built using Next.js (App Router), leveraging server-side rendering
 - **Schedule Wizard**: A step-by-step tool for configuring school periods, subjects, and teachers.
 
 ## Navigation
-The navigation system is role-based, ensuring that users only see the modules and features relevant to their permissions (e.g., superadmin, teacher, student).
+The navigation system is role-based, ensuring that users only see the modules and features relevant to their permissions (e.g., admin, teacher, student).
 
 ## PWA Configuration
 The application is configured as a Progressive Web App (PWA) with a manifest file (`/app/manifest.ts`) that defines the app's name, icons (in various sizes), and theme colors, allowing for an app-like experience on mobile devices.

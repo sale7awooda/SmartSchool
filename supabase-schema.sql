@@ -10,7 +10,7 @@ CREATE TABLE public.users (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('superadmin', 'schoolAdmin', 'teacher', 'accountant', 'staff', 'student', 'parent')),
+  role TEXT NOT NULL CHECK (role IN ('admin', 'teacher', 'accountant', 'staff', 'student', 'parent')),
   phone TEXT,
   student_id UUID, -- For parents/students linking to student record
   custom_permissions JSONB DEFAULT '{}'::jsonb, -- Overrides default role permissions
@@ -42,6 +42,70 @@ CREATE TABLE public.academic_enrollments (
   grade TEXT NOT NULL,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'transferred')),
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Notices Table
+CREATE TABLE public.notices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  author_id UUID REFERENCES public.users(id),
+  author_name TEXT,
+  author_role TEXT,
+  target_audience TEXT CHECK (target_audience IN ('all', 'parents', 'staff', 'teachers')),
+  is_important BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Attendance Table
+CREATE TABLE public.attendance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL CHECK (status IN ('present', 'absent', 'late', 'excused')),
+  marked_by UUID REFERENCES public.users(id),
+  remarks TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (student_id, date)
+);
+
+-- Fee Invoices Table
+CREATE TABLE public.fee_invoices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+  amount NUMERIC NOT NULL,
+  due_date DATE NOT NULL,
+  status TEXT DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid', 'partially_paid', 'overdue')),
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Assignments Table
+CREATE TABLE public.assignments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  description TEXT,
+  subject TEXT NOT NULL,
+  grade TEXT NOT NULL,
+  teacher_id UUID REFERENCES public.users(id),
+  due_date TIMESTAMPTZ NOT NULL,
+  type TEXT CHECK (type IN ('homework', 'project', 'quiz', 'essay')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Grades Table
+CREATE TABLE public.grades (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+  assignment_id UUID REFERENCES public.assignments(id) ON DELETE CASCADE,
+  score NUMERIC,
+  grade_letter TEXT,
+  remarks TEXT,
+  graded_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (student_id, assignment_id)
 );
 
 -- Parent-Student Junction Table (Many-to-Many)
@@ -95,7 +159,7 @@ $$ LANGUAGE sql SECURITY DEFINER;
 -- Users Table Policies
 -- Admins can read/write all users
 CREATE POLICY "Admins can manage all users" ON public.users
-  FOR ALL USING (get_user_role() IN ('superadmin', 'schoolAdmin'));
+  FOR ALL USING (get_user_role() = 'admin');
 
 -- Users can read their own profile
 CREATE POLICY "Users can view own profile" ON public.users
@@ -108,7 +172,7 @@ CREATE POLICY "Staff can view users" ON public.users
 -- Students Table Policies
 -- Admins can manage all students
 CREATE POLICY "Admins can manage all students" ON public.students
-  FOR ALL USING (get_user_role() IN ('superadmin', 'schoolAdmin'));
+  FOR ALL USING (get_user_role() = 'admin');
 
 -- Teachers can view all students (or restrict to their classes via a classes table)
 CREATE POLICY "Teachers can view students" ON public.students
@@ -143,7 +207,7 @@ CREATE POLICY "Transport staff can view route students" ON public.students
 -- Bus Routes Policies
 -- Admins can manage all routes
 CREATE POLICY "Admins can manage all routes" ON public.bus_routes
-  FOR ALL USING (get_user_role() IN ('superadmin', 'schoolAdmin'));
+  FOR ALL USING (get_user_role() = 'admin');
 
 -- All authenticated users can view routes (parents need to see their child's route)
 CREATE POLICY "All users can view routes" ON public.bus_routes
@@ -158,17 +222,104 @@ CREATE POLICY "Staff can update assigned route" ON public.bus_routes
 -- Bus Stops Policies
 -- Admins can manage all stops
 CREATE POLICY "Admins can manage all stops" ON public.bus_stops
-  FOR ALL USING (get_user_role() IN ('superadmin', 'schoolAdmin'));
+  FOR ALL USING (get_user_role() = 'admin');
 
 -- All authenticated users can view stops
 CREATE POLICY "All users can view stops" ON public.bus_stops
   FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Notices Policies
+CREATE POLICY "Admins can manage notices" ON public.notices
+  FOR ALL USING (get_user_role() = 'admin');
+
+CREATE POLICY "All users can view notices" ON public.notices
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Attendance Policies
+CREATE POLICY "Admins can manage attendance" ON public.attendance
+  FOR ALL USING (get_user_role() = 'admin');
+
+CREATE POLICY "Teachers can manage attendance" ON public.attendance
+  FOR ALL USING (get_user_role() = 'teacher');
+
+CREATE POLICY "Parents can view their children attendance" ON public.attendance
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.parent_student
+      WHERE parent_student.parent_id = auth.uid()
+      AND parent_student.student_id = attendance.student_id
+    )
+  );
+
+-- Fee Invoices Policies
+CREATE POLICY "Admins can manage invoices" ON public.fee_invoices
+  FOR ALL USING (get_user_role() = 'admin');
+
+CREATE POLICY "Accountants can manage invoices" ON public.fee_invoices
+  FOR ALL USING (get_user_role() = 'accountant');
+
+CREATE POLICY "Parents can view their children invoices" ON public.fee_invoices
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.parent_student
+      WHERE parent_student.parent_id = auth.uid()
+      AND parent_student.student_id = fee_invoices.student_id
+    )
+  );
+
+-- Assignments Policies
+CREATE POLICY "Admins can manage assignments" ON public.assignments
+  FOR ALL USING (get_user_role() = 'admin');
+
+CREATE POLICY "Teachers can manage assignments" ON public.assignments
+  FOR ALL USING (get_user_role() = 'teacher');
+
+CREATE POLICY "All authenticated users can view assignments" ON public.assignments
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Grades Policies
+CREATE POLICY "Admins can manage grades" ON public.grades
+  FOR ALL USING (get_user_role() = 'admin');
+
+CREATE POLICY "Teachers can manage grades" ON public.grades
+  FOR ALL USING (get_user_role() = 'teacher');
+
+CREATE POLICY "Parents can view their children grades" ON public.grades
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.parent_student
+      WHERE parent_student.parent_id = auth.uid()
+      AND parent_student.student_id = grades.student_id
+    )
+  );
 
 -- 5. Realtime Configuration
 -- Enable realtime for bus_routes to track status changes
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bus_routes;
 
 -- 6. Functions for Business Logic
+
+-- Trigger to automatically create a user profile in public.users when a new user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, name, email, role)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+    NEW.email,
+    CASE 
+      WHEN NEW.email = 'sale7awooda@gmail.com' THEN 'admin'
+      ELSE 'parent' -- Default role, can be changed by admin
+    END
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Function to promote students to next grade
 CREATE OR REPLACE FUNCTION public.promote_students(current_year TEXT, new_year TEXT)
@@ -178,7 +329,7 @@ DECLARE
   new_grade TEXT;
 BEGIN
   -- Ensure only admins can execute
-  IF get_user_role() NOT IN ('superadmin', 'schoolAdmin') THEN
+  IF get_user_role() != 'admin' THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 

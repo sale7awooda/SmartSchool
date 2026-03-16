@@ -92,7 +92,7 @@ export default function SettingsPage() {
               { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
               { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
-              { id: 'configurations', label: 'Advanced Configurations', icon: Globe, show: user.role === 'schoolAdmin' },
+              { id: 'configurations', label: 'Advanced Configurations', icon: Globe, show: user.role === 'admin' },
             ].filter(tab => tab.show).map((tab) => {
               return (
                 <button
@@ -342,7 +342,7 @@ export default function SettingsPage() {
               {activeTab === 'admin' && (
                 <div className="p-6 sm:p-8 space-y-8">
                   {/* School-wide Settings (Admin Only) */}
-                  {(user.role === 'schoolAdmin' || user.role === 'superadmin') && (
+                  {user.role === 'admin' && (
                     <div>
                       <h3 className="text-lg font-bold text-foreground mb-1">System Configuration</h3>
                       <p className="text-sm text-muted-foreground mb-6">Configure school-wide settings and appearance.</p>
@@ -424,7 +424,7 @@ export default function SettingsPage() {
               )}
 
               {/* Advanced Configurations Tab */}
-              {activeTab === 'configurations' && user.role === 'schoolAdmin' && (
+              {activeTab === 'configurations' && user.role === 'admin' && (
                 <div className="p-6 sm:p-8 space-y-8">
                   <div>
                     <h3 className="text-lg font-bold text-foreground mb-1">Advanced Configurations</h3>

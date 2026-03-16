@@ -2,11 +2,12 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { MOCK_USERS, MOCK_PARENTS, User } from './mock-db';
+import { createClient } from '@/lib/supabase/client';
+import { User } from './mock-db';
 
 interface AuthContextType {
   user: User | null;
-  loginStaff: (email: string) => Promise<void>;
+  loginStaff: (email: string, password?: string) => Promise<void>;
   loginParent: (studentId: string, phone: string) => Promise<void>;
   logout: () => void;
   switchStudent: (studentId: string) => void;
@@ -20,16 +21,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const supabase = createClient();
 
   useEffect(() => {
-    // Check local storage for mocked session
-    const storedUser = localStorage.getItem('school_mvp_user');
-    if (storedUser) {
-      // Using a timeout to avoid synchronous setState warning
-      setTimeout(() => setUser(JSON.parse(storedUser)), 0);
-    }
-    setTimeout(() => setIsLoading(false), 0);
-  }, []);
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        let { data: profile, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        // Bootstrap admin if email matches
+        if (session.user.email === 'sale7awooda@gmail.com' && (!profile || profile.role !== 'admin')) {
+          const { data: updatedProfile, error: updateError } = await supabase
+            .from('users')
+            .upsert({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || 'Admin',
+              role: 'admin'
+            })
+            .select()
+            .single();
+          
+          if (!updateError) {
+            profile = updatedProfile;
+          }
+        }
+        
+        if (profile) {
+          setUser(profile as User);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        let { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        // Bootstrap admin if email matches
+        if (session.user.email === 'sale7awooda@gmail.com' && (!profile || profile.role !== 'admin')) {
+          const { data: updatedProfile } = await supabase
+            .from('users')
+            .upsert({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || 'Admin',
+              role: 'admin'
+            })
+            .select()
+            .single();
+          
+          if (updatedProfile) {
+            profile = updatedProfile;
+          }
+        }
+
+        if (profile) {
+          setUser(profile as User);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -41,45 +111,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading, pathname, router]);
 
-  const loginStaff = async (email: string) => {
-    // Mock API delay
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    const foundUser = MOCK_USERS.find((u) => u.email === email);
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('school_mvp_user', JSON.stringify(foundUser));
-      router.push('/dashboard');
-    } else {
-      throw new Error('Invalid email or password');
+  const loginStaff = async (email: string, password = 'password123') => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
+    
+    router.push('/dashboard');
   };
 
   const loginParent = async (studentId: string, phone: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    const foundParent = MOCK_PARENTS.find(
-      (p) => p.studentIds?.includes(studentId) && p.phone === phone
-    );
-    if (foundParent) {
-      const activeUser = { ...foundParent, studentId }; // Set the active studentId
-      setUser(activeUser);
-      localStorage.setItem('school_mvp_user', JSON.stringify(activeUser));
-      router.push('/dashboard');
-    } else {
-      throw new Error('Invalid Student ID or Phone Number');
-    }
+    // In a real app, you'd use phone auth or a custom function
+    // For now, we'll assume the parent has an email account linked to their student
+    // This is a placeholder for the real parent auth logic
+    throw new Error('Parent login via Student ID/Phone requires Supabase Phone Auth configuration.');
   };
 
   const switchStudent = (studentId: string) => {
-    if (user && user.role === 'parent' && user.studentIds?.includes(studentId)) {
+    if (user && user.role === 'parent') {
       const updatedUser = { ...user, studentId };
       setUser(updatedUser);
-      localStorage.setItem('school_mvp_user', JSON.stringify(updatedUser));
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('school_mvp_user');
     router.push('/');
   };
 

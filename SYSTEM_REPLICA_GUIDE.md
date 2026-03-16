@@ -117,7 +117,7 @@ The system uses a custom `oklch` color palette mapped to standard Tailwind varia
 - **Routing Protection:** Redirects unauthenticated users from `/dashboard/*` to `/`, and authenticated users from `/` to `/dashboard`.
 
 ### 4.2 Role-Based Access Control (RBAC)
-Roles defined in the system: `superadmin`, `schoolAdmin`, `teacher`, `accountant`, `parent`, `student`, `staff`.
+Roles defined in the system: `admin`, `teacher`, `accountant`, `parent`, `student`, `staff`.
 The Sidebar (`app/dashboard/layout.tsx`) filters navigation items based on `user.role`.
 
 ### 4.3 PWA Configuration

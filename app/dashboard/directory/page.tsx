@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { MOCK_USERS, MOCK_STUDENTS, MOCK_PARENTS, User, Student } from '@/lib/mock-db';
+import { User, Student, Parent } from '@/lib/mock-db';
+import { getStudents, getParents, getUsers, getBehaviorRecords, getTimelineRecords } from '@/lib/supabase-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
   MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Clock,
-  Briefcase, Book, Award, Building2
+  Briefcase, Book, Award, Building2, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -19,8 +20,55 @@ export default function DirectoryPage() {
   const { can, isRole, isAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState<DirectoryTab>('staff');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('overview');
+  
+  const [staffMembers, setStaffMembers] = useState<User[]>([]);
+  const [studentMembers, setStudentMembers] = useState<Student[]>([]);
+  const [parentMembers, setParentMembers] = useState<Parent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [behaviorRecords, setBehaviorRecords] = useState<any[]>([]);
+  const [timelineRecords, setTimelineRecords] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [students, parents, users] = await Promise.all([
+          getStudents(),
+          getParents(),
+          getUsers()
+        ]);
+        
+        setStudentMembers(students);
+        setParentMembers(parents);
+        setStaffMembers(users.filter(u => !['student', 'parent'].includes(u.role)));
+      } catch (error) {
+        console.error('Error loading directory data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedPerson && 'grade' in selectedPerson) {
+      async function loadProfileDetails() {
+        try {
+          const [behavior, timeline] = await Promise.all([
+            getBehaviorRecords(selectedPerson.id),
+            getTimelineRecords(selectedPerson.id)
+          ]);
+          setBehaviorRecords(behavior);
+          setTimelineRecords(timeline);
+        } catch (error) {
+          console.error('Error loading profile details:', error);
+        }
+      }
+      loadProfileDetails();
+    }
+  }, [selectedPerson]);
 
   if (!user) return null;
 
@@ -29,46 +77,48 @@ export default function DirectoryPage() {
   }
 
   // Filter data based on role
-  let staffMembers = MOCK_USERS.filter(u => u.role !== 'parent' && u.role !== 'superadmin' && u.role !== 'student');
-  let studentMembers = MOCK_STUDENTS;
-  let parentMembers = MOCK_PARENTS;
+  let displayStaff = staffMembers;
+  let displayStudents = studentMembers;
+  let displayParents = parentMembers;
 
   if (isRole('teacher')) {
     // Teachers see their students and other staff
-    // Assuming teacher sees all students for now, or we could filter by teacherId if it existed
-    parentMembers = parentMembers.filter(p => studentMembers.some(s => s.id === p.studentId));
+    // Assuming teacher sees all students for now
+    displayParents = displayParents.filter(p => displayStudents.some(s => s.id === p.studentId));
   } else if (isRole('student')) {
     // Students see only themselves and their teachers
-    studentMembers = studentMembers.filter(s => s.id === user.id || s.id === user.studentId);
-    parentMembers = []; // Students don't see parents directory
-    staffMembers = staffMembers.filter(s => s.role === 'teacher'); // Only see teachers
+    displayStudents = displayStudents.filter(s => s.id === user.id || s.id === user.studentId);
+    displayParents = []; // Students don't see parents directory
+    displayStaff = displayStaff.filter(s => s.role === 'teacher'); // Only see teachers
   } else if (isRole('parent')) {
     // Parents see their children and their children's teachers
-    studentMembers = studentMembers.filter(s => s.id === user.studentId);
-    parentMembers = parentMembers.filter(p => p.id === user.id);
-    staffMembers = staffMembers.filter(s => s.role === 'teacher'); // Only see teachers
+    displayStudents = displayStudents.filter(s => s.id === user.studentId);
+    displayParents = displayParents.filter(p => p.id === user.id);
+    displayStaff = displayStaff.filter(s => s.role === 'teacher'); // Only see teachers
   }
 
-  const filteredStaff = staffMembers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.role.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredStudents = studentMembers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredParents = parentMembers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredStaff = displayStaff.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.role.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredStudents = displayStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredParents = displayParents.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const isStudent = (person: User | Student): person is Student => {
-    return 'grade' in person;
+  const isStudent = (person: any): person is Student => {
+    return person && 'grade' in person;
   };
 
-  const isStaff = (person: User | Student): person is User => {
-    return 'role' in person && ['teacher', 'staff', 'schoolAdmin', 'accountant'].includes(person.role);
+  const isStaff = (person: any): person is User => {
+    return person && 'role' in person && ['teacher', 'staff', 'admin', 'accountant'].includes(person.role);
   };
 
   const handleCloseProfile = () => {
     setSelectedPerson(null);
     setActiveProfileTab('overview');
+    setBehaviorRecords([]);
+    setTimelineRecords([]);
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'schoolAdmin': return 'bg-purple-500/20 text-purple-500 border-purple-500/20';
+      case 'admin': return 'bg-purple-500/20 text-purple-500 border-purple-500/20';
       case 'teacher': return 'bg-primary/20 text-primary border-primary/20';
       case 'accountant': return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20';
       case 'staff': return 'bg-muted text-foreground border-border';
@@ -119,7 +169,14 @@ export default function DirectoryPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeTab === 'staff' && (
+          {isLoading ? (
+            <div className="col-span-full flex flex-col items-center justify-center p-20 space-y-4">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              <p className="text-muted-foreground font-medium">Loading directory...</p>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'staff' && (
             filteredStaff.length === 0 ? <div className="col-span-full p-12 text-center text-muted-foreground font-medium">No staff found.</div> :
             filteredStaff.map((staff) => (
               <motion.div 
@@ -240,6 +297,8 @@ export default function DirectoryPage() {
                 </div>
               </motion.div>
             ))
+          )}
+            </>
           )}
         </div>
       </div>
@@ -611,22 +670,22 @@ export default function DirectoryPage() {
                             <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-emerald-500 mb-2 shadow-sm">
                               <ThumbsUp size={20} />
                             </div>
-                            <p className="text-3xl font-bold text-emerald-500">{selectedPerson.behavior.merits}</p>
+                            <p className="text-3xl font-bold text-emerald-500">{selectedPerson.merits || 0}</p>
                             <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mt-1">Total Merits</p>
                           </div>
                           <div className="bg-destructive/10 p-5 rounded-2xl border border-destructive/20 text-center">
                             <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-destructive mb-2 shadow-sm">
                               <ThumbsDown size={20} />
                             </div>
-                            <p className="text-3xl font-bold text-destructive">{selectedPerson.behavior.demerits}</p>
+                            <p className="text-3xl font-bold text-destructive">{selectedPerson.demerits || 0}</p>
                             <p className="text-xs font-bold text-destructive uppercase tracking-wider mt-1">Total Demerits</p>
                           </div>
                         </div>
 
                         <div className="space-y-3">
                           <h3 className="font-bold text-foreground">Recent Records</h3>
-                          {selectedPerson.behavior.records.length > 0 ? (
-                            selectedPerson.behavior.records.map((record) => (
+                          {behaviorRecords.length > 0 ? (
+                            behaviorRecords.map((record) => (
                               <div key={record.id} className="bg-card p-4 rounded-xl border border-border shadow-sm flex gap-4">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                                   record.type === 'merit' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
@@ -643,7 +702,7 @@ export default function DirectoryPage() {
                                     </span>
                                   </div>
                                   <p className="text-sm text-muted-foreground mt-0.5">{record.description}</p>
-                                  <p className="text-xs font-medium text-muted-foreground mt-2">{record.date}</p>
+                                  <p className="text-xs font-medium text-muted-foreground mt-2">{new Date(record.created_at).toLocaleDateString()}</p>
                                 </div>
                               </div>
                             ))
@@ -661,19 +720,19 @@ export default function DirectoryPage() {
                 {/* Student Timeline Tab */}
                 {activeProfileTab === 'timeline' && isStudent(selectedPerson) && (
                   <div className="space-y-6">
-                    {selectedPerson.timeline && selectedPerson.timeline.length > 0 ? (
+                    {timelineRecords.length > 0 ? (
                       <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                        {selectedPerson.timeline.map((event) => (
+                        {timelineRecords.map((event) => (
                           <div key={event.id} className="relative">
                             <div className="absolute -left-[39px] w-8 h-8 rounded-full bg-card border-2 border-primary/20 flex items-center justify-center text-primary shadow-sm z-10">
-                              {event.icon === 'award' ? <Star size={14} /> : 
-                               event.icon === 'alert' ? <AlertCircle size={14} /> :
-                               event.icon === 'file' ? <Activity size={14} /> :
+                              {event.type === 'award' ? <Star size={14} /> : 
+                               event.type === 'alert' ? <AlertCircle size={14} /> :
+                               event.type === 'file' ? <Activity size={14} /> :
                                <Calendar size={14} />}
                             </div>
                             <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
                               <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-md mb-2 inline-block">
-                                {event.date}
+                                {new Date(event.created_at).toLocaleDateString()}
                               </span>
                               <h4 className="font-bold text-foreground">{event.title}</h4>
                               <p className="text-sm text-muted-foreground mt-1">{event.description}</p>

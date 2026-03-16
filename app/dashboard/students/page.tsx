@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { MOCK_STUDENTS, MOCK_PARENTS, User, Student } from '@/lib/mock-db';
+import { User, Student, Parent } from '@/lib/mock-db';
+import { getStudents, getParents, createStudent, getBehaviorRecords, getTimelineRecords } from '@/lib/supabase-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
   MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown,
@@ -27,6 +28,10 @@ export default function StudentsPage() {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isPromotionOpen, setIsPromotionOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  const [students, setStudents] = useState<Student[]>([]);
+  const [parents, setParents] = useState<Parent[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -41,8 +46,28 @@ export default function StudentsPage() {
     photo: null as string | null
   });
 
-  const isAdmin = isRole(['schoolAdmin', 'superadmin']);
+  const isAdmin = isRole(['admin']);
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [studentsData, parentsData] = await Promise.all([
+          getStudents(),
+          getParents()
+        ]);
+        setStudents(studentsData);
+        setParents(parentsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load directory data');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('add') === 'true' && isAdmin) {
@@ -59,8 +84,8 @@ export default function StudentsPage() {
     return <div className="p-4">You do not have permission to view this page.</div>;
   }
 
-  let studentMembers = MOCK_STUDENTS;
-  let parentMembers = MOCK_PARENTS;
+  let studentMembers = students;
+  let parentMembers = parents;
 
   if (isRole('teacher')) {
     // Teachers see their students and parents of their students
@@ -82,14 +107,38 @@ export default function StudentsPage() {
     return 'grade' in person;
   };
 
+  const [behaviorRecords, setBehaviorRecords] = useState<any[]>([]);
+  const [timelineRecords, setTimelineRecords] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (selectedPerson && isStudent(selectedPerson)) {
+        try {
+          const [behavior, timeline] = await Promise.all([
+            getBehaviorRecords(selectedPerson.id),
+            getTimelineRecords(selectedPerson.id)
+          ]);
+          setBehaviorRecords(behavior);
+          setTimelineRecords(timeline);
+        } catch (error) {
+          console.error('Error fetching student details:', error);
+        }
+      }
+    };
+
+    fetchDetails();
+  }, [selectedPerson]);
+
   const handleCloseProfile = () => {
     setSelectedPerson(null);
     setActiveProfileTab('overview');
+    setBehaviorRecords([]);
+    setTimelineRecords([]);
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'schoolAdmin': return 'bg-purple-500/20 text-purple-500 border-purple-500/20';
+      case 'admin': return 'bg-purple-500/20 text-purple-500 border-purple-500/20';
       case 'teacher': return 'bg-primary/20 text-primary border-primary/20';
       case 'accountant': return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20';
       case 'staff': return 'bg-muted text-foreground border-border';
@@ -266,27 +315,41 @@ export default function StudentsPage() {
                   e.preventDefault();
                   setIsSubmitting(true);
                   
-                  // Simulate API call
-                  await new Promise(resolve => setTimeout(resolve, 1500));
-                  
-                  setIsSubmitting(false);
-                  toast.success("Student registered successfully", {
-                    description: `${formData.name} has been added to Grade ${formData.grade}.`
-                  });
-                  setIsAddStudentOpen(false);
-                  // Reset form
-                  setFormData({
-                    name: '',
-                    studentId: '',
-                    grade: '',
-                    dob: '',
-                    gender: 'Male',
-                    bloodGroup: 'A+',
-                    address: '',
-                    parentName: '',
-                    parentPhone: '',
-                    photo: null
-                  });
+                  try {
+                    const newStudent = await createStudent(formData);
+                    
+                    toast.success("Student registered successfully", {
+                      description: `${formData.name} has been added to Grade ${formData.grade}.`
+                    });
+                    
+                    // Refresh data
+                    const [studentsData, parentsData] = await Promise.all([
+                      getStudents(),
+                      getParents()
+                    ]);
+                    setStudents(studentsData);
+                    setParents(parentsData);
+                    
+                    setIsAddStudentOpen(false);
+                    // Reset form
+                    setFormData({
+                      name: '',
+                      studentId: '',
+                      grade: '',
+                      dob: '',
+                      gender: 'Male',
+                      bloodGroup: 'A+',
+                      address: '',
+                      parentName: '',
+                      parentPhone: '',
+                      photo: null
+                    });
+                  } catch (error) {
+                    console.error('Error registering student:', error);
+                    toast.error('Failed to register student');
+                  } finally {
+                    setIsSubmitting(false);
+                  }
                 }} 
                 className="p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar"
               >
@@ -696,76 +759,70 @@ export default function StudentsPage() {
                 {/* Student Behavior Tab */}
                 {activeProfileTab === 'behavior' && isStudent(selectedPerson) && (
                   <div className="space-y-6">
-                    {selectedPerson.behavior ? (
-                      <>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-emerald-500/100/10 p-5 rounded-2xl border border-emerald-500/20 dark:border-emerald-500/20 text-center">
-                            <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-emerald-500 mb-2 shadow-sm">
-                              <ThumbsUp size={20} />
-                            </div>
-                            <p className="text-3xl font-bold text-emerald-500">{selectedPerson.behavior.merits}</p>
-                            <p className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mt-1">Total Merits</p>
-                          </div>
-                          <div className="bg-destructive/10 p-5 rounded-2xl border border-destructive/20 text-center">
-                            <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-destructive mb-2 shadow-sm">
-                              <ThumbsDown size={20} />
-                            </div>
-                            <p className="text-3xl font-bold text-destructive">{selectedPerson.behavior.demerits}</p>
-                            <p className="text-xs font-bold text-destructive/70 uppercase tracking-wider mt-1">Total Demerits</p>
-                          </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-emerald-500/100/10 p-5 rounded-2xl border border-emerald-500/20 dark:border-emerald-500/20 text-center">
+                        <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-emerald-500 mb-2 shadow-sm">
+                          <ThumbsUp size={20} />
                         </div>
+                        <p className="text-3xl font-bold text-emerald-500">{selectedPerson.merits || 0}</p>
+                        <p className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mt-1">Total Merits</p>
+                      </div>
+                      <div className="bg-destructive/10 p-5 rounded-2xl border border-destructive/20 text-center">
+                        <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-destructive mb-2 shadow-sm">
+                          <ThumbsDown size={20} />
+                        </div>
+                        <p className="text-3xl font-bold text-destructive">{selectedPerson.demerits || 0}</p>
+                        <p className="text-xs font-bold text-destructive/70 uppercase tracking-wider mt-1">Total Demerits</p>
+                      </div>
+                    </div>
 
-                        <div className="space-y-3">
-                          <h3 className="font-bold text-foreground">Recent Records</h3>
-                          {selectedPerson.behavior.records.length > 0 ? (
-                            selectedPerson.behavior.records.map((record) => (
-                              <div key={record.id} className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border dark:border-slate-800 shadow-sm flex gap-4">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                                  record.type === 'merit' ? 'bg-emerald-500/20 dark:bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 dark:bg-destructive/100/20 text-destructive'
+                    <div className="space-y-3">
+                      <h3 className="font-bold text-foreground">Recent Records</h3>
+                      {behaviorRecords.length > 0 ? (
+                        behaviorRecords.map((record) => (
+                          <div key={record.id} className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border dark:border-slate-800 shadow-sm flex gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                              record.type === 'merit' ? 'bg-emerald-500/20 dark:bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 dark:bg-destructive/100/20 text-destructive'
+                            }`}>
+                              {record.type === 'merit' ? <Star size={18} /> : <AlertCircle size={18} />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-foreground">{record.title || record.type}</h4>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                                  record.type === 'merit' ? 'bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
                                 }`}>
-                                  {record.type === 'merit' ? <Star size={18} /> : <AlertCircle size={18} />}
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-foreground">{record.title}</h4>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                                      record.type === 'merit' ? 'bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
-                                    }`}>
-                                      {record.type === 'merit' ? '+' : '-'}{record.points} pts
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-0.5">{record.description}</p>
-                                  <p className="text-xs font-medium text-muted-foreground mt-2">{record.date}</p>
-                                </div>
+                                  {record.type === 'merit' ? '+' : '-'}{record.points} pts
+                                </span>
                               </div>
-                            ))
-                          ) : (
-                            <div className="text-center py-8 text-muted-foreground text-sm">No behavior records found.</div>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-10 text-muted-foreground">No behavior records available.</div>
-                    )}
+                              <p className="text-sm text-muted-foreground mt-0.5">{record.description}</p>
+                              <p className="text-xs font-medium text-muted-foreground mt-2">{new Date(record.date).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">No behavior records found.</div>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* Student Timeline Tab */}
                 {activeProfileTab === 'timeline' && isStudent(selectedPerson) && (
                   <div className="space-y-6">
-                    {selectedPerson.timeline && selectedPerson.timeline.length > 0 ? (
+                    {timelineRecords.length > 0 ? (
                       <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-                        {selectedPerson.timeline.map((event) => (
+                        {timelineRecords.map((event) => (
                           <div key={event.id} className="relative">
                             <div className="absolute -left-[39px] w-8 h-8 rounded-full bg-card dark:bg-slate-900 border-2 border-primary/20 dark:border-indigo-900 flex items-center justify-center text-primary shadow-sm z-10">
-                              {event.icon === 'award' ? <Star size={14} /> : 
-                               event.icon === 'alert' ? <AlertCircle size={14} /> :
-                               event.icon === 'file' ? <Activity size={14} /> :
+                              {event.type === 'award' ? <Star size={14} /> : 
+                               event.type === 'alert' ? <AlertCircle size={14} /> :
+                               event.type === 'file' ? <Activity size={14} /> :
                                <Calendar size={14} />}
                             </div>
                             <div className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border dark:border-slate-800 shadow-sm">
                               <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-md mb-2 inline-block">
-                                {event.date}
+                                {new Date(event.date).toLocaleDateString()}
                               </span>
                               <h4 className="font-bold text-foreground">{event.title}</h4>
                               <p className="text-sm text-muted-foreground mt-1">{event.description}</p>

@@ -1,9 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
-import { MOCK_STUDENTS } from "@/lib/mock-db";
+import { Student } from "@/lib/mock-db";
+import { 
+  getAssessments, 
+  createAssessment, 
+  getSubmissions, 
+  updateSubmission,
+  getStudents,
+  getStudentByUserId,
+  getParentByUserId,
+  getStudentSubmissions,
+  getAcademicYears,
+  getClasses,
+  getSubjects,
+  createAcademicYear,
+  createClass,
+  createSubject,
+  supabase
+} from "@/lib/supabase-db";
 import {
   BookOpen,
   GraduationCap,
@@ -43,7 +60,7 @@ export default function AcademicsPage() {
 
   if (isRole("teacher")) return <TeacherAcademics />;
   if (isRole(["parent", "student"])) return <ParentAcademics />;
-  if (isRole(["schoolAdmin", "superadmin"]))
+  if (isRole(["admin"]))
     return <AdminAcademics />;
 
   return (
@@ -57,22 +74,119 @@ function AdminAcademics() {
     "overview" | "years" | "classes" | "subjects"
   >("overview");
 
+  const [isAddYearOpen, setIsAddYearOpen] = useState(false);
+  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
+  const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isAddGradeOpen, setIsAddGradeOpen] = useState(false);
-  const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
-  const [selectedGradeForSection, setSelectedGradeForSection] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
 
-  const handleAction = async (e: React.FormEvent, action: string) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [yearsData, classesData, subjectsData] = await Promise.all([
+          getAcademicYears(),
+          getClasses(),
+          getSubjects()
+        ]);
+        setAcademicYears(yearsData);
+        setClasses(classesData);
+        setSubjects(subjectsData);
+      } catch (error) {
+        console.error("Error fetching admin academics data:", error);
+        toast.error("Failed to load academic data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleCreateYear = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmitting(false);
-    toast.success(`${action} completed successfully`);
-    setIsSettingsOpen(false);
-    setIsAddGradeOpen(false);
-    setIsAddSectionOpen(false);
+    const formData = new FormData(e.currentTarget);
+    const yearData = {
+      name: formData.get("name") as string,
+      start_date: formData.get("startDate") as string,
+      end_date: formData.get("endDate") as string,
+      status: "Active"
+    };
+
+    try {
+      const newYear = await createAcademicYear(yearData);
+      setAcademicYears([newYear, ...academicYears]);
+      setIsAddYearOpen(false);
+      toast.success("Academic year created successfully");
+    } catch (error) {
+      console.error("Error creating academic year:", error);
+      toast.error("Failed to create academic year");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleCreateClass = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const classData = {
+      name: formData.get("name") as string,
+      grade_level: formData.get("gradeLevel") as string,
+      section: formData.get("section") as string,
+      academic_year_id: formData.get("academicYearId") as string
+    };
+
+    try {
+      const newClass = await createClass(classData);
+      setClasses([newClass, ...classes]);
+      setIsAddClassOpen(false);
+      toast.success("Class created successfully");
+    } catch (error) {
+      console.error("Error creating class:", error);
+      toast.error("Failed to create class");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateSubject = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const subjectData = {
+      name: formData.get("name") as string,
+      code: formData.get("code") as string,
+      description: formData.get("description") as string
+    };
+
+    try {
+      const newSubject = await createSubject(subjectData);
+      setSubjects([newSubject, ...subjects]);
+      setIsAddSubjectOpen(false);
+      toast.success("Subject created successfully");
+    } catch (error) {
+      console.error("Error creating subject:", error);
+      toast.error("Failed to create subject");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium">Loading academics data...</p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -125,10 +239,10 @@ function AdminAcademics() {
                 Active Year
               </p>
               <p className="text-2xl font-bold text-foreground mt-1">
-                2023 - 2024
+                {academicYears.find(y => y.status === 'Active')?.name || "None Active"}
               </p>
               <p className="text-xs font-medium text-emerald-500 mt-2 bg-emerald-500/10 w-fit px-2 py-1 rounded-md">
-                Term 1 in progress
+                Academic Year
               </p>
             </div>
             <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
@@ -138,9 +252,9 @@ function AdminAcademics() {
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
                 Total Classes
               </p>
-              <p className="text-2xl font-bold text-foreground mt-1">42</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{classes.length}</p>
               <p className="text-xs font-medium text-muted-foreground mt-2">
-                Across 12 Grades
+                Across all grades
               </p>
             </div>
             <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
@@ -150,7 +264,7 @@ function AdminAcademics() {
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
                 Total Subjects
               </p>
-              <p className="text-2xl font-bold text-foreground mt-1">18</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{subjects.length}</p>
               <p className="text-xs font-medium text-muted-foreground mt-2">
                 Active curriculum
               </p>
@@ -162,81 +276,138 @@ function AdminAcademics() {
           <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/50">
               <h3 className="font-bold text-foreground text-lg">
-                Grades & Sections
+                Classes & Sections
               </h3>
               <button 
-                onClick={() => setIsAddGradeOpen(true)}
+                onClick={() => setIsAddClassOpen(true)}
                 className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1"
               >
-                <Plus size={16} /> Add Grade
+                <Plus size={16} /> Add Class
               </button>
             </div>
             <div className="divide-y divide-border">
-              {[
-                { grade: "Grade 1", sections: ["A", "B", "C"], students: 85 },
-                { grade: "Grade 2", sections: ["A", "B"], students: 60 },
-                {
-                  grade: "Grade 3",
-                  sections: ["A", "B", "C", "D"],
-                  students: 112,
-                },
-                { grade: "Grade 4", sections: ["A", "B"], students: 58 },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted transition-colors"
-                >
-                  <div>
-                    <h4 className="font-bold text-foreground text-lg">
-                      {item.grade}
-                    </h4>
-                    <p className="text-sm font-medium text-muted-foreground mt-1">
-                      {item.students} Total Students
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {item.sections.map((sec) => (
-                      <span
-                        key={sec}
-                        className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center font-bold text-foreground shadow-sm"
-                      >
-                        {sec}
-                      </span>
-                    ))}
-                    <button 
-                      onClick={() => {
-                        setSelectedGradeForSection(item.grade);
-                        setIsAddSectionOpen(true);
-                      }}
-                      className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      <Plus size={20} />
-                    </button>
-                  </div>
+              {classes.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground font-medium">
+                  No classes found. Add your first class to get started.
                 </div>
-              ))}
+              ) : (
+                classes.map((cls, i) => (
+                  <div
+                    key={cls.id}
+                    className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted transition-colors"
+                  >
+                    <div>
+                      <h4 className="font-bold text-foreground text-lg">
+                        {cls.name}
+                      </h4>
+                      <p className="text-sm font-medium text-muted-foreground mt-1">
+                        {cls.grade_level} • Section {cls.section || "N/A"}
+                      </p>
+                      <p className="text-xs font-medium text-muted-foreground mt-1">
+                        Year: {cls.academic_year?.name} • Teacher: {cls.teacher?.name || "Unassigned"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
+                        <Settings size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
 
-        {(activeTab === "years" || activeTab === "subjects") && (
-          <div className="bg-card p-12 rounded-[1.5rem] border border-border shadow-sm text-center">
-            <div className="w-16 h-16 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-4">
-              <Settings size={32} />
+        {activeTab === "years" && (
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground text-lg">
+                Academic Years
+              </h3>
+              <button 
+                onClick={() => setIsAddYearOpen(true)}
+                className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1"
+              >
+                <Plus size={16} /> Add Year
+              </button>
             </div>
-            <h3 className="text-lg font-bold text-foreground">
-              Module Configuration
-            </h3>
-            <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
-              This section allows you to configure specific details for{" "}
-              {activeTab}.
-            </p>
+            <div className="divide-y divide-border">
+              {academicYears.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground font-medium">
+                  No academic years found.
+                </div>
+              ) : (
+                academicYears.map((year) => (
+                  <div
+                    key={year.id}
+                    className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted transition-colors"
+                  >
+                    <div>
+                      <h4 className="font-bold text-foreground text-lg">
+                        {year.name}
+                      </h4>
+                      <p className="text-sm font-medium text-muted-foreground mt-1">
+                        {year.start_date} to {year.end_date}
+                      </p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      year.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {year.status}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "subjects" && (
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground text-lg">
+                Curriculum Subjects
+              </h3>
+              <button 
+                onClick={() => setIsAddSubjectOpen(true)}
+                className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1"
+              >
+                <Plus size={16} /> Add Subject
+              </button>
+            </div>
+            <div className="divide-y divide-border">
+              {subjects.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground font-medium">
+                  No subjects found.
+                </div>
+              ) : (
+                subjects.map((subject) => (
+                  <div
+                    key={subject.id}
+                    className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted transition-colors"
+                  >
+                    <div>
+                      <h4 className="font-bold text-foreground text-lg">
+                        {subject.name}
+                      </h4>
+                      <p className="text-sm font-medium text-muted-foreground mt-1">
+                        Code: {subject.code || "N/A"}
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-xs truncate">
+                      {subject.description || "No description provided."}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>
 
       <AnimatePresence>
-        {isSettingsOpen && (
+        {isAddYearOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -245,31 +416,30 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Academic Settings</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Configure global academic parameters.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add Academic Year</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new academic year period.</p>
               </div>
               
-              <form onSubmit={(e) => handleAction(e, 'Settings updated')} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleCreateYear} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Current Academic Year</label>
-                  <select className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
-                    <option>2023 - 2024</option>
-                    <option>2024 - 2025</option>
-                  </select>
+                  <label className="block text-sm font-bold text-foreground mb-2">Year Name</label>
+                  <input required name="name" type="text" placeholder="e.g., 2024 - 2025" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Active Term</label>
-                  <select className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
-                    <option>Term 1</option>
-                    <option>Term 2</option>
-                    <option>Term 3</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Start Date</label>
+                    <input required name="startDate" type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">End Date</label>
+                    <input required name="endDate" type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-6">
                   <button 
                     type="button"
-                    onClick={() => setIsSettingsOpen(false)}
+                    onClick={() => setIsAddYearOpen(false)}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
                     Cancel
@@ -279,7 +449,7 @@ function AdminAcademics() {
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Save Changes'}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Year'}
                   </button>
                 </div>
               </form>
@@ -287,7 +457,7 @@ function AdminAcademics() {
           </div>
         )}
 
-        {isAddGradeOpen && (
+        {isAddClassOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -296,20 +466,38 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Grade</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new grade level.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Class</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new class section.</p>
               </div>
               
-              <form onSubmit={(e) => handleAction(e, 'Grade added')} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleCreateClass} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Grade Name</label>
-                  <input required type="text" placeholder="e.g., Grade 5" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <label className="block text-sm font-bold text-foreground mb-2">Class Name</label>
+                  <input required name="name" type="text" placeholder="e.g., Grade 4 - Section A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Grade Level</label>
+                    <input required name="gradeLevel" type="text" placeholder="e.g., Grade 4" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Section</label>
+                    <input name="section" type="text" placeholder="e.g., A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Academic Year</label>
+                  <select required name="academicYearId" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    {academicYears.map(year => (
+                      <option key={year.id} value={year.id}>{year.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex gap-3 pt-6">
                   <button 
                     type="button"
-                    onClick={() => setIsAddGradeOpen(false)}
+                    onClick={() => setIsAddClassOpen(false)}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
                     Cancel
@@ -319,7 +507,7 @@ function AdminAcademics() {
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Grade'}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Class'}
                   </button>
                 </div>
               </form>
@@ -327,7 +515,7 @@ function AdminAcademics() {
           </div>
         )}
 
-        {isAddSectionOpen && (
+        {isAddSubjectOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -336,20 +524,28 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add Section to {selectedGradeForSection}</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new section for this grade.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Subject</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new subject for the curriculum.</p>
               </div>
               
-              <form onSubmit={(e) => handleAction(e, 'Section added')} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleCreateSubject} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Section Name</label>
-                  <input required type="text" placeholder="e.g., C" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <label className="block text-sm font-bold text-foreground mb-2">Subject Name</label>
+                  <input required name="name" type="text" placeholder="e.g., Mathematics" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Subject Code</label>
+                  <input required name="code" type="text" placeholder="e.g., MATH101" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Description</label>
+                  <textarea name="description" rows={3} placeholder="Brief description of the subject..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
                 <div className="flex gap-3 pt-6">
                   <button 
                     type="button"
-                    onClick={() => setIsAddSectionOpen(false)}
+                    onClick={() => setIsAddSubjectOpen(false)}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
                     Cancel
@@ -359,7 +555,7 @@ function AdminAcademics() {
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Section'}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Subject'}
                   </button>
                 </div>
               </form>
@@ -509,22 +705,54 @@ function TeacherAcademics() {
   const [activeTab, setActiveTab] = useState<
     "assessments" | "gradebook" | "submissions"
   >("assessments");
-  const [assessments, setAssessments] =
-    useState<Assessment[]>(MOCK_ASSESSMENTS);
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showNewAssessment, setShowNewAssessment] = useState(false);
 
   // Gradebook Flow State
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedAssessment, setSelectedAssessment] =
-    useState<Assessment | null>(null);
+  const [selectedAssessment, setSelectedAssessment] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
 
   // Submissions State
-  const [viewingSubmissionsFor, setViewingSubmissionsFor] =
-    useState<Assessment | null>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [viewingSubmissionsFor, setViewingSubmissionsFor] = useState<any | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedSubmissionToReview, setSelectedSubmissionToReview] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [assessmentsData, studentsData] = await Promise.all([
+          getAssessments(),
+          getStudents()
+        ]);
+        setAssessments(assessmentsData);
+        setStudents(studentsData);
+      } catch (error) {
+        console.error('Error loading academics data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'submissions') {
+      async function loadSubmissions() {
+        try {
+          const data = await getSubmissions();
+          setSubmissions(data);
+        } catch (error) {
+          console.error('Error loading submissions:', error);
+        }
+      }
+      loadSubmissions();
+    }
+  }, [activeTab]);
 
   const handleReviewSubmission = (submission: any) => {
     setSelectedSubmissionToReview(submission);
@@ -533,11 +761,28 @@ function TeacherAcademics() {
 
   const submitReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedSubmissionToReview) return;
+    
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSaving(false);
-    toast.success("Submission graded successfully");
-    setIsReviewModalOpen(false);
+    try {
+      const formData = new FormData(e.currentTarget as HTMLFormElement);
+      await updateSubmission(selectedSubmissionToReview.id, {
+        score: Number(formData.get('score')),
+        feedback: formData.get('feedback'),
+        status: 'Graded'
+      });
+      
+      toast.success("Submission graded successfully");
+      setIsReviewModalOpen(false);
+      // Refresh submissions
+      const data = await getSubmissions();
+      setSubmissions(data);
+    } catch (error) {
+      console.error('Error grading submission:', error);
+      toast.error("Failed to grade submission");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Mock state for grades: { assessmentId: { studentId: score } }
@@ -591,24 +836,39 @@ function TeacherAcademics() {
     });
   };
 
-  const handleCreateAssessment = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateAssessment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newAssessment: Assessment = {
-      id: `a${Date.now()}`,
+    const assessmentData = {
       title: formData.get("title") as string,
-      type: formData.get("type") as AssessmentType,
+      type: formData.get("type") as string,
       subject: formData.get("subject") as string,
       class: formData.get("class") as string,
-      maxScore: Number(formData.get("maxScore")),
+      max_score: Number(formData.get("maxScore")),
       date: formData.get("date") as string,
       status: "Published",
       description: formData.get("description") as string,
     };
-    setAssessments([newAssessment, ...assessments]);
-    setShowNewAssessment(false);
-    toast.success("Assessment created successfully");
+
+    try {
+      const newAssessment = await createAssessment(assessmentData);
+      setAssessments([newAssessment, ...assessments]);
+      setShowNewAssessment(false);
+      toast.success("Assessment created successfully");
+    } catch (error) {
+      console.error('Error creating assessment:', error);
+      toast.error("Failed to create assessment");
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium">Loading academics data...</p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -846,7 +1106,7 @@ function TeacherAcademics() {
                           <Calendar size={16} /> {assessment.date}
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <Award size={16} /> Max: {assessment.maxScore}
+                          <Award size={16} /> Max: {assessment.max_score}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -995,7 +1255,7 @@ function TeacherAcademics() {
                                   </h4>
                                   <p className="text-xs font-medium text-muted-foreground">
                                     {assessment.type} • Max:{" "}
-                                    {assessment.maxScore} • {assessment.date}
+                                    {assessment.max_score} • {assessment.date}
                                   </p>
                                 </div>
                               </div>
@@ -1047,7 +1307,7 @@ function TeacherAcademics() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border ${getAssessmentColor(selectedAssessment.type)}`}
                 >
                   {getAssessmentIcon(selectedAssessment.type)}
-                  {selectedAssessment.type} (Max: {selectedAssessment.maxScore})
+                  {selectedAssessment.type} (Max: {selectedAssessment.max_score})
                 </div>
               </div>
 
@@ -1063,7 +1323,7 @@ function TeacherAcademics() {
                           Student Name
                         </th>
                         <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider w-32">
-                          Score (/{selectedAssessment.maxScore})
+                          Score (/{selectedAssessment.max_score})
                         </th>
                         <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider">
                           Feedback
@@ -1074,14 +1334,14 @@ function TeacherAcademics() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {MOCK_STUDENTS.map((student) => {
+                      {students.map((student) => {
                         const score =
                           grades[selectedAssessment.id]?.[student.id] || "";
                         const feedback =
                           feedbacks[selectedAssessment.id]?.[student.id] || "";
                         const numScore = parseFloat(score);
                         const percentage = !isNaN(numScore)
-                          ? (numScore / selectedAssessment.maxScore) * 100
+                          ? (numScore / selectedAssessment.max_score) * 100
                           : null;
 
                         return (
@@ -1104,13 +1364,13 @@ function TeacherAcademics() {
                               <input
                                 type="number"
                                 min="0"
-                                max={selectedAssessment.maxScore}
+                                max={selectedAssessment.max_score}
                                 value={score}
                                 onChange={(e) =>
                                   handleGradeChange(student.id, e.target.value)
                                 }
                                 className="w-full px-3 py-2 bg-card border border-border rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                placeholder={`Max ${selectedAssessment.maxScore}`}
+                                placeholder={`Max ${selectedAssessment.max_score}`}
                               />
                             </td>
                             <td className="p-4">
@@ -1495,9 +1755,74 @@ function ParentAcademics() {
   >("overview");
   const [filterSubject, setFilterSubject] = useState<string>("All");
   const [selectedAssignment, setSelectedAssignment] =
-    useState<Assessment | null>(null);
+    useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [studentSubmissions, setStudentSubmissions] = useState<any[]>([]);
+  const [availableAssessments, setAvailableAssessments] = useState<any[]>([]);
+  const [studentData, setStudentData] = useState<any>(null);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        // Find student record for this user (if student) or for their children (if parent)
+        let studentId = "";
+        
+        if (user.role === 'student') {
+          const { data: students } = await supabase
+            .from('students')
+            .select('id, name, roll_number')
+            .eq('user_id', user.id);
+          
+          if (students && students.length > 0) {
+            studentId = students[0].id;
+            setStudentData(students[0]);
+          }
+        } else if (user.role === 'parent') {
+          const { data: parents } = await supabase
+            .from('parents')
+            .select('student_ids')
+            .eq('user_id', user.id);
+          
+          if (parents && parents.length > 0 && parents[0].student_ids.length > 0) {
+            studentId = parents[0].student_ids[0]; // Just take first student for now
+            const { data: students } = await supabase
+              .from('students')
+              .select('id, name, roll_number')
+              .eq('id', studentId);
+            if (students && students.length > 0) {
+              setStudentData(students[0]);
+            }
+          }
+        }
+
+        if (studentId) {
+          const submissions = await getStudentSubmissions(studentId);
+          setStudentSubmissions(submissions);
+
+          // Also get all published assessments to show what's "To Do"
+          const assessments = await getAssessments();
+          // Filter out assessments that already have a submission
+          const submittedAssessmentIds = new Set(submissions.map(s => s.assessment_id));
+          const pendingAssessments = assessments.filter(a => 
+            a.status === 'Published' && !submittedAssessmentIds.has(a.id)
+          );
+          setAvailableAssessments(pendingAssessments);
+        }
+      } catch (error) {
+        console.error("Error fetching parent academics data:", error);
+        toast.error("Failed to load academic data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
+
+  // Mock subjects for overview (could be derived from submissions in a real app)
   const subjects = [
     { name: "Mathematics", grade: "A", score: 94, trend: "up" },
     { name: "Science", grade: "A-", score: 91, trend: "up" },
@@ -1506,82 +1831,66 @@ function ParentAcademics() {
     { name: "Physical Education", grade: "A+", score: 98, trend: "neutral" },
   ];
 
-  const studentAssessments = [
-    {
-      id: 1,
-      title: "Algebra Chapter 1",
-      type: "Homework",
-      subject: "Mathematics",
-      score: 10,
-      maxScore: 10,
-      date: "Oct 15",
-      feedback: "Excellent work!",
-    },
-    {
-      id: 2,
-      title: "Midterm Exam",
-      type: "Offline Exam",
-      subject: "Mathematics",
-      score: 92,
-      maxScore: 100,
-      date: "Oct 20",
-      feedback: "Review quadratic equations.",
-    },
-    {
-      id: 3,
-      title: "Cell Structure Quiz",
-      type: "Online Exam",
-      subject: "Science",
-      score: 18,
-      maxScore: 20,
-      date: "Oct 22",
-      feedback: "",
-    },
-    {
-      id: 4,
-      title: "Lab Report 1",
-      type: "Assignment",
-      subject: "Science",
-      score: 45,
-      maxScore: 50,
-      date: "Oct 25",
-      feedback: "Good methodology.",
-    },
-    {
-      id: 5,
-      title: "Essay: The Great Gatsby",
-      type: "Assignment",
-      subject: "English Literature",
-      score: 85,
-      maxScore: 100,
-      date: "Oct 18",
-      feedback: "Strong thesis, needs better transitions.",
-    },
-    {
-      id: 6,
-      title: "World War II Timeline",
-      type: "Homework",
-      subject: "History",
-      score: 10,
-      maxScore: 10,
-      date: "Oct 10",
-      feedback: "",
-    },
-  ] as const;
-
-  const filteredAssessments =
+  const filteredSubmissions =
     filterSubject === "All"
-      ? studentAssessments
-      : studentAssessments.filter((a) => a.subject === filterSubject);
+      ? studentSubmissions
+      : studentSubmissions.filter((s) => s.assessment?.subject === filterSubject);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
+    if (!e.target.files?.length || !selectedAssignment || !user) return;
+    
+    // In a real app, we'd find the student ID first
+    let studentId = "";
+    if (user.role === 'student') {
+      const { data: students } = await supabase.from('students').select('id').eq('user_id', user.id);
+      if (students?.length) studentId = students[0].id;
+    } else if (user.role === 'parent') {
+      const { data: parents } = await supabase.from('parents').select('student_ids').eq('user_id', user.id);
+      if (parents?.[0]?.student_ids?.length) studentId = parents[0].student_ids[0];
+    }
+
+    if (!studentId) {
+      toast.error("Could not identify student");
+      return;
+    }
+
     setIsUploading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsUploading(false);
-    toast.success("Assignment submitted successfully!");
-    setSelectedAssignment(null);
+    try {
+      // Mock file upload - in real app we'd use supabase storage
+      const file = e.target.files[0];
+      const mockFileUrl = `https://example.com/files/${file.name}`;
+
+      await supabase.from('submissions').insert({
+        assessment_id: selectedAssignment.id,
+        student_id: studentId,
+        content: mockFileUrl,
+        status: 'Submitted',
+        submitted_at: new Date().toISOString()
+      });
+
+      toast.success("Assignment submitted successfully!");
+      
+      // Refresh data
+      const submissions = await getStudentSubmissions(studentId);
+      setStudentSubmissions(submissions);
+      setAvailableAssessments(prev => prev.filter(a => a.id !== selectedAssignment.id));
+      
+      setSelectedAssignment(null);
+    } catch (error) {
+      console.error("Error submitting assignment:", error);
+      toast.error("Failed to submit assignment");
+    } finally {
+      setIsUploading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-primary" size={40} />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -1595,7 +1904,7 @@ function ParentAcademics() {
             Academic Report
           </h1>
           <p className="text-muted-foreground mt-2 font-medium">
-            Viewing performance for {user?.name} ({user?.studentId})
+            Viewing performance for {studentData?.name || user?.name} ({studentData?.roll_number || user?.studentId})
           </p>
         </div>
         <div className="flex bg-muted p-1 rounded-xl w-fit overflow-x-auto max-w-full scrollbar-hide">
@@ -1751,16 +2060,11 @@ function ParentAcademics() {
                   To Do
                 </h3>
                 <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
-                  2
+                  {availableAssessments.length}
                 </span>
               </div>
 
-              {MOCK_ASSESSMENTS.filter(
-                (a) =>
-                  a.status === "Published" &&
-                  a.type !== "Online Exam" &&
-                  a.type !== "Offline Exam",
-              ).map((assessment) => (
+              {availableAssessments.map((assessment) => (
                 <div
                   key={assessment.id}
                   className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
@@ -1797,35 +2101,37 @@ function ParentAcademics() {
                   In Progress
                 </h3>
                 <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
-                  1
+                  {studentSubmissions.filter(s => s.status === 'Draft').length}
                 </span>
               </div>
 
-              <div className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group">
-                <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                  Science
+              {studentSubmissions.filter(s => s.status === 'Draft').map(submission => (
+                <div key={submission.id} className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group">
+                  <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                    {submission.assessment?.subject}
+                  </div>
+                  <h4 className="font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
+                    {submission.assessment?.title}
+                  </h4>
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
+                    <Calendar size={14} /> Due {submission.assessment?.date}
+                  </p>
+                  <div className="w-full bg-muted rounded-full h-1.5 mb-3">
+                    <div
+                      className="bg-amber-500 h-1.5 rounded-full"
+                      style={{ width: "45%" }}
+                    ></div>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {submission.assessment?.type}
+                    </span>
+                    <span className="text-xs font-bold text-amber-500">
+                      45% Complete
+                    </span>
+                  </div>
                 </div>
-                <h4 className="font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
-                  Solar System Project
-                </h4>
-                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
-                  <Calendar size={14} /> Due Nov 05
-                </p>
-                <div className="w-full bg-muted rounded-full h-1.5 mb-3">
-                  <div
-                    className="bg-amber-500 h-1.5 rounded-full"
-                    style={{ width: "45%" }}
-                  ></div>
-                </div>
-                <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                  <span className="text-xs font-bold text-muted-foreground">
-                    Assignment
-                  </span>
-                  <span className="text-xs font-bold text-amber-500">
-                    45% Complete
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Completed */}
@@ -1836,27 +2142,29 @@ function ParentAcademics() {
                   Completed
                 </h3>
                 <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
-                  1
+                  {studentSubmissions.filter(s => s.status === 'Submitted' || s.status === 'Graded').length}
                 </span>
               </div>
 
-              <div className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm opacity-75">
-                <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-blue-500/10 text-blue-500 border-blue-500/20">
-                  Mathematics
+              {studentSubmissions.filter(s => s.status === 'Submitted' || s.status === 'Graded').map(submission => (
+                <div key={submission.id} className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm opacity-75">
+                  <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit mb-3 border bg-blue-500/10 text-blue-500 border-blue-500/20">
+                    {submission.assessment?.subject}
+                  </div>
+                  <h4 className="font-bold text-foreground mb-1 line-through decoration-muted-foreground">
+                    {submission.assessment?.title}
+                  </h4>
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
+                    <CheckCircle2 size={14} className="text-emerald-500" />{" "}
+                    Submitted {new Date(submission.submitted_at).toLocaleDateString()}
+                  </p>
+                  <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                    <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
+                      {submission.status === 'Graded' ? `Graded: ${submission.score}/${submission.assessment?.max_score}` : 'Pending Grading'}
+                    </span>
+                  </div>
                 </div>
-                <h4 className="font-bold text-foreground mb-1 line-through decoration-muted-foreground">
-                  Algebra Chapter 1
-                </h4>
-                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
-                  <CheckCircle2 size={14} className="text-emerald-500" />{" "}
-                  Submitted Oct 14
-                </p>
-                <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                  <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
-                    Graded: 10/10
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1891,7 +2199,7 @@ function ParentAcademics() {
                       <Calendar size={14} /> Due {selectedAssignment.date}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Award size={14} /> {selectedAssignment.maxScore} pts
+                      <Award size={14} /> {selectedAssignment.max_score} pts
                     </span>
                   </p>
                 </div>
@@ -1949,8 +2257,8 @@ function ParentAcademics() {
                     <div className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                         {user?.name
-                          .split(" ")
-                          .map((n) => n[0])
+                          ?.split(" ")
+                          .map((n: string) => n[0])
                           .join("")}
                       </div>
                       <div className="flex-1">
@@ -2010,11 +2318,13 @@ function ParentAcademics() {
 
           {/* Assessments List */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAssessments.map((assessment) => {
-              const percentage = (assessment.score / assessment.maxScore) * 100;
+            {filteredSubmissions.map((submission) => {
+              const assessment = submission.assessment;
+              if (!assessment) return null;
+              const percentage = (submission.score / assessment.max_score) * 100;
               return (
                 <div
-                  key={assessment.id}
+                  key={submission.id}
                   className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm flex flex-col h-full"
                 >
                   <div className="flex justify-between items-start mb-4">
@@ -2038,13 +2348,13 @@ function ParentAcademics() {
                       {assessment.subject}
                     </p>
 
-                    {assessment.feedback && (
+                    {submission.feedback && (
                       <div className="bg-muted/30 p-3 rounded-xl border border-border mb-4">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
                           Teacher Feedback
                         </p>
                         <p className="text-sm text-foreground italic">
-                          &quot;{assessment.feedback}&quot;
+                          &quot;{submission.feedback}&quot;
                         </p>
                       </div>
                     )}
@@ -2056,9 +2366,9 @@ function ParentAcademics() {
                         Score
                       </p>
                       <p className="text-lg font-bold text-foreground">
-                        {assessment.score}{" "}
+                        {submission.score || 0}{" "}
                         <span className="text-sm text-muted-foreground">
-                          / {assessment.maxScore}
+                          / {assessment.max_score}
                         </span>
                       </p>
                     </div>

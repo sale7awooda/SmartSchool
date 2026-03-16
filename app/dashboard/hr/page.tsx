@@ -224,7 +224,7 @@ export default function HRPage() {
                     <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
                       <option value="teacher">Teacher</option>
                       <option value="staff">Staff</option>
-                      <option value="schoolAdmin">Administrator</option>
+                      <option value="admin">Administrator</option>
                       <option value="accountant">Accountant</option>
                     </select>
                   </div>

@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { MOCK_STATS, MOCK_NOTICES } from '@/lib/mock-db';
+import { createClient } from '@/lib/supabase/client';
 import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
@@ -10,30 +11,100 @@ import { motion } from 'motion/react';
 export default function DashboardHome() {
   const { user } = useAuth();
   const { isRole } = usePermissions();
+  const supabase = createClient();
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    attendanceToday: 0,
+    feeCollected: 0,
+    pendingFees: 0
+  });
+  const [notices, setNotices] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!user) return null;
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user) return;
 
-  if (isRole('parent')) return <ParentDashboard />;
-  if (isRole('teacher')) return <TeacherDashboard />;
-  if (isRole('accountant')) return <AccountantDashboard />;
-  return <AdminDashboard />;
+      try {
+        // Fetch Stats (Admin/Accountant)
+        if (isRole(['admin', 'accountant'])) {
+          const { count: studentCount } = await supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true });
+          
+          const { data: attendanceData } = await supabase
+            .from('attendance')
+            .select('status')
+            .eq('date', new Date().toISOString().split('T')[0]);
+          
+          const presentCount = attendanceData?.filter(a => a.status === 'present').length || 0;
+          const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
+
+          const { data: feeData } = await supabase
+            .from('fee_invoices')
+            .select('amount, status');
+          
+          const collected = feeData?.filter(f => f.status === 'paid').reduce((acc, f) => acc + Number(f.amount), 0) || 0;
+          const pending = feeData?.filter(f => f.status === 'unpaid').reduce((acc, f) => acc + Number(f.amount), 0) || 0;
+
+          setStats({
+            totalStudents: studentCount || 0,
+            attendanceToday: attendanceRate,
+            feeCollected: collected,
+            pendingFees: pending
+          });
+        }
+
+        // Fetch Notices
+        const { data: noticesData } = await supabase
+          .from('notices')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        if (noticesData) setNotices(noticesData);
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user, isRole, supabase]);
+
+  if (!user || isLoading) return <div className="p-8 text-center">Loading dashboard...</div>;
+
+  if (isRole('parent')) return <ParentDashboard notices={notices} />;
+  if (isRole('teacher')) return <TeacherDashboard notices={notices} />;
+  if (isRole('accountant')) return <AccountantDashboard stats={stats} notices={notices} />;
+  return <AdminDashboard stats={stats} notices={notices} />;
 }
 
-function AdminDashboard() {
+function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: any[] }) {
   const { user } = useAuth();
   
   const stats = [
-    { label: 'Total Students', value: MOCK_STATS.totalStudents.toLocaleString(), icon: Users, color: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
-    { label: 'Attendance Today', value: `${MOCK_STATS.attendanceToday}%`, icon: CalendarCheck, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
-    { label: 'Fees Collected', value: `$${MOCK_STATS.feeCollected.toLocaleString()}`, icon: CreditCard, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/20' },
-    { label: 'Pending Dues', value: `$${MOCK_STATS.pendingFees.toLocaleString()}`, icon: TrendingUp, color: 'bg-amber-500', shadow: 'shadow-amber-500/20' },
+    { label: 'Total Students', value: realStats.totalStudents.toLocaleString(), icon: Users, color: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
+    { label: 'Attendance Today', value: `${realStats.attendanceToday}%`, icon: CalendarCheck, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
+    { label: 'Fees Collected', value: `$${realStats.feeCollected.toLocaleString()}`, icon: CreditCard, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/20' },
+    { label: 'Pending Dues', value: `$${realStats.pendingFees.toLocaleString()}`, icon: TrendingUp, color: 'bg-amber-500', shadow: 'shadow-amber-500/20' },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Welcome back, {user?.name.split(' ')[0]}</h1>
-        <p className="text-muted-foreground mt-2 font-medium">Here&apos;s what&apos;s happening at your school today.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Welcome back, {user?.name}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">Here is what&apos;s happening with your school today.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 bg-card border border-border rounded-xl shadow-sm">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Academic Year</p>
+            <p className="text-sm font-bold text-foreground">2023-2024</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -92,15 +163,18 @@ function AdminDashboard() {
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
           <h3 className="text-xl font-bold text-foreground mb-6">Urgent Alerts</h3>
           <div className="space-y-5">
-            {MOCK_NOTICES.filter(n => n.isImportant).slice(0, 3).map((notice) => (
+            {notices.filter(n => n.is_important).slice(0, 3).map((notice) => (
               <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
                 <div className="w-2.5 h-2.5 mt-2 rounded-full bg-amber-500 shrink-0 shadow-sm shadow-amber-500/50" />
                 <div>
                   <p className="font-bold text-foreground text-sm sm:text-base">{notice.title}</p>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">Posted {new Date(notice.date).toLocaleDateString()} by {notice.author}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">Posted {new Date(notice.created_at).toLocaleDateString()} by {notice.author_name}</p>
                 </div>
               </div>
             ))}
+            {notices.filter(n => n.is_important).length === 0 && (
+              <p className="text-sm text-muted-foreground">No urgent alerts.</p>
+            )}
           </div>
         </div>
       </div>
@@ -108,7 +182,7 @@ function AdminDashboard() {
   );
 }
 
-function TeacherDashboard() {
+function TeacherDashboard({ notices }: { notices: any[] }) {
   const { user } = useAuth();
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
@@ -142,26 +216,20 @@ function TeacherDashboard() {
         </div>
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Pending Grading</h3>
-          <div className="space-y-4">
-            {[
-              { title: 'Grade 10 Math Quiz', count: 12, due: 'Due: Mar 10' },
-              { title: 'Grade 11 Physics Lab', count: 8, due: 'Due: Mar 12' },
-              { title: 'Grade 9 Science Essay', count: 15, due: 'Due: Mar 15' },
-            ].map((task, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border hover:bg-muted transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-amber-500/20 text-amber-500 rounded-xl">
-                    <BookOpen size={24} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground">{task.title}</p>
-                    <p className="text-xs font-medium text-muted-foreground">{task.count} submissions pending • {task.due}</p>
-                  </div>
+          <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
+          <div className="space-y-5">
+            {notices.slice(0, 3).map((notice) => (
+              <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
+                <div className={`w-2.5 h-2.5 mt-2 rounded-full ${notice.is_important ? 'bg-red-500' : 'bg-blue-500'} shrink-0 shadow-sm`} />
+                <div>
+                  <p className="font-bold text-foreground text-sm sm:text-base">{notice.title}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">{notice.content.substring(0, 60)}...</p>
                 </div>
-                <button className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors">Grade</button>
               </div>
             ))}
+            {notices.length === 0 && (
+              <p className="text-sm text-muted-foreground">No recent notices.</p>
+            )}
           </div>
         </div>
       </div>
@@ -169,7 +237,7 @@ function TeacherDashboard() {
   );
 }
 
-function AccountantDashboard() {
+function AccountantDashboard({ stats: realStats, notices }: { stats: any, notices: any[] }) {
   const { user } = useAuth();
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
@@ -181,26 +249,46 @@ function AccountantDashboard() {
       <div className="grid grid-cols-2 gap-4 sm:gap-6">
         <div className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm">
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Collected Today</p>
-          <p className="text-4xl font-bold text-emerald-500 mt-2">$1,250</p>
+          <p className="text-4xl font-bold text-emerald-500 mt-2">${realStats.feeCollected.toLocaleString()}</p>
         </div>
         <div className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm">
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending Invoices</p>
-          <p className="text-4xl font-bold text-amber-500 mt-2">42</p>
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending Fees</p>
+          <p className="text-4xl font-bold text-amber-500 mt-2">${realStats.pendingFees.toLocaleString()}</p>
         </div>
       </div>
 
-      <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-        <h3 className="text-xl font-bold text-foreground mb-6">Quick Actions</h3>
-        <Link href="/dashboard/fees" className="flex items-center justify-center gap-2 w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold transition-all active:scale-[0.98] shadow-md shadow-primary/20">
-          <CreditCard size={24} />
-          Record New Payment
-        </Link>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+          <h3 className="text-xl font-bold text-foreground mb-6">Quick Actions</h3>
+          <Link href="/dashboard/fees" className="flex items-center justify-center gap-2 w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold transition-all active:scale-[0.98] shadow-md shadow-primary/20">
+            <CreditCard size={24} />
+            Record New Payment
+          </Link>
+        </div>
+
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+          <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
+          <div className="space-y-5">
+            {notices.slice(0, 3).map((notice) => (
+              <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
+                <div className={`w-2.5 h-2.5 mt-2 rounded-full ${notice.is_important ? 'bg-red-500' : 'bg-blue-500'} shrink-0 shadow-sm`} />
+                <div>
+                  <p className="font-bold text-foreground text-sm sm:text-base">{notice.title}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">{notice.content.substring(0, 60)}...</p>
+                </div>
+              </div>
+            ))}
+            {notices.length === 0 && (
+              <p className="text-sm text-muted-foreground">No recent notices.</p>
+            )}
+          </div>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-function ParentDashboard() {
+function ParentDashboard({ notices }: { notices: any[] }) {
   const { user } = useAuth();
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
@@ -272,21 +360,20 @@ function ParentDashboard() {
         </div>
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Recent Grades</h3>
-          <div className="space-y-4">
-            {[
-              { subject: 'Math', grade: 'A', score: '95%' },
-              { subject: 'Science', grade: 'B+', score: '88%' },
-              { subject: 'English', grade: 'A-', score: '91%' },
-            ].map((g, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/30">
-                <span className="font-bold text-foreground">{g.subject}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-muted-foreground">{g.score}</span>
-                  <span className="text-lg font-bold text-primary">{g.grade}</span>
+          <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
+          <div className="space-y-5">
+            {notices.slice(0, 3).map((notice) => (
+              <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
+                <div className={`w-2.5 h-2.5 mt-2 rounded-full ${notice.is_important ? 'bg-red-500' : 'bg-blue-500'} shrink-0 shadow-sm`} />
+                <div>
+                  <p className="font-bold text-foreground text-sm sm:text-base">{notice.title}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">{notice.content.substring(0, 40)}...</p>
                 </div>
               </div>
             ))}
+            {notices.length === 0 && (
+              <p className="text-sm text-muted-foreground">No recent notices.</p>
+            )}
           </div>
         </div>
       </div>

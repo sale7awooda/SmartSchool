@@ -22,25 +22,7 @@ type Resource =
 
 // Define permissions matrix
 const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
-  superadmin: {
-    all: ['view', 'create', 'edit', 'delete', 'manage'],
-    users: ['view', 'create', 'edit', 'delete', 'manage'],
-    students: ['view', 'create', 'edit', 'delete', 'manage'],
-    staff: ['view', 'create', 'edit', 'delete', 'manage'],
-    academics: ['view', 'create', 'edit', 'delete', 'manage'],
-    schedule: ['view', 'create', 'edit', 'delete', 'manage'],
-    exams: ['view', 'create', 'edit', 'delete', 'manage'],
-    library: ['view', 'create', 'edit', 'delete', 'manage'],
-    communication: ['view', 'create', 'edit', 'delete', 'manage'],
-    transport: ['view', 'create', 'edit', 'delete', 'manage'],
-    settings: ['view', 'create', 'edit', 'delete', 'manage'],
-    analytics: ['view', 'create', 'edit', 'delete', 'manage'],
-    attendance: ['view', 'create', 'edit', 'delete', 'manage'],
-    hr: ['view', 'create', 'edit', 'delete', 'manage'],
-    operations: ['view', 'create', 'edit', 'delete', 'manage'],
-    fees: ['view', 'create', 'edit', 'delete', 'manage'],
-  },
-  schoolAdmin: {
+  admin: {
     all: ['view', 'create', 'edit', 'delete', 'manage'],
     users: ['view', 'create', 'edit', 'delete', 'manage'],
     students: ['view', 'create', 'edit', 'delete', 'manage'],
@@ -166,7 +148,7 @@ export function usePermissions() {
     const rolePermissions = PERMISSIONS[user.role];
     if (!rolePermissions) return false;
 
-    // Superadmin and schoolAdmin can do everything
+    // Admin can do everything
     if (rolePermissions.all?.includes('manage')) return true;
 
     const resourcePermissions = rolePermissions[resource];
@@ -182,7 +164,7 @@ export function usePermissions() {
   };
 
   const isAdmin = (): boolean => {
-    return isRole(['superadmin', 'schoolAdmin']);
+    return isRole(['admin']);
   };
 
   return { can, isRole, isAdmin, user };

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { MOCK_STUDENTS } from '@/lib/mock-db';
+import { Student } from '@/lib/mock-db';
+import { getStudents, getAttendance, saveAttendance } from '@/lib/supabase-db';
 import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
@@ -22,16 +23,44 @@ export default function AttendancePage() {
 
   if (isRole(['teacher'])) return <TeacherAttendance />;
   if (isRole('parent')) return <ParentAttendance />;
-  if (isRole(['schoolAdmin', 'superadmin'])) return <AdminAttendance />;
+  if (isRole(['admin'])) return <AdminAttendance />;
 
   return <div className="p-4">You do not have permission to view this page.</div>;
 }
 
 function TeacherAttendance() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'mark' | 'history'>('mark');
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [studentsData, attendanceData] = await Promise.all([
+          getStudents(),
+          getAttendance(selectedDate)
+        ]);
+        
+        setStudents(studentsData);
+        
+        const initialAttendance: Record<string, AttendanceStatus> = {};
+        attendanceData.forEach((record: any) => {
+          initialAttendance[record.student_id] = record.status;
+        });
+        setAttendance(initialAttendance);
+      } catch (error) {
+        console.error('Error loading attendance data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [selectedDate]);
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -39,16 +68,41 @@ function TeacherAttendance() {
   };
 
   const handleSave = async () => {
+    if (!user) return;
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSaving(false);
-    setIsSaved(true);
-    toast.success("Attendance saved successfully", {
-      description: `Recorded attendance for ${Object.keys(attendance).length} students.`,
-    });
+    try {
+      const attendancePayload = Object.entries(attendance)
+        .filter(([_, status]) => status !== null)
+        .map(([studentId, status]) => ({
+          student_id: studentId,
+          status,
+          date: selectedDate,
+          marked_by: user.id
+        }));
+
+      await saveAttendance(attendancePayload);
+      setIsSaved(true);
+      toast.success("Attendance saved successfully", {
+        description: `Recorded attendance for ${attendancePayload.length} students.`,
+      });
+    } catch (error) {
+      console.error('Error saving attendance:', error);
+      toast.error("Failed to save attendance");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const allMarked = MOCK_STUDENTS.length > 0 && Object.keys(attendance).length === MOCK_STUDENTS.length;
+  const allMarked = students.length > 0 && Object.keys(attendance).length === students.length;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium">Loading attendance...</p>
+      </div>
+    );
+  }
 
   if (activeTab === 'history') {
     return (
@@ -119,7 +173,7 @@ function TeacherAttendance() {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 pb-24">
-        {MOCK_STUDENTS.map((student) => {
+        {students.map((student) => {
           const status = attendance[student.id];
           return (
             <div key={student.id} className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all">
@@ -175,7 +229,7 @@ function TeacherAttendance() {
         >
           <div className="hidden sm:block px-4">
             <p className="text-sm font-bold text-foreground">
-              {Object.keys(attendance).length} / {MOCK_STUDENTS.length} Marked
+              {Object.keys(attendance).length} / {students.length} Marked
             </p>
             {!allMarked && <p className="text-xs font-semibold text-amber-500 mt-0.5">Please mark all students</p>}
           </div>

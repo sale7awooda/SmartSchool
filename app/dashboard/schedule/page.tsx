@@ -21,7 +21,7 @@ export default function SchedulePage() {
   }
 
   // Render Admin View for privileged roles
-  if (isRole(['superadmin', 'schoolAdmin', 'accountant', 'staff'])) {
+  if (isRole(['admin', 'accountant', 'staff'])) {
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">
         <div>
