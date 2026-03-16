@@ -13,7 +13,7 @@ export async function getStudents() {
   
   if (error) throw error;
   
-  return data.map(s => ({
+  return data.map((s: any) => ({
     ...s.user,
     ...s,
     id: s.user_id // Use user_id as the main ID for consistency with mock-db
@@ -30,7 +30,7 @@ export async function getParents() {
   
   if (error) throw error;
   
-  return data.map(p => ({
+  return data.map((p: any) => ({
     ...p.user,
     ...p,
     id: p.user_id

@@ -1805,8 +1805,8 @@ function ParentAcademics() {
           // Also get all published assessments to show what's "To Do"
           const assessments = await getAssessments();
           // Filter out assessments that already have a submission
-          const submittedAssessmentIds = new Set(submissions.map(s => s.assessment_id));
-          const pendingAssessments = assessments.filter(a => 
+          const submittedAssessmentIds = new Set(submissions.map((s: any) => s.assessment_id));
+          const pendingAssessments = assessments.filter((a: any) => 
             a.status === 'Published' && !submittedAssessmentIds.has(a.id)
           );
           setAvailableAssessments(pendingAssessments);

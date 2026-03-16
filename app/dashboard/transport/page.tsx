@@ -74,7 +74,13 @@ export default function TransportPage() {
   
   // GPS Broadcasting state
   const [isBroadcasting, setIsBroadcasting] = useState(false);
-  const [gpsInterval, setGpsInterval] = useState(60000); // Default 1 minute
+  const [gpsInterval, setGpsInterval] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedInterval = localStorage.getItem('GPS_UPDATE_INTERVAL');
+      return savedInterval ? parseInt(savedInterval) * 60000 : 60000;
+    }
+    return 60000;
+  });
   const [parentStudent, setParentStudent] = useState<any>(null);
 
   useEffect(() => {
@@ -113,11 +119,7 @@ export default function TransportPage() {
   }, [supabase]);
 
   useEffect(() => {
-    const savedInterval = typeof window !== 'undefined' ? localStorage.getItem('GPS_UPDATE_INTERVAL') : null;
-    
-    if (savedInterval) {
-      setGpsInterval(parseInt(savedInterval) * 60000);
-    }
+    // No longer need to initialize gpsInterval here
   }, []);
 
   // Close dropdown when clicking outside
@@ -221,7 +223,7 @@ export default function TransportPage() {
         supabase.removeChannel(channel);
       });
     };
-  }, [supabase, user, routes]);
+  }, [supabase, user, routes, channels]);
 
   // Handle GPS Broadcasting Interval
   useEffect(() => {

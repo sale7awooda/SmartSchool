@@ -37,15 +37,15 @@ export default function DashboardHome() {
             .select('status')
             .eq('date', new Date().toISOString().split('T')[0]);
           
-          const presentCount = attendanceData?.filter(a => a.status === 'present').length || 0;
+          const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
           const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
 
           const { data: feeData } = await supabase
             .from('fee_invoices')
             .select('amount, status');
           
-          const collected = feeData?.filter(f => f.status === 'paid').reduce((acc, f) => acc + Number(f.amount), 0) || 0;
-          const pending = feeData?.filter(f => f.status === 'unpaid').reduce((acc, f) => acc + Number(f.amount), 0) || 0;
+          const collected = feeData?.filter((f: any) => f.status === 'paid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+          const pending = feeData?.filter((f: any) => f.status === 'unpaid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
 
           setStats({
             totalStudents: studentCount || 0,

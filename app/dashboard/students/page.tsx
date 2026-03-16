@@ -32,6 +32,8 @@ export default function StudentsPage() {
 
   const [students, setStudents] = useState<Student[]>([]);
   const [parents, setParents] = useState<Parent[]>([]);
+  const [behaviorRecords, setBehaviorRecords] = useState<any[]>([]);
+  const [timelineRecords, setTimelineRecords] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -78,6 +80,29 @@ export default function StudentsPage() {
     }
   }, [searchParams, isAdmin]);
 
+  const isStudent = (person: User | Student): person is Student => {
+    return 'grade' in person;
+  };
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (selectedPerson && isStudent(selectedPerson)) {
+        try {
+          const [behavior, timeline] = await Promise.all([
+            getBehaviorRecords(selectedPerson.id),
+            getTimelineRecords(selectedPerson.id)
+          ]);
+          setBehaviorRecords(behavior);
+          setTimelineRecords(timeline);
+        } catch (error) {
+          console.error('Error fetching student details:', error);
+        }
+      }
+    };
+
+    fetchDetails();
+  }, [selectedPerson]);
+
   if (!user) return null;
 
   if (!can('view', 'students')) {
@@ -102,32 +127,6 @@ export default function StudentsPage() {
 
   const filteredStudents = studentMembers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredParents = parentMembers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  const isStudent = (person: User | Student): person is Student => {
-    return 'grade' in person;
-  };
-
-  const [behaviorRecords, setBehaviorRecords] = useState<any[]>([]);
-  const [timelineRecords, setTimelineRecords] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchDetails = async () => {
-      if (selectedPerson && isStudent(selectedPerson)) {
-        try {
-          const [behavior, timeline] = await Promise.all([
-            getBehaviorRecords(selectedPerson.id),
-            getTimelineRecords(selectedPerson.id)
-          ]);
-          setBehaviorRecords(behavior);
-          setTimelineRecords(timeline);
-        } catch (error) {
-          console.error('Error fetching student details:', error);
-        }
-      }
-    };
-
-    fetchDetails();
-  }, [selectedPerson]);
 
   const handleCloseProfile = () => {
     setSelectedPerson(null);
