@@ -53,12 +53,12 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md z-10">
         {/* Logo & Header */}
-        <div className="text-center mb-8 relative">
+        <div className="text-center mb-4 relative">
           <motion.div 
             initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="relative inline-flex items-center justify-center w-64 h-32 mb-4 group cursor-default"
+            className="relative inline-flex items-center justify-center w-72 h-32 mb-4 group cursor-default bg-primary rounded-3xl shadow-lg p-4"
           >
             {/* Floating Elements */}
             <motion.div 
@@ -77,18 +77,6 @@ export default function LoginPage() {
             </motion.div>
 
             <Logo className="w-full h-full transform group-hover:scale-105 transition-transform duration-500" withBackground={false} />
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-8"
-          >
-            <h1 className="text-4xl font-black text-primary-foreground tracking-tighter mb-2">Smart School</h1>
-            <div className="inline-block px-4 py-1.5 rounded-full bg-primary-foreground/20 border border-primary-foreground/30 backdrop-blur-md">
-              <p className="text-primary-foreground text-xs font-bold tracking-wider uppercase">Your digital campus, simplified.</p>
-            </div>
           </motion.div>
         </div>
 
