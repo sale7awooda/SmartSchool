@@ -7,8 +7,10 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Mobile-first school management system',
     start_url: '/',
     display: 'standalone',
+    orientation: 'portrait',
     background_color: '#f8fafc',
     theme_color: '#4f46e5',
+    categories: ['education', 'productivity'],
     icons: [
       { src: '/icon.svg', sizes: '72x72', type: 'image/svg+xml' },
       { src: '/icon.svg', sizes: '96x96', type: 'image/svg+xml' },

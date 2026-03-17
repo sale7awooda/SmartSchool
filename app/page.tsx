@@ -32,11 +32,12 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      if (role === 'admin') await login('admin@school.com');
-      else if (role === 'teacher') await login('teacher@school.com');
-      else if (role === 'accountant') await login('accountant@school.com');
-      else if (role === 'parent') await login('parent@school.com');
-      else if (role === 'student') await login('student@school.com');
+      if (role === 'admin') await login('admin@smartschool.com', 'Admin@123');
+      else if (role === 'staff') await login('staff@smartschool.com', 'staff@123');
+      else if (role === 'teacher') await login('teacher@smartschool.com', 'Teacher@123');
+      else if (role === 'accountant') await login('accountant@smartschool.com', 'Accountant@123');
+      else if (role === 'parent') await login('parent@smartschool.com', 'Parent@123');
+      else if (role === 'student') await login('student@smartschool.com', 'Student@123');
     } catch (err: any) {
       setError(err.message || 'Failed to login');
     } finally {
@@ -227,6 +228,20 @@ export default function LoginPage() {
               <div>
                 <p className="text-sm font-bold text-foreground">Student</p>
                 <p className="text-[10px] font-medium text-muted-foreground">Take Exams</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => handleQuickLogin('staff')}
+              disabled={isLoading}
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-slate-500/50 hover:shadow-sm transition-all text-left group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-slate-500/10 text-slate-500 flex items-center justify-center shrink-0 group-hover:bg-slate-500/20 transition-colors">
+                <UserCircle size={16} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Staff</p>
+                <p className="text-[10px] font-medium text-muted-foreground">Support</p>
               </div>
             </button>
           </div>

@@ -3,7 +3,6 @@ import './globals.css'; // Global styles
 import { AuthProvider } from '@/lib/auth-context';
 import { LanguageProvider } from '@/lib/language-context';
 import { ThemeProvider } from '@/components/theme-provider';
-import { PwaRegistry } from '@/components/pwa-registry';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
@@ -21,6 +20,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Smart School',
   description: 'Mobile-first school management system',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Smart School',
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: '/icon.svg',
     apple: '/icon.svg',
@@ -31,7 +38,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn("font-sans", geist.variable)} suppressHydrationWarning>
-        <PwaRegistry />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
