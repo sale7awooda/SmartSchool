@@ -61,50 +61,43 @@ import {
 export default function SettingsPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin' | 'configurations' | 'data' | 'master'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'general' | 'admin' | 'configurations' | 'data' | 'master'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   
-  const [modalConfig, setModalConfig] = useState<{
-    show: boolean;
-    title: string;
-    message: string;
-    type: 'warning' | 'danger' | 'info';
-    onConfirm: () => void;
-  }>({
-    show: false,
-    title: '',
-    message: '',
-    type: 'info',
-    onConfirm: () => {}
-  });
+  // Profile State
+  const [profileName, setProfileName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_NAME') : '') || user?.name || '');
+  const [profileEmail, setProfileEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_EMAIL') : '') || user?.email || '');
+  const [profilePhone, setProfilePhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_PHONE') : '') || user?.phone || '');
 
   // Configuration State
-  const [supabaseUrl, setSupabaseUrl] = useState('');
-  const [supabaseKey, setSupabaseKey] = useState('');
-  const [mapboxToken, setMapboxToken] = useState('');
-  const [gpsInterval, setGpsInterval] = useState('1');
+  const [supabaseUrl, setSupabaseUrl] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_URL') : '') || '');
+  const [supabaseKey, setSupabaseKey] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_ANON_KEY') : '') || '');
+  const [mapboxToken, setMapboxToken] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : '') || '');
+  const [gpsInterval, setGpsInterval] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('GPS_UPDATE_INTERVAL') : '') || '1');
   
   // System Config State
-  const [schoolName, setSchoolName] = useState('Greenwood High School');
-  const [schoolAddress, setSchoolAddress] = useState('123 Education Lane, Learning City');
-  const [schoolPhone, setSchoolPhone] = useState('+1 (555) 012-3456');
-  const [schoolEmail, setSchoolEmail] = useState('info@greenwoodhigh.edu');
+  const [schoolName, setSchoolName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_NAME') : '') || 'Greenwood High School');
+  const [schoolAddress, setSchoolAddress] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_ADDRESS') : '') || '123 Education Lane, Learning City');
+  const [schoolPhone, setSchoolPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_PHONE') : '') || '+1 (555) 012-3456');
+  const [schoolEmail, setSchoolEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_EMAIL') : '') || 'info@greenwoodhigh.edu');
 
-  // Load saved configurations
-  useEffect(() => {
-    // eslint-disable-next-line
-    setSupabaseUrl(localStorage.getItem('SUPABASE_URL') || '');
-    setSupabaseKey(localStorage.getItem('SUPABASE_ANON_KEY') || '');
-    setMapboxToken(localStorage.getItem('MAPBOX_ACCESS_TOKEN') || '');
-    setGpsInterval(localStorage.getItem('GPS_UPDATE_INTERVAL') || '1');
-    
-    setSchoolName(localStorage.getItem('SCHOOL_NAME') || 'Greenwood High School');
-    setSchoolAddress(localStorage.getItem('SCHOOL_ADDRESS') || '123 Education Lane, Learning City');
-    setSchoolPhone(localStorage.getItem('SCHOOL_PHONE') || '+1 (555) 012-3456');
-    setSchoolEmail(localStorage.getItem('SCHOOL_EMAIL') || 'info@greenwoodhigh.edu');
-  }, []);
+  // Permissions State
+  const [rolePermissions, setRolePermissions] = useState<Record<string, string[]>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ROLE_PERMISSIONS');
+      if (saved) return JSON.parse(saved);
+    }
+    return {
+      admin: ['dashboard', 'students', 'staff', 'attendance', 'schedule', 'exams', 'fees', 'transport', 'library', 'inventory', 'notices', 'settings'],
+      teacher: ['dashboard', 'students', 'attendance', 'schedule', 'exams', 'notices'],
+      student: ['dashboard', 'schedule', 'exams', 'fees', 'library', 'notices'],
+      parent: ['dashboard', 'students', 'attendance', 'schedule', 'fees', 'notices'],
+      accountant: ['dashboard', 'fees', 'inventory', 'notices'],
+      librarian: ['dashboard', 'library', 'notices'],
+    };
+  });
 
   if (!user) return null;
 
@@ -127,6 +120,18 @@ export default function SettingsPage() {
       localStorage.setItem('SCHOOL_EMAIL', schoolEmail);
     }
 
+    if (activeTab === 'profile') {
+      // In a real app, you'd call a Supabase update here
+      localStorage.setItem('USER_PROFILE_NAME', profileName);
+      localStorage.setItem('USER_PROFILE_EMAIL', profileEmail);
+      localStorage.setItem('USER_PROFILE_PHONE', profilePhone);
+      toast.info('Profile changes saved locally. Refresh to see updates.');
+    }
+
+    if (activeTab === 'roles') {
+      localStorage.setItem('ROLE_PERMISSIONS', JSON.stringify(rolePermissions));
+    }
+
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800));
     setIsSaving(false);
@@ -134,7 +139,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
+    <motion.div 
+      key={user.id}
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      className="space-y-8 h-full flex flex-col"
+    >
       <div>
         <h1 className="text-3xl font-bold text-foreground tracking-tight">Profile & Settings</h1>
         <p className="text-muted-foreground mt-2 font-medium">Manage your account settings and preferences.</p>
@@ -150,7 +160,6 @@ export default function SettingsPage() {
               { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
               { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
               { id: 'master', label: 'Master Data', icon: Database, show: isAdmin() },
-              { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
               { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
               { id: 'data', label: 'Data Management', icon: RefreshCw, show: isAdmin() },
@@ -205,21 +214,36 @@ export default function SettingsPage() {
                       <label className="text-sm font-bold text-foreground">Full Name</label>
                       <div className="relative">
                         <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input type="text" defaultValue={user.name} className="w-full pl-11 pr-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground" />
+                        <input 
+                          type="text" 
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground" 
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-foreground">Email Address</label>
                       <div className="relative">
                         <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input type="email" defaultValue={user.email || ''} className="w-full pl-11 pr-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground" />
+                        <input 
+                          type="email" 
+                          value={profileEmail}
+                          onChange={(e) => setProfileEmail(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground" 
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-foreground">Phone Number</label>
                       <div className="relative">
                         <Smartphone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input type="tel" defaultValue={user.phone || ''} className="w-full pl-11 pr-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground" />
+                        <input 
+                          type="tel" 
+                          value={profilePhone}
+                          onChange={(e) => setProfilePhone(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground" 
+                        />
                       </div>
                     </div>
                     {user.studentId && (
@@ -416,77 +440,63 @@ export default function SettingsPage() {
                 <div className="p-6 sm:p-8 space-y-6">
                   <div>
                     <h3 className="text-lg font-bold text-foreground mb-1">Roles & Permissions</h3>
-                    <p className="text-sm text-muted-foreground">Manage user roles and their access levels.</p>
+                    <p className="text-sm text-muted-foreground">Define what each role can access across the system.</p>
                   </div>
-                  <div className="space-y-6">
-                    {[
-                      { name: 'John Doe', role: 'Admin', permissions: ['view_grades', 'edit_grades', 'manage_users'] },
-                      { name: 'Jane Smith', role: 'Teacher', permissions: ['view_grades', 'edit_grades'] },
-                      { name: 'Bob Johnson', role: 'Student', permissions: ['view_grades'] },
-                    ].map((user, i) => (
-                      <div key={i} className="p-4 rounded-xl border border-border bg-muted/30 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-foreground">{user.name}</span>
-                          <select defaultValue={user.role} className="px-3 py-1.5 bg-card border border-border rounded-lg text-sm font-bold text-foreground">
-                            <option>Admin</option>
-                            <option>Teacher</option>
-                            <option>Student</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs font-bold text-muted-foreground uppercase">Permissions</p>
-                          <div className="flex flex-wrap gap-2">
-                            {['view_grades', 'edit_grades', 'manage_users', 'view_attendance'].map(perm => (
-                              <label key={perm} className="flex items-center gap-2 text-sm text-foreground">
-                                <input type="checkbox" defaultChecked={user.permissions.includes(perm)} className="rounded border-input text-primary" />
-                                {perm.replace('_', ' ')}
-                              </label>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Module / Feature</th>
+                          {Object.keys(rolePermissions).map(role => (
+                            <th key={role} className="text-center py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                              {role}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { id: 'dashboard', label: 'Dashboard' },
+                          { id: 'students', label: 'Students Directory' },
+                          { id: 'staff', label: 'Staff Directory' },
+                          { id: 'attendance', label: 'Attendance' },
+                          { id: 'schedule', label: 'Schedule/Timetable' },
+                          { id: 'exams', label: 'Exams & Results' },
+                          { id: 'fees', label: 'Fees & Finance' },
+                          { id: 'transport', label: 'Transport/Live Map' },
+                          { id: 'library', label: 'Library' },
+                          { id: 'inventory', label: 'Inventory' },
+                          { id: 'notices', label: 'Notices & Events' },
+                          { id: 'settings', label: 'System Settings' },
+                        ].map(module => (
+                          <tr key={module.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                            <td className="py-4 px-4 text-sm font-medium text-foreground">{module.label}</td>
+                            {Object.keys(rolePermissions).map(role => (
+                              <td key={`${role}-${module.id}`} className="py-4 px-4 text-center">
+                                <input 
+                                  type="checkbox" 
+                                  checked={rolePermissions[role].includes(module.id)}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setRolePermissions(prev => {
+                                      const newPerms = { ...prev };
+                                      if (checked) {
+                                        newPerms[role] = [...newPerms[role], module.id];
+                                      } else {
+                                        newPerms[role] = newPerms[role].filter(p => p !== module.id);
+                                      }
+                                      return newPerms;
+                                    });
+                                  }}
+                                  className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
+                                />
+                              </td>
                             ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90">
-                      <Plus size={16} /> Add User
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Academics Tab */}
-              {activeTab === 'academics' && (
-                <div className="p-6 sm:p-8 space-y-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground mb-1">Academics</h3>
-                    <p className="text-sm text-muted-foreground">Configure academic years and terms.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <h4 className="font-bold text-foreground">Academic Years</h4>
-                      <div className="flex gap-4">
-                        <input type="text" placeholder="2025-2026" className="flex-1 px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" />
-                        <button className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90">
-                          <Plus size={16} /> Add
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <h4 className="font-bold text-foreground">Terms</h4>
-                      <div className="space-y-2">
-                        {['Term 1', 'Term 2', 'Term 3'].map((term, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
-                            <span className="font-bold text-foreground">{term}</span>
-                            <div className="flex gap-2">
-                              <button className="p-2 text-muted-foreground hover:text-primary"><Edit size={16} /></button>
-                              <button className="p-2 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
-                            </div>
-                          </div>
+                          </tr>
                         ))}
-                      </div>
-                      <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90">
-                        <Plus size={16} /> Add Term
-                      </button>
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
@@ -703,7 +713,8 @@ export default function SettingsPage() {
                                   await seedDatabase(demoData);
                                   
                                   setIsProcessing(false);
-                                  toast.success('System & Supabase seeded successfully! Please refresh.');
+                                  toast.success('System & Supabase seeded successfully! Refreshing...');
+                                  setTimeout(() => window.location.reload(), 1500);
                                 } catch (err) {
                                   setIsProcessing(false);
                                   toast.error('Failed to seed system fully.');
@@ -752,7 +763,8 @@ export default function SettingsPage() {
                                   await resetDatabase(true);
 
                                   setIsProcessing(false);
-                                  toast.success('Data reset successfully!');
+                                  toast.success('Data reset successfully! Refreshing...');
+                                  setTimeout(() => window.location.reload(), 1500);
                                 } catch (err) {
                                   setIsProcessing(false);
                                   toast.error('Failed to reset data.');

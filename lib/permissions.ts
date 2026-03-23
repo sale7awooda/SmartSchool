@@ -145,7 +145,37 @@ export function usePermissions() {
       }
     }
 
-    const rolePermissions = PERMISSIONS[user.role];
+    // Try to get permissions from localStorage (overrides)
+    let rolePermissions = PERMISSIONS[user.role];
+    
+    if (typeof window !== 'undefined') {
+      const savedPermissions = localStorage.getItem('ROLE_PERMISSIONS');
+      if (savedPermissions) {
+        try {
+          const parsed = JSON.parse(savedPermissions);
+          if (parsed[user.role]) {
+            // Map the matrix format (boolean) to the Action[] format
+            const matrix = parsed[user.role];
+            const actions: Action[] = [];
+            
+            // If the matrix has a value for this resource, use it
+            if (matrix[resource] !== undefined) {
+              if (matrix[resource]) {
+                actions.push('view', 'create', 'edit', 'delete', 'manage');
+              }
+            } else {
+              // Fallback to default if not in matrix
+              return rolePermissions[resource]?.includes(action) || rolePermissions[resource]?.includes('manage') || false;
+            }
+            
+            return actions.includes(action) || actions.includes('manage');
+          }
+        } catch (e) {
+          console.error("Error parsing role permissions", e);
+        }
+      }
+    }
+
     if (!rolePermissions) return false;
 
     // Admin can do everything

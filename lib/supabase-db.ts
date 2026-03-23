@@ -563,13 +563,38 @@ export async function resetDatabase(keepUsers: boolean = true) {
   ];
 
   for (const table of tables) {
-    const { error } = await supabase.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (error) console.error(`Error resetting ${table}:`, error);
+    try {
+      // Use a filter that is likely to match all rows but doesn't strictly require 'id'
+      // For join tables like parent_student, we use a different approach
+      let query = supabase.from(table).delete();
+      
+      if (table === 'parent_student') {
+        query = query.neq('student_id', '00000000-0000-0000-0000-000000000000');
+      } else {
+        query = query.neq('id', '00000000-0000-0000-0000-000000000000');
+      }
+
+      const { error } = await query;
+      if (error) {
+        // Ignore "table not found" errors (PGRST205)
+        if (error.code === 'PGRST205') {
+          console.warn(`Table ${table} not found in schema, skipping reset.`);
+        } else {
+          console.error(`Error resetting ${table}:`, error);
+        }
+      }
+    } catch (err) {
+      console.error(`Unexpected error resetting ${table}:`, err);
+    }
   }
 
   if (!keepUsers) {
-    const { error } = await supabase.from('users').delete().neq('role', 'admin');
-    if (error) console.error('Error resetting users:', error);
+    try {
+      const { error } = await supabase.from('users').delete().neq('role', 'admin');
+      if (error) console.error('Error resetting users:', error);
+    } catch (err) {
+      console.error('Unexpected error resetting users:', err);
+    }
   }
 
   return { success: true };

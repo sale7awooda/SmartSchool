@@ -98,6 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (profile) {
+          // Check for local overrides from settings page
+          if (typeof window !== 'undefined') {
+            const localName = localStorage.getItem('USER_PROFILE_NAME');
+            const localEmail = localStorage.getItem('USER_PROFILE_EMAIL');
+            const localPhone = localStorage.getItem('USER_PROFILE_PHONE');
+            
+            if (localName) profile.name = localName;
+            if (localEmail) profile.email = localEmail;
+            if (localPhone) profile.phone = localPhone;
+          }
           setUser(profile as User);
         }
       }
@@ -180,6 +190,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (profile) {
+          // Check for local overrides from settings page
+          if (typeof window !== 'undefined') {
+            const localName = localStorage.getItem('USER_PROFILE_NAME');
+            const localEmail = localStorage.getItem('USER_PROFILE_EMAIL');
+            const localPhone = localStorage.getItem('USER_PROFILE_PHONE');
+            
+            if (localName) profile.name = localName;
+            if (localEmail) profile.email = localEmail;
+            if (localPhone) profile.phone = localPhone;
+          }
           setUser(profile as User);
         }
       } else {
