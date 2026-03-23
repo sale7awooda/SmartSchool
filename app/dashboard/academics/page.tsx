@@ -1781,13 +1781,14 @@ function ParentAcademics() {
             setStudentData(students[0]);
           }
         } else if (user.role === 'parent') {
-          const { data: parents } = await supabase
-            .from('parents')
-            .select('student_ids')
-            .eq('user_id', user.id);
+          const { data: parentData } = await supabase
+            .from('users')
+            .select('parent_student(student_id)')
+            .eq('id', user.id)
+            .single();
           
-          if (parents && parents.length > 0 && parents[0].student_ids.length > 0) {
-            studentId = parents[0].student_ids[0]; // Just take first student for now
+          if (parentData && parentData.parent_student.length > 0) {
+            studentId = parentData.parent_student[0].student_id; // Just take first student for now
             const { data: students } = await supabase
               .from('students')
               .select('id, name, roll_number')
@@ -1845,8 +1846,12 @@ function ParentAcademics() {
       const { data: students } = await supabase.from('students').select('id').eq('user_id', user.id);
       if (students?.length) studentId = students[0].id;
     } else if (user.role === 'parent') {
-      const { data: parents } = await supabase.from('parents').select('student_ids').eq('user_id', user.id);
-      if (parents?.[0]?.student_ids?.length) studentId = parents[0].student_ids[0];
+      const { data: parentData } = await supabase
+        .from('users')
+        .select('parent_student(student_id)')
+        .eq('id', user.id)
+        .single();
+      if (parentData?.parent_student?.length) studentId = parentData.parent_student[0].student_id;
     }
 
     if (!studentId) {

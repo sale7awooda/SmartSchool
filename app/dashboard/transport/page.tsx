@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
@@ -68,7 +68,6 @@ export default function TransportPage() {
   const [droppedOffStudents, setDroppedOffStudents] = useState<string[]>([]);
 
   // Supabase Realtime state
-  const supabase = createClient();
   const [channels, setChannels] = useState<Record<string, RealtimeChannel>>({});
   const [liveBusLocations, setLiveBusLocations] = useState<Record<string, {lat: number, lng: number}>>({});
   

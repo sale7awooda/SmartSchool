@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
@@ -11,7 +11,6 @@ import { motion } from 'motion/react';
 export default function DashboardHome() {
   const { user } = useAuth();
   const { isRole } = usePermissions();
-  const supabase = createClient();
   const [stats, setStats] = useState({
     totalStudents: 0,
     attendanceToday: 0,

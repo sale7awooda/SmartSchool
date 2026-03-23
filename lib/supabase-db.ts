@@ -1,7 +1,5 @@
-import { createClient } from './supabase/client';
+import { supabase } from './supabase/client';
 import { Student, User, Parent } from './mock-db';
-
-export const supabase = createClient();
 
 export async function getStudents() {
   const { data, error } = await supabase
@@ -22,19 +20,13 @@ export async function getStudents() {
 
 export async function getParents() {
   const { data, error } = await supabase
-    .from('parents')
-    .select(`
-      *,
-      user:users(*)
-    `);
+    .from('users')
+    .select('*')
+    .eq('role', 'parent');
   
   if (error) throw error;
   
-  return data.map((p: any) => ({
-    ...p.user,
-    ...p,
-    id: p.user_id
-  })) as Parent[];
+  return data as Parent[];
 }
 
 export async function getUsers() {
@@ -196,13 +188,22 @@ export async function getStudentByUserId(userId: string) {
 
 export async function getParentByUserId(userId: string) {
   const { data, error } = await supabase
-    .from('parents')
-    .select('id, name, children_ids')
-    .eq('user_id', userId)
+    .from('users')
+    .select(`
+      id, 
+      name,
+      parent_student(student_id)
+    `)
+    .eq('id', userId)
+    .eq('role', 'parent')
     .single();
   
   if (error) throw error;
-  return data;
+  
+  return {
+    ...data,
+    studentIds: data.parent_student.map((ps: any) => ps.student_id)
+  };
 }
 
 export async function getAcademicYears() {
