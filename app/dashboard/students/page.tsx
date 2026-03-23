@@ -20,6 +20,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 type DirectoryTab = 'students' | 'parents';
 type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
 
+const isStudent = (person: User | Student | Parent): person is Student => {
+  return person && 'grade' in person;
+};
+
 export default function StudentsPage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
@@ -89,10 +93,6 @@ export default function StudentsPage() {
       return () => clearTimeout(timer);
     }
   }, [searchParams, isAdmin]);
-
-  const isStudent = (person: User | Student): person is Student => {
-    return 'grade' in person;
-  };
 
   if (!user) return null;
 
