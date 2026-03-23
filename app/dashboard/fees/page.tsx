@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import useSWR from 'swr';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { MOCK_STUDENTS, FeeInvoice } from '@/lib/mock-db';
+import { getPaginatedInvoices } from '@/lib/supabase-db';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
@@ -34,6 +36,10 @@ export default function FeesPage() {
 function AccountantFees() {
   const { can } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'overdue' | 'structure'>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<FeeInvoice | null>(null);
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<string | null>(null);
@@ -67,14 +73,41 @@ function AccountantFees() {
     category: 'Academic'
   });
 
-  const filteredInvoices = MOCK_INVOICES.filter(inv => {
-    const matchesSearch = inv.studentName.toLowerCase().includes(searchQuery.toLowerCase()) || inv.id.toLowerCase().includes(searchQuery.toLowerCase());
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: invoicesResponse, isLoading } = useSWR(
+    ['invoices', page, debouncedSearch, activeTab],
+    ([_, p, s, tab]) => getPaginatedInvoices(p, limit, s) // Note: activeTab filtering should ideally be in the backend query
+  );
+
+  const invoices = invoicesResponse?.data || [];
+  const totalPages = invoicesResponse?.totalPages || 1;
+  const totalCount = invoicesResponse?.count || 0;
+
+  // For demonstration, we'll map the backend data to match the UI expectations
+  const mappedInvoices = invoices.map((inv: any) => ({
+    id: inv.id,
+    studentId: inv.student_id,
+    studentName: inv.student?.user?.name || 'Unknown Student',
+    amount: inv.amount,
+    dueDate: inv.due_date,
+    status: inv.status,
+    description: inv.description
+  }));
+
+  const filteredInvoices = mappedInvoices.filter((inv: any) => {
     const matchesTab = activeTab === 'all' ? true : activeTab === 'structure' ? false : inv.status === activeTab;
-    return matchesSearch && matchesTab;
+    return matchesTab;
   });
 
-  const studentInvoices = MOCK_INVOICES.filter(inv => inv.studentId === selectedStudentForProfile);
-  const studentTotalDue = studentInvoices.filter(inv => inv.status !== 'paid').reduce((sum, inv) => sum + inv.amount, 0);
+  const studentInvoices = mappedInvoices.filter((inv: any) => inv.studentId === selectedStudentForProfile);
+  const studentTotalDue = studentInvoices.filter((inv: any) => inv.status !== 'paid').reduce((sum: number, inv: any) => sum + inv.amount, 0);
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,6 +258,8 @@ function AccountantFees() {
                 ))}
               </div>
             </div>
+          ) : isLoading ? (
+            <div className="p-12 text-center text-muted-foreground font-medium">Loading...</div>
           ) : filteredInvoices.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground font-medium">No invoices found.</div>
           ) : (
@@ -635,8 +670,29 @@ function ParentFees() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [selectedInvoiceToPay, setSelectedInvoiceToPay] = useState<FeeInvoice | null>(null);
   
-  const myInvoices = MOCK_INVOICES.filter(inv => inv.studentId === user?.studentId);
-  const pendingTotal = myInvoices.filter(inv => inv.status !== 'paid').reduce((sum, inv) => sum + inv.amount, 0);
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  const { data: invoicesResponse, isLoading } = useSWR(
+    user?.studentId ? ['parent_invoices', page, user.studentId] : null,
+    ([_, p, studentId]) => getPaginatedInvoices(p, limit, '', studentId)
+  );
+
+  const invoices = invoicesResponse?.data || [];
+  const totalPages = invoicesResponse?.totalPages || 1;
+  const totalCount = invoicesResponse?.count || 0;
+
+  const myInvoices = invoices.map((inv: any) => ({
+    id: inv.id,
+    studentId: inv.student_id,
+    studentName: inv.student?.user?.name || 'Unknown Student',
+    amount: inv.amount,
+    dueDate: inv.due_date,
+    status: inv.status,
+    description: inv.description
+  }));
+
+  const pendingTotal = myInvoices.filter((inv: any) => inv.status !== 'paid').reduce((sum: number, inv: any) => sum + inv.amount, 0);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -693,7 +749,11 @@ function ParentFees() {
         <h3 className="text-xl font-bold text-foreground shrink-0">Invoice History</h3>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-5">
-          {myInvoices.map((invoice) => (
+          {isLoading ? (
+            <div className="p-12 text-center text-muted-foreground font-medium">Loading...</div>
+          ) : myInvoices.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground font-medium">No invoices found.</div>
+          ) : myInvoices.map((invoice: any) => (
           <div key={invoice.id} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:shadow-md transition-all">
             <div className="flex items-start gap-5">
               <div className={`mt-1 p-4 rounded-2xl shrink-0 shadow-inner ${
@@ -737,6 +797,34 @@ function ParentFees() {
           </div>
         ))}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20 shrink-0 rounded-xl mt-4">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            Previous
+          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-muted-foreground">
+              Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+            </span>
+            <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+              Total: <span className="text-foreground font-bold">{totalCount}</span>
+            </span>
+          </div>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
       </div>
 
       <AnimatePresence>

@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { getPaginatedStaff } from '@/lib/supabase-db';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
@@ -264,14 +266,28 @@ export default function HRPage() {
   );
 }
 
-function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_STAFF[0]) => void }) {
+function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: any) => void }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
-  const filteredStaff = MOCK_STAFF.filter(staff => 
-    staff.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    staff.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    staff.department.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: staffResponse, isLoading } = useSWR(
+    ['staff', page, debouncedSearch],
+    ([_, p, s]) => getPaginatedStaff(p, limit, s)
   );
+
+  const filteredStaff = staffResponse?.data || [];
+  const totalPages = staffResponse?.totalPages || 1;
+  const totalCount = staffResponse?.count || 0;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
@@ -305,7 +321,11 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredStaff.length > 0 ? filteredStaff.map((staff) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">Loading...</td>
+                </tr>
+              ) : filteredStaff.length > 0 ? filteredStaff.map((staff) => (
                 <tr key={staff.id} className="hover:bg-accent/50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -319,8 +339,8 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
                     </div>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-bold text-foreground">{staff.role}</p>
-                    <p className="text-xs text-muted-foreground font-medium">{staff.department}</p>
+                    <p className="text-sm font-bold text-foreground capitalize">{staff.role}</p>
+                    <p className="text-xs text-muted-foreground font-medium">{staff.department || 'General'}</p>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-1">
@@ -328,15 +348,15 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
                         <Mail size={12} className="text-muted-foreground" /> {staff.email}
                       </p>
                       <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                        <Phone size={12} className="text-muted-foreground" /> {staff.phone}
+                        <Phone size={12} className="text-muted-foreground" /> {staff.phone || 'N/A'}
                       </p>
                     </div>
                   </td>
                   <td className="p-4">
                     <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                      staff.status === 'Active' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
+                      staff.status === 'Active' || !staff.status ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
                     }`}>
-                      {staff.status}
+                      {staff.status || 'Active'}
                     </span>
                   </td>
                   <td className="p-4 text-right">
@@ -356,6 +376,34 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: typeof MOCK_ST
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+              </span>
+              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+                Total: <span className="text-foreground font-bold">{totalCount}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
   );

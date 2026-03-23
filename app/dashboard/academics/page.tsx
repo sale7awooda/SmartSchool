@@ -1,5 +1,6 @@
 "use client";
 
+import useSWR from 'swr';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
@@ -79,34 +80,15 @@ function AdminAcademics() {
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   
-  const [academicYears, setAcademicYears] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
+  const { data: academicYearsData, isLoading: isYearsLoading, mutate: mutateYears } = useSWR('academicYears', () => getAcademicYears());
+  const { data: classesData, isLoading: isClassesLoading, mutate: mutateClasses } = useSWR('classes', () => getClasses());
+  const { data: subjectsData, isLoading: isSubjectsLoading, mutate: mutateSubjects } = useSWR('subjects', () => getSubjects());
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [yearsData, classesData, subjectsData] = await Promise.all([
-          getAcademicYears(),
-          getClasses(),
-          getSubjects()
-        ]);
-        setAcademicYears(yearsData);
-        setClasses(classesData);
-        setSubjects(subjectsData);
-      } catch (error) {
-        console.error("Error fetching admin academics data:", error);
-        toast.error("Failed to load academic data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const isLoading = isYearsLoading || isClassesLoading || isSubjectsLoading;
+  const academicYears = academicYearsData || [];
+  const classes = classesData || [];
+  const subjects = subjectsData || [];
 
   const handleCreateYear = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -121,7 +103,7 @@ function AdminAcademics() {
 
     try {
       const newYear = await createAcademicYear(yearData);
-      setAcademicYears([newYear, ...academicYears]);
+      mutateYears([newYear, ...academicYears]);
       setIsAddYearOpen(false);
       toast.success("Academic year created successfully");
     } catch (error) {
@@ -145,7 +127,7 @@ function AdminAcademics() {
 
     try {
       const newClass = await createClass(classData);
-      setClasses([newClass, ...classes]);
+      mutateClasses([newClass, ...classes]);
       setIsAddClassOpen(false);
       toast.success("Class created successfully");
     } catch (error) {
@@ -168,7 +150,7 @@ function AdminAcademics() {
 
     try {
       const newSubject = await createSubject(subjectData);
-      setSubjects([newSubject, ...subjects]);
+      mutateSubjects([newSubject, ...subjects]);
       setIsAddSubjectOpen(false);
       toast.success("Subject created successfully");
     } catch (error) {
@@ -705,8 +687,6 @@ function TeacherAcademics() {
   const [activeTab, setActiveTab] = useState<
     "assessments" | "gradebook" | "submissions"
   >("assessments");
-  const [assessments, setAssessments] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showNewAssessment, setShowNewAssessment] = useState(false);
 
   // Gradebook Flow State
@@ -714,45 +694,23 @@ function TeacherAcademics() {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [students, setStudents] = useState<Student[]>([]);
 
   // Submissions State
-  const [submissions, setSubmissions] = useState<any[]>([]);
   const [viewingSubmissionsFor, setViewingSubmissionsFor] = useState<any | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedSubmissionToReview, setSelectedSubmissionToReview] = useState<any>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [assessmentsData, studentsData] = await Promise.all([
-          getAssessments(),
-          getStudents()
-        ]);
-        setAssessments(assessmentsData);
-        setStudents(studentsData);
-      } catch (error) {
-        console.error('Error loading academics data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadData();
-  }, []);
+  const { data: assessmentsData, isLoading: isAssessmentsLoading, mutate: mutateAssessments } = useSWR('assessments', () => getAssessments());
+  const { data: studentsData, isLoading: isStudentsLoading } = useSWR('students', () => getStudents());
+  const { data: submissionsData, isLoading: isSubmissionsLoading, mutate: mutateSubmissions } = useSWR(
+    activeTab === 'submissions' ? 'submissions' : null, 
+    () => getSubmissions()
+  );
 
-  useEffect(() => {
-    if (activeTab === 'submissions') {
-      async function loadSubmissions() {
-        try {
-          const data = await getSubmissions();
-          setSubmissions(data);
-        } catch (error) {
-          console.error('Error loading submissions:', error);
-        }
-      }
-      loadSubmissions();
-    }
-  }, [activeTab]);
+  const isLoading = isAssessmentsLoading || isStudentsLoading;
+  const assessments = assessmentsData || [];
+  const students = studentsData || [];
+  const submissions = submissionsData || [];
 
   const handleReviewSubmission = (submission: any) => {
     setSelectedSubmissionToReview(submission);
@@ -775,8 +733,7 @@ function TeacherAcademics() {
       toast.success("Submission graded successfully");
       setIsReviewModalOpen(false);
       // Refresh submissions
-      const data = await getSubmissions();
-      setSubmissions(data);
+      mutateSubmissions();
     } catch (error) {
       console.error('Error grading submission:', error);
       toast.error("Failed to grade submission");
@@ -823,8 +780,8 @@ function TeacherAcademics() {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     if (selectedAssessment) {
-      setAssessments((prev) =>
-        prev.map((a) =>
+      mutateAssessments(
+        assessments.map((a: any) =>
           a.id === selectedAssessment.id ? { ...a, status: "Graded" } : a,
         ),
       );
@@ -852,7 +809,7 @@ function TeacherAcademics() {
 
     try {
       const newAssessment = await createAssessment(assessmentData);
-      setAssessments([newAssessment, ...assessments]);
+      mutateAssessments([newAssessment, ...assessments]);
       setShowNewAssessment(false);
       toast.success("Assessment created successfully");
     } catch (error) {

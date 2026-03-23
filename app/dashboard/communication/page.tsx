@@ -3,22 +3,10 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { Notice, MOCK_USERS, MOCK_PARENTS, MOCK_NOTICES } from '@/lib/mock-db';
+import { Notice, MOCK_USERS, MOCK_PARENTS, MOCK_NOTICES, MOCK_CHATS, MOCK_MESSAGES } from '@/lib/mock-db';
 import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2, Send, Search, Smartphone, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-
-const MOCK_CHATS = [
-  { id: 'c1', name: 'Edna Krabappel', role: 'Teacher', lastMessage: 'Bart is doing much better in math this week.', time: '10:30 AM', unread: 2 },
-  { id: 'c2', name: 'Principal Skinner', role: 'Admin', lastMessage: 'Please review the updated school policies.', time: 'Yesterday', unread: 0 },
-  { id: 'c3', name: 'Elizabeth Hoover', role: 'Teacher', lastMessage: 'Don\'t forget the permission slip for the field trip.', time: 'Monday', unread: 0 },
-];
-
-const MOCK_MESSAGES = [
-  { id: 'm1', sender: 'Edna Krabappel', text: 'Hello! I wanted to give you a quick update on Bart.', time: '10:15 AM', isMe: false },
-  { id: 'm2', sender: 'Me', text: 'Hi Edna, thanks for reaching out. How is he doing?', time: '10:20 AM', isMe: true },
-  { id: 'm3', sender: 'Edna Krabappel', text: 'Bart is doing much better in math this week. He really focused during the fractions lesson.', time: '10:30 AM', isMe: false },
-];
 
 export default function CommunicationPage() {
   const { user } = useAuth();

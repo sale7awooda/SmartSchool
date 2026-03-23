@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { getPaginatedBooks } from '@/lib/supabase-db';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
@@ -189,28 +191,43 @@ export default function LibraryPage() {
 
 function CatalogTab({ isAdmin, onSelectBook }: { isAdmin: boolean, onSelectBook: (book: any) => void }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 12;
   const [filters, setFilters] = useState({
     grade: 'All',
     subject: 'All',
     availability: 'All'
   });
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: response, isLoading } = useSWR(
+    ['books', page, debouncedSearch],
+    ([_, p, s]) => getPaginatedBooks(p, limit, s)
+  );
+
+  const books = response?.data || [];
+  const totalPages = response?.totalPages || 1;
+  const totalCount = response?.count || 0;
+
   const grades = ['All', ...Array.from(new Set(MOCK_BOOKS.map(b => b.grade)))];
   const subjects = ['All', ...Array.from(new Set(MOCK_BOOKS.map(b => b.subject)))];
   const availabilities = ['All', 'Available', 'Checked Out'];
 
-  const filteredBooks = MOCK_BOOKS.filter(book => {
-    const matchesSearch = 
-      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.isbn.includes(searchQuery);
-    
+  const filteredBooks = books.filter((book: any) => {
     const matchesGrade = filters.grade === 'All' || book.grade === filters.grade;
     const matchesSubject = filters.subject === 'All' || book.subject === filters.subject;
     const matchesAvailability = filters.availability === 'All' || book.status === filters.availability;
 
-    return matchesSearch && matchesGrade && matchesSubject && matchesAvailability;
+    return matchesGrade && matchesSubject && matchesAvailability;
   });
 
   return (
@@ -282,11 +299,19 @@ function CatalogTab({ isAdmin, onSelectBook }: { isAdmin: boolean, onSelectBook:
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
-        {filteredBooks.map(book => (
+        {isLoading ? (
+          <div className="col-span-full py-12 text-center text-muted-foreground font-medium">
+            Loading books...
+          </div>
+        ) : filteredBooks.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-muted-foreground font-medium">
+            No books found matching your criteria.
+          </div>
+        ) : filteredBooks.map((book: any) => (
           <div key={book.id} onClick={() => onSelectBook(book)} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-all group cursor-pointer">
             <div className="aspect-[3/4] relative bg-muted">
               <Image 
-                src={book.cover} 
+                src={book.cover || `https://picsum.photos/seed/${book.id}/200/300`} 
                 alt={book.title} 
                 fill 
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -307,12 +332,35 @@ function CatalogTab({ isAdmin, onSelectBook }: { isAdmin: boolean, onSelectBook:
             </div>
           </div>
         ))}
-        {filteredBooks.length === 0 && (
-          <div className="col-span-full py-12 text-center text-muted-foreground font-medium">
-            No books found matching your criteria.
-          </div>
-        )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20 shrink-0 rounded-2xl">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            Previous
+          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-muted-foreground">
+              Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+            </span>
+            <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+              Total: <span className="text-foreground font-bold">{totalCount}</span>
+            </span>
+          </div>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -104,9 +104,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           isCollapsed ? 'w-20' : 'w-56'
         } ${isRTL ? 'right-0 border-l' : 'left-0 border-r'}`}
       >
-        <div className="p-4 border-b border-border/50 flex items-center justify-between h-24">
-          <div className={`flex items-center gap-4 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
-            <div className="min-w-0 leading-tight">
+        <div className="p-4 border-b border-border/50 flex items-center justify-center h-24 relative">
+          <div className={`flex items-center justify-center gap-4 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
+            <div className="min-w-0 leading-tight text-center">
               <h2 className="text-xl font-bold text-primary tracking-tight">Smart School</h2>
             </div>
           </div>
@@ -193,15 +193,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile Drawer */}
       <aside className={`md:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-56 bg-card shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}`}>
-        <div className="p-5 border-b border-border flex items-center justify-between">
+        <div className="p-5 border-b border-border flex items-center justify-center relative">
           <div className="flex items-center gap-3">
-            <div className="leading-tight">
+            <div className="leading-tight text-center">
               <h2 className="text-xl font-black text-foreground tracking-tighter">Smart School</h2>
             </div>
           </div>
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 text-muted-foreground hover:bg-muted rounded-full"
+            className={`absolute ${isRTL ? 'left-5' : 'right-5'} p-2 text-muted-foreground hover:bg-muted rounded-full`}
           >
             {isRTL ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
           </button>

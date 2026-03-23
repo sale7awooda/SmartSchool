@@ -1,12 +1,13 @@
 'use client';
 
+import useSWR from 'swr';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent } from '@/lib/mock-db';
-import { getStudents, getParents, createStudent, getBehaviorRecords, getTimelineRecords } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords } from '@/lib/supabase-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
   MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown,
@@ -21,19 +22,47 @@ type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
 export default function StudentsPage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
-  const [activeTab, setActiveTab] = useState<DirectoryTab>('students');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('overview');
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isPromotionOpen, setIsPromotionOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [students, setStudents] = useState<Student[]>([]);
-  const [parents, setParents] = useState<Parent[]>([]);
-  const [behaviorRecords, setBehaviorRecords] = useState<any[]>([]);
-  const [timelineRecords, setTimelineRecords] = useState<any[]>([]);
+  // Debounce search query to avoid spamming the server
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: studentsResponse, isLoading: isStudentsLoading } = useSWR(
+    ['students', page, debouncedSearch], 
+    ([_, p, s]) => getPaginatedStudents(p, limit, s)
+  );
+  
+  const students = studentsResponse?.data || [];
+  const totalPages = studentsResponse?.totalPages || 1;
+  const totalCount = studentsResponse?.count || 0;
+  const isLoadingData = isStudentsLoading;
+
+  const { data: behaviorData } = useSWR(
+    selectedPerson && isStudent(selectedPerson) ? `behavior-${selectedPerson.id}` : null,
+    () => getBehaviorRecords(selectedPerson!.id)
+  );
+  const { data: timelineData } = useSWR(
+    selectedPerson && isStudent(selectedPerson) ? `timeline-${selectedPerson.id}` : null,
+    () => getTimelineRecords(selectedPerson!.id)
+  );
+  
+  const behaviorRecords = behaviorData || [];
+  const timelineRecords = timelineData || [];
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,26 +81,6 @@ export default function StudentsPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [studentsData, parentsData] = await Promise.all([
-          getStudents(),
-          getParents()
-        ]);
-        setStudents(studentsData);
-        setParents(parentsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load directory data');
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
     if (searchParams.get('add') === 'true' && isAdmin) {
       const timer = setTimeout(() => {
         setIsAddStudentOpen(true);
@@ -84,25 +93,6 @@ export default function StudentsPage() {
     return 'grade' in person;
   };
 
-  useEffect(() => {
-    const fetchDetails = async () => {
-      if (selectedPerson && isStudent(selectedPerson)) {
-        try {
-          const [behavior, timeline] = await Promise.all([
-            getBehaviorRecords(selectedPerson.id),
-            getTimelineRecords(selectedPerson.id)
-          ]);
-          setBehaviorRecords(behavior);
-          setTimelineRecords(timeline);
-        } catch (error) {
-          console.error('Error fetching student details:', error);
-        }
-      }
-    };
-
-    fetchDetails();
-  }, [selectedPerson]);
-
   if (!user) return null;
 
   if (!can('view', 'students')) {
@@ -110,29 +100,23 @@ export default function StudentsPage() {
   }
 
   let studentMembers = students;
-  let parentMembers = parents;
 
   if (isRole('teacher')) {
-    // Teachers see their students and parents of their students
-    parentMembers = parentMembers.filter(p => studentMembers.some(s => s.id === p.studentId));
+    // Teachers see their students
+    // Assuming we would filter this on the backend ideally, but keeping local filter for now
   } else if (isRole('student')) {
     // Students see only themselves
     studentMembers = studentMembers.filter(s => s.id === user.id || s.id === user.studentId);
-    parentMembers = [];
   } else if (isRole('parent')) {
-    // Parents see their children and themselves
+    // Parents see their children
     studentMembers = studentMembers.filter(s => s.id === user.studentId);
-    parentMembers = parentMembers.filter(p => p.id === user.id);
   }
 
-  const filteredStudents = studentMembers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredParents = parentMembers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.studentId?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredStudents = studentMembers;
 
   const handleCloseProfile = () => {
     setSelectedPerson(null);
     setActiveProfileTab('overview');
-    setBehaviorRecords([]);
-    setTimelineRecords([]);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -174,27 +158,18 @@ export default function StudentsPage() {
 
       <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card dark:bg-slate-900 p-4 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0">
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide w-full sm:w-auto">
-            {(['students', 'parents'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => { setActiveTab(tab); setSearchQuery(''); }}
-                className={`px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
-                  activeTab === tab 
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' 
-                    : 'bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border">
+              <Filter size={16} />
+              Filters
+            </button>
           </div>
 
           <div className="relative w-full sm:w-72">
             <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder={`Search ${activeTab}...`}
+              placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all placeholder:text-muted-foreground dark:placeholder:text-muted-foreground text-foreground"
@@ -203,88 +178,97 @@ export default function StudentsPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeTab === 'students' && (
-            filteredStudents.length === 0 ? <div className="col-span-full p-12 text-center text-muted-foreground font-medium">No students found.</div> :
-            filteredStudents.map((student) => (
-              <motion.div 
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                key={student.id} 
-                onClick={() => setSelectedPerson(student)} 
-                className="bg-card dark:bg-slate-900 p-6 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-500/20 dark:hover:border-emerald-500/30 transition-all cursor-pointer group relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ChevronRight size={20} className="text-emerald-500 dark:text-emerald-500" />
-                </div>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/100/10 text-emerald-500 flex items-center justify-center font-bold text-2xl shadow-inner border border-emerald-500/20">
-                    {student.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground text-lg leading-tight group-hover:text-emerald-500 dark:group-hover:text-emerald-500 transition-colors">{student.name}</h3>
-                    <span className="inline-block mt-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/100/10 text-emerald-500 border border-emerald-500/20">
-                      Student
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <GraduationCap size={16} className="text-muted-foreground" />
-                    <span>{student.grade}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <UserCircle size={16} className="text-muted-foreground" />
-                    <span>Roll: {student.rollNumber}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          )}
-
-          {activeTab === 'parents' && (
-            filteredParents.length === 0 ? <div className="col-span-full p-12 text-center text-muted-foreground font-medium">No parents found.</div> :
-            filteredParents.map((parent) => (
-              <motion.div 
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                key={parent.id} 
-                onClick={() => setSelectedPerson(parent)} 
-                className="bg-card dark:bg-slate-900 p-6 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm hover:shadow-md hover:border-amber-500/20 dark:hover:border-amber-500/30 transition-all cursor-pointer group relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ChevronRight size={20} className="text-amber-500 dark:text-amber-500" />
-                </div>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-500/100/10 text-amber-500 flex items-center justify-center font-bold text-2xl shadow-inner border border-amber-500/20">
-                    {parent.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground text-lg leading-tight group-hover:text-amber-500 dark:group-hover:text-amber-500 transition-colors">{parent.name}</h3>
-                    <span className="inline-block mt-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-500/100/10 text-amber-500 border border-amber-500/20">
-                      Parent
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <UserCircle size={16} className="text-muted-foreground" />
-                    <span>Child ID: {parent.studentId}</span>
-                  </div>
-                  {parent.phone && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone size={16} className="text-muted-foreground" />
-                      <span>{parent.phone}</span>
-                    </div>
+          <div className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="px-6 py-4 font-bold">Student</th>
+                    <th className="px-6 py-4 font-bold">Roll Number</th>
+                    <th className="px-6 py-4 font-bold">Grade</th>
+                    <th className="px-6 py-4 font-bold">Parent/Guardian</th>
+                    <th className="px-6 py-4 font-bold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
+                        No students found.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredStudents.map((student) => (
+                      <tr 
+                        key={student.id} 
+                        onClick={() => setSelectedPerson(student)}
+                        className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer group"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-lg shadow-inner border border-emerald-500/20">
+                              {student.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-foreground group-hover:text-emerald-500 transition-colors">{student.name}</div>
+                              <div className="text-xs text-muted-foreground">{student.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-medium text-foreground">
+                          {student.rollNumber}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-foreground border border-border">
+                            <GraduationCap size={14} />
+                            {student.grade}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground font-medium">
+                          {/* @ts-ignore */}
+                          {student.parentNames || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="p-2 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10">
+                            <ChevronRight size={20} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   )}
-                </div>
-              </motion.div>
-            ))
-          )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20 rounded-xl mt-4 shrink-0">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+              </span>
+              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+                Total: <span className="text-foreground font-bold">{totalCount}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

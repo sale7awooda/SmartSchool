@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
@@ -53,6 +54,52 @@ const MOCK_INVENTORY = [
   { id: 'INV-002', name: 'Epson Projector X100', category: 'Projector', assignedTo: 'Room 101', status: 'Maintenance', nextMaintenance: '2023-11-05' },
   { id: 'INV-003', name: 'Basketball Set (10)', category: 'Sports', assignedTo: 'Gym', status: 'Available', nextMaintenance: '2024-05-20' },
 ];
+
+// Simulated API functions for Operations
+const fetchPaginatedVisitors = async (page: number, limit: number, search: string) => {
+  await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+  let filtered = MOCK_VISITORS;
+  if (search) {
+    filtered = filtered.filter(v => v.name.toLowerCase().includes(search.toLowerCase()) || v.host.toLowerCase().includes(search.toLowerCase()));
+  }
+  const from = (page - 1) * limit;
+  const to = from + limit;
+  return {
+    data: filtered.slice(from, to),
+    count: filtered.length,
+    totalPages: Math.ceil(filtered.length / limit)
+  };
+};
+
+const fetchPaginatedMedicalRecords = async (page: number, limit: number, search: string) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  let filtered = MOCK_MEDICAL_RECORDS;
+  if (search) {
+    filtered = filtered.filter(m => m.studentName.toLowerCase().includes(search.toLowerCase()));
+  }
+  const from = (page - 1) * limit;
+  const to = from + limit;
+  return {
+    data: filtered.slice(from, to),
+    count: filtered.length,
+    totalPages: Math.ceil(filtered.length / limit)
+  };
+};
+
+const fetchPaginatedInventory = async (page: number, limit: number, search: string) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  let filtered = MOCK_INVENTORY;
+  if (search) {
+    filtered = filtered.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.category.toLowerCase().includes(search.toLowerCase()));
+  }
+  const from = (page - 1) * limit;
+  const to = from + limit;
+  return {
+    data: filtered.slice(from, to),
+    count: filtered.length,
+    totalPages: Math.ceil(filtered.length / limit)
+  };
+};
 
 export default function OperationsPage() {
   const { user } = useAuth();
@@ -194,6 +241,27 @@ function VisitorsTab() {
   const { can } = usePermissions();
   const [isNewCheckInOpen, setIsNewCheckInOpen] = useState(false);
   const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: response, isLoading } = useSWR(
+    ['visitors', page, debouncedSearch],
+    ([_, p, s]) => fetchPaginatedVisitors(p, limit, s)
+  );
+
+  const visitors = response?.data || [];
+  const totalPages = response?.totalPages || 1;
+  const totalCount = response?.count || 0;
 
   const handleNewCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,6 +286,8 @@ function VisitorsTab() {
               <input 
                 type="text" 
                 placeholder="Search visitors..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
               />
             </div>
@@ -245,7 +315,15 @@ function VisitorsTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {MOCK_VISITORS.map((visitor) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">Loading visitors...</td>
+                </tr>
+              ) : visitors.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">No visitors found.</td>
+                </tr>
+              ) : visitors.map((visitor: any) => (
                 <tr key={visitor.id} className="hover:bg-muted/50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -297,6 +375,34 @@ function VisitorsTab() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20 shrink-0">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+              </span>
+              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+                Total: <span className="text-foreground font-bold">{totalCount}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -358,6 +464,27 @@ function HealthTab() {
   const { can } = usePermissions();
   const [isLogIncidentOpen, setIsLogIncidentOpen] = useState(false);
   const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: response, isLoading } = useSWR(
+    ['health', page, debouncedSearch],
+    ([_, p, s]) => fetchPaginatedMedicalRecords(p, limit, s)
+  );
+
+  const records = response?.data || [];
+  const totalPages = response?.totalPages || 1;
+  const totalCount = response?.count || 0;
 
   const handleLogIncident = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -413,6 +540,8 @@ function HealthTab() {
               <input 
                 type="text" 
                 placeholder="Search student..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
               />
             </div>
@@ -429,7 +558,11 @@ function HealthTab() {
         </div>
 
         <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {MOCK_MEDICAL_RECORDS.map(record => (
+          {isLoading ? (
+            <div className="col-span-1 md:col-span-2 p-12 text-center text-muted-foreground font-medium">Loading records...</div>
+          ) : records.length === 0 ? (
+            <div className="col-span-1 md:col-span-2 p-12 text-center text-muted-foreground font-medium">No records found.</div>
+          ) : records.map((record: any) => (
             <div key={record.id} className="p-5 rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -467,6 +600,34 @@ function HealthTab() {
             </div>
           ))}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20 shrink-0">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+              </span>
+              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+                Total: <span className="text-foreground font-bold">{totalCount}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -528,6 +689,27 @@ function InventoryTab() {
   const { can } = usePermissions();
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
   const [isSubmittingAsset, setIsSubmittingAsset] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: response, isLoading } = useSWR(
+    ['inventory', page, debouncedSearch],
+    ([_, p, s]) => fetchPaginatedInventory(p, limit, s)
+  );
+
+  const inventory = response?.data || [];
+  const totalPages = response?.totalPages || 1;
+  const totalCount = response?.count || 0;
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -552,6 +734,8 @@ function InventoryTab() {
               <input 
                 type="text" 
                 placeholder="Search assets..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
               />
             </div>
@@ -579,7 +763,15 @@ function InventoryTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {MOCK_INVENTORY.map((item) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">Loading inventory...</td>
+                </tr>
+              ) : inventory.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">No assets found.</td>
+                </tr>
+              ) : inventory.map((item: any) => (
                 <tr key={item.id} className="hover:bg-muted/50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -627,6 +819,34 @@ function InventoryTab() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20 shrink-0">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+              </span>
+              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+                Total: <span className="text-foreground font-bold">{totalCount}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

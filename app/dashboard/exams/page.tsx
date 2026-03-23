@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { getPaginatedAssessments } from '@/lib/supabase-db';
 import { motion } from 'motion/react';
 import { 
   FileText, 
@@ -59,7 +61,27 @@ export default function ExamsPage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const limit = 9; // 3 columns, so 9 is a good number
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: examsResponse, isLoading } = useSWR(
+    ['exams', page, debouncedSearch, statusFilter],
+    ([_, p, s, status]) => getPaginatedAssessments(p, limit, s, status)
+  );
+
+  const exams = examsResponse?.data || [];
+  const totalPages = examsResponse?.totalPages || 1;
+  const totalCount = examsResponse?.count || 0;
 
   if (!user) return null;
 
@@ -70,12 +92,18 @@ export default function ExamsPage() {
   const isStudent = isRole('student');
   const isTeacherOrAdmin = can('manage', 'exams') || can('create', 'exams');
 
-  const filteredExams = EXAMS.filter(exam => {
-    const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          exam.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || exam.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredExams = exams.map((exam: any) => ({
+    id: exam.id,
+    title: exam.title,
+    subject: exam.subject,
+    grade: exam.grade || 'All Grades',
+    date: exam.date || 'TBD',
+    duration: exam.duration || 60,
+    status: exam.status || 'upcoming',
+    totalMarks: exam.total_marks || 100,
+    questionsCount: exam.questions_count || 0,
+    score: exam.score,
+  }));
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -142,9 +170,18 @@ export default function ExamsPage() {
       </div>
 
       {/* Exams Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredExams.map((exam) => (
-          <div key={exam.id} className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-muted-foreground font-medium">Loading exams...</div>
+        </div>
+      ) : filteredExams.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-muted-foreground font-medium">No exams found.</div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredExams.map((exam: any) => (
+            <div key={exam.id} className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col">
             <div className="p-6 flex-1">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-primary/10 text-primary rounded-2xl">
@@ -200,17 +237,36 @@ export default function ExamsPage() {
             </div>
           </div>
         ))}
-
-        {filteredExams.length === 0 && (
-          <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 border-dashed">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="text-slate-400 dark:text-slate-500" size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">No exams found</h3>
-            <p className="text-slate-500 dark:text-slate-400">Try adjusting your search or filters.</p>
-          </div>
-        )}
       </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card rounded-xl shadow-sm mt-auto">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 text-sm font-bold text-foreground bg-background border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            Previous
+          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-muted-foreground">
+              Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+            </span>
+            <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+              Total: <span className="text-foreground font-bold">{totalCount}</span>
+            </span>
+          </div>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 text-sm font-bold text-foreground bg-background border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

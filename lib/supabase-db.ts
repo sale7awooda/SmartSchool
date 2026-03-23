@@ -18,6 +18,43 @@ export async function getStudents() {
   })) as Student[];
 }
 
+export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('students')
+    .select(`
+      *,
+      user:users!inner(*),
+      parents:parent_student(
+        parent:users(*)
+      )
+    `, { count: 'exact' });
+
+  if (search) {
+    // Search by student name or roll number
+    query = query.or(`name.ilike.%${search}%,roll_number.ilike.%${search}%`, { foreignTable: 'users' });
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  
+  if (error) throw error;
+  
+  const students = data.map((s: any) => ({
+    ...s.user,
+    ...s,
+    id: s.user_id,
+    parentNames: s.parents?.map((p: any) => p.parent?.name).join(', ') || 'N/A'
+  })) as (Student & { parentNames: string })[];
+
+  return {
+    data: students,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
 export async function getParents() {
   const { data, error } = await supabase
     .from('users')
@@ -27,6 +64,30 @@ export async function getParents() {
   if (error) throw error;
   
   return data as Parent[];
+}
+
+export async function getPaginatedParents(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('users')
+    .select('*', { count: 'exact' })
+    .eq('role', 'parent');
+
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  
+  if (error) throw error;
+  
+  return {
+    data: data as Parent[],
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
 }
 
 export async function getUsers() {
@@ -103,6 +164,127 @@ export async function getAttendance(date: string) {
   return data;
 }
 
+export async function getPaginatedStaff(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('users')
+    .select('*', { count: 'exact' })
+    .in('role', ['teacher', 'staff', 'accountant', 'admin']);
+
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+export async function getPaginatedInvoices(page: number = 1, limit: number = 10, search: string = '', studentId?: string) {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('fee_invoices')
+    .select(`
+      *,
+      student:students(user:users(name))
+    `, { count: 'exact' });
+
+  if (studentId) {
+    query = query.eq('student_id', studentId);
+  }
+
+  // Note: search by student name requires a more complex query or view in Supabase, 
+  // keeping it simple for now or searching by invoice id if needed.
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+export async function getPaginatedAssessments(page: number = 1, limit: number = 10, search: string = '', statusFilter: string = 'all') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('assessments')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false });
+
+  if (search) {
+    query = query.or(`title.ilike.%${search}%,subject.ilike.%${search}%`);
+  }
+
+  if (statusFilter !== 'all') {
+    query = query.eq('status', statusFilter);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+export async function getPaginatedRoutes(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('bus_routes')
+    .select('*', { count: 'exact' });
+
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+export async function getPaginatedBooks(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('books')
+    .select('*', { count: 'exact' });
+
+  if (search) {
+    query = query.ilike('title', `%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
 export async function getAssessments() {
   const { data, error } = await supabase
     .from('assessments')
@@ -265,4 +447,71 @@ export async function createSubject(subject: any) {
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function seedDatabase(demoData: any) {
+  const { MOCK_USERS, MOCK_STUDENTS, MOCK_NOTICES, MOCK_BUS_ROUTES, MOCK_PARENTS } = demoData;
+
+  // 1. Seed Users (Staff, Admins, etc.)
+  if (MOCK_USERS?.length) {
+    const { error: userError } = await supabase
+      .from('users')
+      .upsert(MOCK_USERS.map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role.toLowerCase(),
+        avatar_url: u.avatar,
+        address: u.address,
+        phone: u.phone
+      })), { onConflict: 'id' });
+    if (userError) console.error('Error seeding users:', userError);
+  }
+
+  // 2. Seed Parents (as Users)
+  if (MOCK_PARENTS?.length) {
+    const { error: parentError } = await supabase
+      .from('users')
+      .upsert(MOCK_PARENTS.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        role: 'parent',
+        phone: p.phone
+      })), { onConflict: 'id' });
+    if (parentError) console.error('Error seeding parents:', parentError);
+  }
+
+  // 3. Seed Students
+  if (MOCK_STUDENTS?.length) {
+    const { error: studentError } = await supabase
+      .from('students')
+      .upsert(MOCK_STUDENTS.map((s: any) => ({
+        user_id: s.id,
+        roll_number: s.studentId,
+        grade: s.grade,
+        section: s.section,
+        dob: s.dob,
+        blood_group: s.bloodGroup,
+        admission_date: s.admissionDate
+      })), { onConflict: 'user_id' });
+    if (studentError) console.error('Error seeding students:', studentError);
+  }
+
+  // 4. Seed Notices
+  if (MOCK_NOTICES?.length) {
+    const { error: noticeError } = await supabase
+      .from('notices')
+      .upsert(MOCK_NOTICES.map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        category: n.category || n.targetAudience,
+        date: n.date,
+        is_urgent: n.isImportant || n.isUrgent
+      })), { onConflict: 'id' });
+    if (noticeError) console.error('Error seeding notices:', noticeError);
+  }
+
+  return { success: true };
 }

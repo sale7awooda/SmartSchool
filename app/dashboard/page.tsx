@@ -1,5 +1,6 @@
 'use client';
 
+import useSWR from 'swr';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
@@ -11,69 +12,57 @@ import { motion } from 'motion/react';
 export default function DashboardHome() {
   const { user } = useAuth();
   const { isRole } = usePermissions();
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    attendanceToday: 0,
-    feeCollected: 0,
-    pendingFees: 0
-  });
-  const [notices, setNotices] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user) return;
+  const fetchDashboardData = async () => {
+    if (!user) return null;
+    let stats = { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0 };
+    let notices = [];
 
-      try {
-        // Fetch Stats (Admin/Accountant)
-        if (isRole(['admin', 'accountant'])) {
-          const { count: studentCount } = await supabase
-            .from('students')
-            .select('*', { count: 'exact', head: true });
-          
-          const { data: attendanceData } = await supabase
-            .from('attendance')
-            .select('status')
-            .eq('date', new Date().toISOString().split('T')[0]);
-          
-          const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
-          const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
+    if (isRole(['admin', 'accountant'])) {
+      const { count: studentCount } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+      
+      const { data: attendanceData } = await supabase
+        .from('attendance')
+        .select('status')
+        .eq('date', new Date().toISOString().split('T')[0]);
+      
+      const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
+      const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
 
-          const { data: feeData } = await supabase
-            .from('fee_invoices')
-            .select('amount, status');
-          
-          const collected = feeData?.filter((f: any) => f.status === 'paid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
-          const pending = feeData?.filter((f: any) => f.status === 'unpaid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+      const { data: feeData } = await supabase
+        .from('fee_invoices')
+        .select('amount, status');
+      
+      const collected = feeData?.filter((f: any) => f.status === 'paid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+      const pending = feeData?.filter((f: any) => f.status === 'unpaid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
 
-          setStats({
-            totalStudents: studentCount || 0,
-            attendanceToday: attendanceRate,
-            feeCollected: collected,
-            pendingFees: pending
-          });
-        }
+      stats = {
+        totalStudents: studentCount || 0,
+        attendanceToday: attendanceRate,
+        feeCollected: collected,
+        pendingFees: pending
+      };
+    }
 
-        // Fetch Notices
-        const { data: noticesData } = await supabase
-          .from('notices')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        
-        if (noticesData) setNotices(noticesData);
+    const { data: noticesData } = await supabase
+      .from('notices')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (noticesData) notices = noticesData;
 
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    return { stats, notices };
+  };
 
-    fetchDashboardData();
-  }, [user, isRole]);
+  const { data, isLoading } = useSWR(user ? `dashboard-${user.id}-${user.role}` : null, fetchDashboardData);
 
   if (!user || isLoading) return <div className="p-8 text-center">Loading dashboard...</div>;
+
+  const stats = data?.stats || { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0 };
+  const notices = data?.notices || [];
 
   if (isRole('parent')) return <ParentDashboard notices={notices} />;
   if (isRole('teacher')) return <TeacherDashboard notices={notices} />;

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
   Lock, 
@@ -25,15 +25,51 @@ import {
   Plus,
   Trash2,
   Edit,
-  Building
+  Building,
+  Database,
+  RefreshCw,
+  FileDown,
+  FileUp,
+  CloudUpload,
+  AlertTriangle,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { seedDatabase } from '@/lib/supabase-db';
+import { 
+  MOCK_USERS, 
+  MOCK_STUDENTS, 
+  MOCK_PARENTS, 
+  MOCK_DRIVERS, 
+  MOCK_BUS_ROUTES, 
+  MOCK_NOTICES, 
+  MOCK_SCHEDULE,
+  MOCK_CHATS,
+  MOCK_MESSAGES
+} from '@/lib/demo-data';
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin' | 'configurations'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin' | 'configurations' | 'data'>('profile');
   const [isSaving, setIsSaving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
+  
+  const [modalConfig, setModalConfig] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'info';
+    onConfirm: () => void;
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
 
   // Configuration State
   const [supabaseUrl, setSupabaseUrl] = useState('');
@@ -43,13 +79,10 @@ export default function SettingsPage() {
 
   // Load saved configurations
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line
     setSupabaseUrl(localStorage.getItem('SUPABASE_URL') || '');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSupabaseKey(localStorage.getItem('SUPABASE_ANON_KEY') || '');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMapboxToken(localStorage.getItem('MAPBOX_ACCESS_TOKEN') || '');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGpsInterval(localStorage.getItem('GPS_UPDATE_INTERVAL') || '1');
   }, []);
 
@@ -86,12 +119,13 @@ export default function SettingsPage() {
           <nav className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
             {[
               { id: 'profile', label: 'Profile Information', icon: User, show: true },
-              { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
               { id: 'security', label: 'Security & Password', icon: Lock, show: true },
               { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
-              { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
+              { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
               { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
+              { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
+              { id: 'data', label: 'Data Management', icon: Database, show: isAdmin() },
               { id: 'configurations', label: 'Advanced Configurations', icon: Globe, show: user.role === 'admin' },
             ].filter(tab => tab.show).map((tab) => {
               return (
@@ -504,6 +538,211 @@ export default function SettingsPage() {
                 </div>
               )}
 
+              {/* Data Management Tab */}
+              {activeTab === 'data' && isAdmin() && (
+                <div className="p-6 sm:p-8 space-y-8">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Data Management</h3>
+                    <p className="text-sm text-muted-foreground mb-6">Manage system data, backups, and seeding.</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <RefreshCw size={16} className="text-primary" />
+                          System Seeding
+                        </div>
+                        <p className="text-xs text-muted-foreground">Populate the system with demo data for testing and evaluation purposes.</p>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setModalConfig({
+                              show: true,
+                              title: 'Seed Demo Data',
+                              message: 'This will populate the system with demo data. This is useful for testing. Continue?',
+                              type: 'info',
+                              onConfirm: async () => {
+                                setModalConfig(prev => ({ ...prev, show: false }));
+                                setIsProcessing(true);
+                                setProcessingMessage('Seeding demo data...');
+                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                localStorage.setItem('MOCK_USERS', JSON.stringify(MOCK_USERS));
+                                localStorage.setItem('MOCK_STUDENTS', JSON.stringify(MOCK_STUDENTS));
+                                localStorage.setItem('MOCK_PARENTS', JSON.stringify(MOCK_PARENTS));
+                                localStorage.setItem('MOCK_DRIVERS', JSON.stringify(MOCK_DRIVERS));
+                                localStorage.setItem('MOCK_BUS_ROUTES', JSON.stringify(MOCK_BUS_ROUTES));
+                                localStorage.setItem('MOCK_NOTICES', JSON.stringify(MOCK_NOTICES));
+                                localStorage.setItem('MOCK_SCHEDULE', JSON.stringify(MOCK_SCHEDULE));
+                                localStorage.setItem('MOCK_CHATS', JSON.stringify(MOCK_CHATS));
+                                localStorage.setItem('MOCK_MESSAGES', JSON.stringify(MOCK_MESSAGES));
+                                setIsProcessing(false);
+                                toast.success('Demo data seeded successfully! Please refresh the page.');
+                              }
+                            });
+                          }}
+                          className="w-full py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-xs font-bold transition-all"
+                        >
+                          Seed Demo Data
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <CloudUpload size={16} className="text-violet-500" />
+                          Cloud Seeding
+                        </div>
+                        <p className="text-xs text-muted-foreground">Populate the Supabase database with demo data. This affects all users.</p>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setModalConfig({
+                              show: true,
+                              title: 'Seed Supabase Database',
+                              message: 'This will seed the Supabase database with demo data. This action is irreversible for the cloud data. Continue?',
+                              type: 'warning',
+                              onConfirm: async () => {
+                                setModalConfig(prev => ({ ...prev, show: false }));
+                                setIsProcessing(true);
+                                setProcessingMessage('Seeding Supabase database...');
+                                try {
+                                  await seedDatabase({ MOCK_USERS, MOCK_STUDENTS, MOCK_NOTICES, MOCK_BUS_ROUTES, MOCK_PARENTS });
+                                  setIsProcessing(false);
+                                  toast.success('Supabase database seeded successfully!');
+                                } catch (err) {
+                                  setIsProcessing(false);
+                                  toast.error('Failed to seed Supabase database.');
+                                  console.error(err);
+                                }
+                              }
+                            });
+                          }}
+                          className="w-full py-2 bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 rounded-lg text-xs font-bold transition-all"
+                        >
+                          Seed Supabase
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <Trash2 size={16} className="text-destructive" />
+                          System Reset
+                        </div>
+                        <p className="text-xs text-muted-foreground">Clear all local data and reset the system to its initial empty state.</p>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setModalConfig({
+                              show: true,
+                              title: 'Reset All Data',
+                              message: 'Are you sure you want to reset all data? This will clear all local storage data. This cannot be undone.',
+                              type: 'danger',
+                              onConfirm: async () => {
+                                setModalConfig(prev => ({ ...prev, show: false }));
+                                setIsProcessing(true);
+                                setProcessingMessage('Resetting system data...');
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                                const keys = [
+                                  'MOCK_USERS', 'MOCK_STUDENTS', 'MOCK_PARENTS', 
+                                  'MOCK_DRIVERS', 'MOCK_BUS_ROUTES', 'MOCK_NOTICES', 
+                                  'MOCK_SCHEDULE', 'MOCK_CHATS', 'MOCK_MESSAGES',
+                                  'advanced_config'
+                                ];
+                                keys.forEach(key => localStorage.removeItem(key));
+                                setIsProcessing(false);
+                                toast.success('System reset successfully! Please refresh the page.');
+                              }
+                            });
+                          }}
+                          className="w-full py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg text-xs font-bold transition-all"
+                        >
+                          Reset All Data
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <FileDown size={16} className="text-emerald-500" />
+                          Backup Data
+                        </div>
+                        <p className="text-xs text-muted-foreground">Download a backup of all your current system data as a JSON file.</p>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const data: Record<string, any> = {};
+                            const keys = [
+                              'MOCK_USERS', 'MOCK_STUDENTS', 'MOCK_PARENTS', 
+                              'MOCK_DRIVERS', 'MOCK_BUS_ROUTES', 'MOCK_NOTICES', 
+                              'MOCK_SCHEDULE', 'MOCK_CHATS', 'MOCK_MESSAGES',
+                              'advanced_config'
+                            ];
+                            keys.forEach(key => {
+                              const val = localStorage.getItem(key);
+                              if (val) data[key] = JSON.parse(val);
+                            });
+                            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `school_backup_${new Date().toISOString().split('T')[0]}.json`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            toast.success('Backup created successfully!');
+                          }}
+                          className="w-full py-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-lg text-xs font-bold transition-all"
+                        >
+                          Download Backup
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <FileUp size={16} className="text-blue-500" />
+                          Restore Data
+                        </div>
+                        <p className="text-xs text-muted-foreground">Restore your system data from a previously downloaded backup file.</p>
+                        <label className="w-full py-2 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center">
+                          Upload Backup
+                          <input 
+                            type="file" 
+                            accept=".json"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                try {
+                                  const data = JSON.parse(event.target?.result as string);
+                                  setModalConfig({
+                                    show: true,
+                                    title: 'Restore Data',
+                                    message: 'This will overwrite your current local data with the backup. Continue?',
+                                    type: 'warning',
+                                    onConfirm: async () => {
+                                      setModalConfig(prev => ({ ...prev, show: false }));
+                                      setIsProcessing(true);
+                                      setProcessingMessage('Restoring data from backup...');
+                                      await new Promise(resolve => setTimeout(resolve, 1500));
+                                      Object.entries(data).forEach(([key, val]) => {
+                                        localStorage.setItem(key, JSON.stringify(val));
+                                      });
+                                      setIsProcessing(false);
+                                      toast.success('Data restored successfully! Please refresh the page.');
+                                    }
+                                  });
+                                } catch (err) {
+                                  toast.error('Invalid backup file.');
+                                }
+                              };
+                              reader.readAsText(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Form Actions */}
               <div className="p-6 bg-muted/30 border-t border-border flex justify-end gap-3">
                 <button type="button" className="px-6 py-2.5 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-all">
@@ -522,6 +761,86 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {modalConfig.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card border border-border rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden"
+            >
+              <div className="p-6 sm:p-8 space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                    modalConfig.type === 'danger' ? 'bg-destructive/10 text-destructive' :
+                    modalConfig.type === 'warning' ? 'bg-amber-500/10 text-amber-500' :
+                    'bg-primary/10 text-primary'
+                  }`}>
+                    {modalConfig.type === 'danger' ? <Trash2 size={24} /> :
+                     modalConfig.type === 'warning' ? <AlertTriangle size={24} /> :
+                     <Database size={24} />}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground">{modalConfig.title}</h3>
+                    <p className="text-sm text-muted-foreground">Action Confirmation</p>
+                  </div>
+                </div>
+                
+                <p className="text-foreground/80 leading-relaxed">
+                  {modalConfig.message}
+                </p>
+                
+                <div className="flex gap-3 pt-2">
+                  <button 
+                    onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+                    className="flex-1 py-3 px-4 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={modalConfig.onConfirm}
+                    className={`flex-1 py-3 px-4 rounded-xl font-bold text-white transition-all shadow-sm ${
+                      modalConfig.type === 'danger' ? 'bg-destructive hover:bg-destructive/90' :
+                      modalConfig.type === 'warning' ? 'bg-amber-500 hover:bg-amber-600' :
+                      'bg-primary hover:bg-primary/90'
+                    }`}
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Processing Overlay */}
+      <AnimatePresence>
+        {isProcessing && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="bg-card border border-border rounded-3xl shadow-xl p-8 flex flex-col items-center gap-4 max-w-xs w-full"
+            >
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Database size={24} className="text-primary animate-pulse" />
+                </div>
+              </div>
+              <div className="text-center">
+                <h4 className="font-bold text-foreground">{processingMessage}</h4>
+                <p className="text-xs text-muted-foreground mt-1">Please wait a moment...</p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
