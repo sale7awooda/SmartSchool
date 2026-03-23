@@ -99,6 +99,20 @@ export default function SettingsPage() {
     };
   });
 
+  const [modalConfig, setModalConfig] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'warning' | 'danger';
+    onConfirm: () => void;
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+  });
+
   if (!user) return null;
 
   const handleSave = async (e: React.FormEvent) => {

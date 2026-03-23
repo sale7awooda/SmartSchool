@@ -576,7 +576,7 @@ function HealthTab() {
                 <div>
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Allergies</p>
                   <div className="flex flex-wrap gap-2">
-                    {record.allergies.map(allergy => (
+                    {record.allergies.map((allergy: string) => (
                       <span key={allergy} className={`px-2 py-1 rounded-md text-xs font-bold ${allergy === 'None' ? 'bg-muted text-muted-foreground' : 'bg-destructive/20 text-destructive'}`}>
                         {allergy}
                       </span>
@@ -586,7 +586,7 @@ function HealthTab() {
                 <div>
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Conditions</p>
                   <div className="flex flex-wrap gap-2">
-                    {record.conditions.map(condition => (
+                    {record.conditions.map((condition: string) => (
                       <span key={condition} className="px-2 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-500">
                         {condition}
                       </span>
