@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type DirectoryTab = 'students' | 'parents';
 type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
@@ -191,7 +192,25 @@ export default function StudentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStudents.length === 0 ? (
+                  {isLoadingData ? (
+                    [1, 2, 3, 4, 5].map((i) => (
+                      <tr key={i} className="border-b border-border last:border-0">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-xl" />
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-48" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-md" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                        <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 rounded-lg ml-auto" /></td>
+                      </tr>
+                    ))
+                  ) : filteredStudents.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
                         No students found.

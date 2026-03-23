@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardHome() {
   const { user } = useAuth();
@@ -59,7 +60,44 @@ export default function DashboardHome() {
 
   const { data, isLoading } = useSWR(user ? `dashboard-${user.id}-${user.role}` : null, fetchDashboardData);
 
-  if (!user || isLoading) return <div className="p-8 text-center">Loading dashboard...</div>;
+  if (!user) return null;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-14 w-32 rounded-xl" />
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+              <Skeleton className="w-12 h-12 rounded-2xl mb-5" />
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          ))}
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+              <Skeleton className="h-6 w-40 mb-6" />
+              <div className="space-y-4">
+                {[1, 2, 3].map((j) => (
+                  <Skeleton key={j} className="h-16 w-full rounded-2xl" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const stats = data?.stats || { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0 };
   const notices = data?.notices || [];

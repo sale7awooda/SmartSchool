@@ -55,7 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Force it locally so the UI works immediately
           if (profile) {
             profile.role = expectedRole;
-            profile.name = profile.name || session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
+            // If name is missing or is an email, use capitalized role
+            const isEmail = (str: string) => str.includes('@') && str.includes('.');
+            if (!profile.name || isEmail(profile.name)) {
+              profile.name = session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
+            }
           } else {
             profile = {
               id: session.user.id,
@@ -92,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             profile.studentId = profile.studentIds[0] || undefined;
           }
         }
-        
+
         if (profile) {
           setUser(profile as User);
         }
@@ -133,7 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Force it locally so the UI works immediately
           if (profile) {
             profile.role = expectedRole;
-            profile.name = profile.name || session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
+            // If name is missing or is an email, use capitalized role
+            const isEmail = (str: string) => str.includes('@') && str.includes('.');
+            if (!profile.name || isEmail(profile.name)) {
+              profile.name = session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
+            }
           } else {
             profile = {
               id: session.user.id,

@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { Navigation } from 'lucide-react';
 
 // Fix Leaflet default icon issue in Next.js
 const icon = L.icon({
@@ -24,6 +25,13 @@ const busIcon = L.divIcon({
   iconAnchor: [15, 15]
 });
 
+const userLocationIcon = L.divIcon({
+  html: `<div style="background-color: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"><div style="width: 8px; height: 8px; background-color: white; border-radius: 50%;"></div></div>`,
+  className: 'user-marker-pulse',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
+
 interface TransportMapProps {
   stops: { lat: number; lng: number; name: string; studentName?: string; eta?: string }[];
   interactive?: boolean;
@@ -31,9 +39,13 @@ interface TransportMapProps {
   selectedLocation?: { lat: number; lng: number } | null;
   liveBusLocation?: { lat: number; lng: number } | null;
   routeCoordinates?: [number, number][]; // Array of [lat, lng] for the polyline
+  showMyLocationButton?: boolean;
 }
 
-function MapEvents({ onLocationSelect }: { onLocationSelect?: (lat: number, lng: number) => void }) {
+function MapEvents({ onLocationSelect, showMyLocationButton }: { onLocationSelect?: (lat: number, lng: number) => void, showMyLocationButton?: boolean }) {
+  const map = useMap();
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
   useMapEvents({
     click(e) {
       if (onLocationSelect) {
@@ -41,7 +53,42 @@ function MapEvents({ onLocationSelect }: { onLocationSelect?: (lat: number, lng:
       }
     },
   });
-  return null;
+
+  const handleShowMyLocation = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation([latitude, longitude]);
+        map.setView([latitude, longitude], 15);
+      }, (error) => {
+        console.error('Error getting location:', error);
+      });
+    }
+  };
+
+  return (
+    <>
+      {showMyLocationButton && (
+        <div className="absolute bottom-6 right-6 z-[1000]">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShowMyLocation();
+            }}
+            className="w-12 h-12 bg-card border border-border rounded-full shadow-xl flex items-center justify-center text-foreground hover:bg-muted transition-all active:scale-95"
+            title="Show my location"
+          >
+            <Navigation size={20} className="fill-current" />
+          </button>
+        </div>
+      )}
+      {userLocation && (
+        <Marker position={userLocation} icon={userLocationIcon}>
+          <Popup>You are here</Popup>
+        </Marker>
+      )}
+    </>
+  );
 }
 
 export default function TransportMap({ 
@@ -50,7 +97,8 @@ export default function TransportMap({
   onLocationSelect, 
   selectedLocation,
   liveBusLocation,
-  routeCoordinates = []
+  routeCoordinates = [],
+  showMyLocationButton = true
 }: TransportMapProps) {
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
 
@@ -85,7 +133,10 @@ export default function TransportMap({
           url={tileUrl}
         />
         
-        {interactive && <MapEvents onLocationSelect={onLocationSelect} />}
+        <MapEvents 
+          onLocationSelect={interactive ? onLocationSelect : undefined} 
+          showMyLocationButton={showMyLocationButton} 
+        />
 
         {/* Draw the route line */}
         {routeCoordinates.length > 0 && (

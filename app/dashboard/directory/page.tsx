@@ -11,6 +11,7 @@ import {
   Briefcase, Book, Award, Building2, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type DirectoryTab = 'staff' | 'students' | 'parents';
 type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline' | 'schedule' | 'qualifications';
@@ -170,10 +171,21 @@ export default function DirectoryPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {isLoading ? (
-            <div className="col-span-full flex flex-col items-center justify-center p-20 space-y-4">
-              <Loader2 className="w-10 h-10 text-primary animate-spin" />
-              <p className="text-muted-foreground font-medium">Loading directory...</p>
-            </div>
+            [1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+                <div className="flex items-center gap-4 mb-4">
+                  <Skeleton className="w-16 h-16 rounded-2xl" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-20 rounded-md" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </div>
+            ))
           ) : (
             <>
               {activeTab === 'staff' && (

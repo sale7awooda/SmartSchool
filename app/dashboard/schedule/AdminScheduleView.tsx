@@ -15,6 +15,8 @@ import {
 import Link from 'next/link';
 import { usePermissions } from '@/lib/permissions';
 
+import { MOCK_SCHEDULE } from '@/lib/mock-db';
+
 // Mock data for the master schedule
 const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
 const PERIODS = [
@@ -27,24 +29,23 @@ const PERIODS = [
   { id: 6, time: '01:20 PM - 02:10 PM' },
 ];
 
-const INITIAL_SCHEDULE = [
-  { id: 'c1', grade: 'Grade 1', period: 1, subject: 'Math', teacher: 'Mr. Smith', room: '101', color: 'bg-blue-500/20 text-blue-500' },
-  { id: 'c2', grade: 'Grade 1', period: 2, subject: 'English', teacher: 'Mrs. Davis', room: '102', color: 'bg-emerald-500/20 text-emerald-500' },
-  { id: 'c3', grade: 'Grade 2', period: 1, subject: 'Science', teacher: 'Dr. Brown', room: 'Lab 1', color: 'bg-purple-500/20 text-purple-500' },
-  { id: 'c4', grade: 'Grade 3', period: 3, subject: 'History', teacher: 'Ms. Wilson', room: '201', color: 'bg-amber-500/10 text-amber-500' },
-  { id: 'c5', grade: 'Grade 4', period: 4, subject: 'Art', teacher: 'Mr. Taylor', room: 'Art Room', color: 'bg-pink-500/10 text-pink-500' },
-];
-
 export default function AdminScheduleView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
   const { can } = usePermissions();
 
   const handlePreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
   const handleNextDay = () => setSelectedDate(prev => addDays(prev, 1));
 
   const getPeriodData = (grade: string, periodId: number) => {
-    return schedule.find(s => s.grade === grade && s.period === periodId);
+    const dayOfWeek = selectedDate.getDay(); // 0 is Sunday, 1 is Monday...
+    // Adjust dayOfWeek to match our 1-5 (Mon-Fri) system
+    const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+    
+    return MOCK_SCHEDULE.find(s => 
+      s.classId === grade && 
+      s.period === periodId && 
+      s.dayOfWeek === adjustedDay
+    );
   };
 
   return (
@@ -144,7 +145,7 @@ export default function AdminScheduleView() {
                             </p>
                           </div>
                           <p className="text-[10px] font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
-                            <User size={10} /> {classData.teacher}
+                            <User size={10} /> {classData.teacherName}
                           </p>
                         </div>
                       ) : (

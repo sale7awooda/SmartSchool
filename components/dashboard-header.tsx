@@ -165,7 +165,7 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
             </div>
             <div className="hidden sm:block text-left">
               <p className="text-xs font-bold text-foreground leading-none truncate max-w-[100px]">{user.name}</p>
-              <p className="text-[10px] font-medium text-muted-foreground capitalize mt-1">{user.role.replace(/([A-Z])/g, ' $1').trim()}</p>
+              <p className="text-[10px] font-medium text-muted-foreground truncate mt-1">{user.email}</p>
             </div>
             <ChevronDown size={14} className={`text-muted-foreground transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
           </button>
@@ -187,7 +187,6 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">{t('account')}</p>
                     <p className="text-sm font-bold text-foreground truncate">{user.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    <p className="text-xs font-medium text-primary mt-1 capitalize">{user.role.replace(/([A-Z])/g, ' $1').trim()}</p>
                   </div>
                   
                   <div className="p-2">

@@ -31,14 +31,7 @@ export default function StaffProfileModal({ selectedStaff, handleCloseProfile, a
           </div>
           <div>
             <h2 className="text-2xl font-bold text-foreground tracking-tight">{selectedStaff.name}</h2>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getRoleBadgeColor(selectedStaff.role)}`}>
-                {selectedStaff.role}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-card border border-border text-muted-foreground">
-                {selectedStaff.department || 'Staff'}
-              </span>
-            </div>
+            <p className="text-sm font-medium text-muted-foreground mt-1">{selectedStaff.email}</p>
           </div>
           <button 
             onClick={handleCloseProfile}

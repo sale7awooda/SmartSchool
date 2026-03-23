@@ -193,7 +193,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-foreground">{user.name}</h3>
-                      <p className="text-sm font-medium text-muted-foreground capitalize">{user.role.replace(/([A-Z])/g, ' $1').trim()}</p>
+                      <p className="text-sm font-medium text-muted-foreground">{user.email}</p>
                       <div className="mt-3 flex gap-2">
                         <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-xs font-bold rounded-md border border-emerald-500/20">Active Account</span>
                       </div>
