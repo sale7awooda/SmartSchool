@@ -36,7 +36,7 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { seedDatabase } from '@/lib/supabase-db';
+import { seedDatabase, resetDatabase } from '@/lib/supabase-db';
 import { 
   MOCK_USERS, 
   MOCK_STUDENTS, 
@@ -46,13 +46,22 @@ import {
   MOCK_NOTICES, 
   MOCK_SCHEDULE,
   MOCK_CHATS,
-  MOCK_MESSAGES
+  MOCK_MESSAGES,
+  MOCK_ACADEMIC_YEARS,
+  MOCK_CLASSES,
+  MOCK_SUBJECTS,
+  MOCK_EXAMS,
+  MOCK_EXAM_RESULTS,
+  MOCK_ATTENDANCE,
+  MOCK_BOOKS,
+  MOCK_INVOICES,
+  MOCK_INVENTORY
 } from '@/lib/demo-data';
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin' | 'configurations' | 'data'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'academics' | 'general' | 'admin' | 'configurations' | 'data' | 'master'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
@@ -76,6 +85,12 @@ export default function SettingsPage() {
   const [supabaseKey, setSupabaseKey] = useState('');
   const [mapboxToken, setMapboxToken] = useState('');
   const [gpsInterval, setGpsInterval] = useState('1');
+  
+  // System Config State
+  const [schoolName, setSchoolName] = useState('Greenwood High School');
+  const [schoolAddress, setSchoolAddress] = useState('123 Education Lane, Learning City');
+  const [schoolPhone, setSchoolPhone] = useState('+1 (555) 012-3456');
+  const [schoolEmail, setSchoolEmail] = useState('info@greenwoodhigh.edu');
 
   // Load saved configurations
   useEffect(() => {
@@ -84,6 +99,11 @@ export default function SettingsPage() {
     setSupabaseKey(localStorage.getItem('SUPABASE_ANON_KEY') || '');
     setMapboxToken(localStorage.getItem('MAPBOX_ACCESS_TOKEN') || '');
     setGpsInterval(localStorage.getItem('GPS_UPDATE_INTERVAL') || '1');
+    
+    setSchoolName(localStorage.getItem('SCHOOL_NAME') || 'Greenwood High School');
+    setSchoolAddress(localStorage.getItem('SCHOOL_ADDRESS') || '123 Education Lane, Learning City');
+    setSchoolPhone(localStorage.getItem('SCHOOL_PHONE') || '+1 (555) 012-3456');
+    setSchoolEmail(localStorage.getItem('SCHOOL_EMAIL') || 'info@greenwoodhigh.edu');
   }, []);
 
   if (!user) return null;
@@ -92,12 +112,19 @@ export default function SettingsPage() {
     e.preventDefault();
     setIsSaving(true);
     
-    // Save configurations to localStorage if on configurations tab
+    // Save configurations to localStorage
     if (activeTab === 'configurations') {
       localStorage.setItem('SUPABASE_URL', supabaseUrl);
       localStorage.setItem('SUPABASE_ANON_KEY', supabaseKey);
       localStorage.setItem('MAPBOX_ACCESS_TOKEN', mapboxToken);
       localStorage.setItem('GPS_UPDATE_INTERVAL', gpsInterval);
+    }
+
+    if (activeTab === 'general') {
+      localStorage.setItem('SCHOOL_NAME', schoolName);
+      localStorage.setItem('SCHOOL_ADDRESS', schoolAddress);
+      localStorage.setItem('SCHOOL_PHONE', schoolPhone);
+      localStorage.setItem('SCHOOL_EMAIL', schoolEmail);
     }
 
     // Simulate API call
@@ -122,10 +149,11 @@ export default function SettingsPage() {
               { id: 'security', label: 'Security & Password', icon: Lock, show: true },
               { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
               { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
+              { id: 'master', label: 'Master Data', icon: Database, show: isAdmin() },
               { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
               { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
-              { id: 'data', label: 'Data Management', icon: Database, show: isAdmin() },
+              { id: 'data', label: 'Data Management', icon: RefreshCw, show: isAdmin() },
               { id: 'configurations', label: 'Advanced Configurations', icon: Globe, show: user.role === 'admin' },
             ].filter(tab => tab.show).map((tab) => {
               return (
@@ -214,11 +242,39 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-foreground">School Name</label>
-                      <input type="text" defaultValue="Greenwood High School" className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" />
+                      <input 
+                        type="text" 
+                        value={schoolName}
+                        onChange={(e) => setSchoolName(e.target.value)}
+                        className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" 
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-foreground">School Address</label>
-                      <input type="text" defaultValue="123 Education Lane, Learning City" className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" />
+                      <input 
+                        type="text" 
+                        value={schoolAddress}
+                        onChange={(e) => setSchoolAddress(e.target.value)}
+                        className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-foreground">Phone Number</label>
+                      <input 
+                        type="text" 
+                        value={schoolPhone}
+                        onChange={(e) => setSchoolPhone(e.target.value)}
+                        className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-foreground">Email Address</label>
+                      <input 
+                        type="email" 
+                        value={schoolEmail}
+                        onChange={(e) => setSchoolEmail(e.target.value)}
+                        className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" 
+                      />
                     </div>
                   </div>
                 </div>
@@ -256,7 +312,70 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Notifications Tab */}
+              {/* Master Data Tab */}
+              {activeTab === 'master' && isAdmin() && (
+                <div className="p-6 sm:p-8 space-y-8">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Master Data Management</h3>
+                    <p className="text-sm text-muted-foreground">Manage core system entities used across all modules.</p>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-foreground">Grade Levels & Sections</h4>
+                        <button className="text-xs text-primary hover:underline font-bold">+ Add Grade</button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'].map(grade => (
+                          <div key={grade} className="px-3 py-2 bg-background border border-border rounded-lg text-xs flex items-center justify-between">
+                            {grade}
+                            <button className="text-muted-foreground hover:text-destructive"><X size={12} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-foreground">Subjects</h4>
+                        <button className="text-xs text-primary hover:underline font-bold">+ Add Subject</button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {['Mathematics', 'Science', 'English', 'History', 'Geography', 'Art'].map(subject => (
+                          <div key={subject} className="px-3 py-2 bg-background border border-border rounded-lg text-xs flex items-center justify-between">
+                            {subject}
+                            <button className="text-muted-foreground hover:text-destructive"><X size={12} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-foreground">Academic Years</h4>
+                        <button className="text-xs text-primary hover:underline font-bold">+ Add Year</button>
+                      </div>
+                      <div className="space-y-2">
+                        {[
+                          { name: '2023-2024', status: 'Active' },
+                          { name: '2024-2025', status: 'Upcoming' }
+                        ].map(year => (
+                          <div key={year.name} className="px-4 py-3 bg-background border border-border rounded-lg text-sm flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold">{year.name}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${year.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
+                                {year.status}
+                              </span>
+                            </div>
+                            <button className="text-muted-foreground hover:text-destructive"><X size={14} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {activeTab === 'notifications' && (
                 <div className="p-6 sm:p-8 space-y-6">
                   <div>
@@ -546,115 +665,141 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground mb-6">Manage system data, backups, and seeding.</p>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
-                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                          <RefreshCw size={16} className="text-primary" />
-                          System Seeding
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3 col-span-1 md:col-span-2">
+                        <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                          <RefreshCw size={16} />
+                          Full System Seeding
                         </div>
-                        <p className="text-xs text-muted-foreground">Populate the system with demo data for testing and evaluation purposes.</p>
+                        <p className="text-xs text-muted-foreground">Populate both local storage and Supabase with comprehensive demo data for all screens.</p>
                         <button 
                           type="button"
                           onClick={() => {
                             setModalConfig({
                               show: true,
-                              title: 'Seed Demo Data',
-                              message: 'This will populate the system with demo data. This is useful for testing. Continue?',
+                              title: 'Seed System & Supabase',
+                              message: 'This will populate both your local system and the connected Supabase database with demo data for all features. This is recommended for the first-time setup. Continue?',
                               type: 'info',
                               onConfirm: async () => {
                                 setModalConfig(prev => ({ ...prev, show: false }));
                                 setIsProcessing(true);
-                                setProcessingMessage('Seeding demo data...');
-                                await new Promise(resolve => setTimeout(resolve, 1500));
-                                localStorage.setItem('MOCK_USERS', JSON.stringify(MOCK_USERS));
-                                localStorage.setItem('MOCK_STUDENTS', JSON.stringify(MOCK_STUDENTS));
-                                localStorage.setItem('MOCK_PARENTS', JSON.stringify(MOCK_PARENTS));
-                                localStorage.setItem('MOCK_DRIVERS', JSON.stringify(MOCK_DRIVERS));
-                                localStorage.setItem('MOCK_BUS_ROUTES', JSON.stringify(MOCK_BUS_ROUTES));
-                                localStorage.setItem('MOCK_NOTICES', JSON.stringify(MOCK_NOTICES));
-                                localStorage.setItem('MOCK_SCHEDULE', JSON.stringify(MOCK_SCHEDULE));
-                                localStorage.setItem('MOCK_CHATS', JSON.stringify(MOCK_CHATS));
-                                localStorage.setItem('MOCK_MESSAGES', JSON.stringify(MOCK_MESSAGES));
-                                setIsProcessing(false);
-                                toast.success('Demo data seeded successfully! Please refresh the page.');
-                              }
-                            });
-                          }}
-                          className="w-full py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-xs font-bold transition-all"
-                        >
-                          Seed Demo Data
-                        </button>
-                      </div>
-
-                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
-                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                          <CloudUpload size={16} className="text-violet-500" />
-                          Cloud Seeding
-                        </div>
-                        <p className="text-xs text-muted-foreground">Populate the Supabase database with demo data. This affects all users.</p>
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            setModalConfig({
-                              show: true,
-                              title: 'Seed Supabase Database',
-                              message: 'This will seed the Supabase database with demo data. This action is irreversible for the cloud data. Continue?',
-                              type: 'warning',
-                              onConfirm: async () => {
-                                setModalConfig(prev => ({ ...prev, show: false }));
-                                setIsProcessing(true);
-                                setProcessingMessage('Seeding Supabase database...');
+                                setProcessingMessage('Seeding full system...');
+                                
                                 try {
-                                  await seedDatabase({ MOCK_USERS, MOCK_STUDENTS, MOCK_NOTICES, MOCK_BUS_ROUTES, MOCK_PARENTS });
+                                  const demoData = {
+                                    MOCK_USERS, MOCK_STUDENTS, MOCK_PARENTS, 
+                                    MOCK_DRIVERS, MOCK_BUS_ROUTES, MOCK_NOTICES, 
+                                    MOCK_SCHEDULE, MOCK_CHATS, MOCK_MESSAGES,
+                                    MOCK_ACADEMIC_YEARS, MOCK_CLASSES, MOCK_SUBJECTS,
+                                    MOCK_EXAMS, MOCK_EXAM_RESULTS, MOCK_ATTENDANCE,
+                                    MOCK_BOOKS, MOCK_INVOICES, MOCK_INVENTORY
+                                  };
+
+                                  // Local Seeding
+                                  Object.entries(demoData).forEach(([key, val]) => {
+                                    localStorage.setItem(key, JSON.stringify(val));
+                                  });
+
+                                  // Cloud Seeding
+                                  await seedDatabase(demoData);
+                                  
                                   setIsProcessing(false);
-                                  toast.success('Supabase database seeded successfully!');
+                                  toast.success('System & Supabase seeded successfully! Please refresh.');
                                 } catch (err) {
                                   setIsProcessing(false);
-                                  toast.error('Failed to seed Supabase database.');
+                                  toast.error('Failed to seed system fully.');
                                   console.error(err);
                                 }
                               }
                             });
                           }}
-                          className="w-full py-2 bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 rounded-lg text-xs font-bold transition-all"
+                          className="w-full py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl text-sm font-bold transition-all shadow-sm"
                         >
-                          Seed Supabase
+                          Seed System & Supabase
                         </button>
                       </div>
 
                       <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
                         <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                           <Trash2 size={16} className="text-destructive" />
-                          System Reset
+                          Data Reset
                         </div>
-                        <p className="text-xs text-muted-foreground">Clear all local data and reset the system to its initial empty state.</p>
+                        <p className="text-xs text-muted-foreground">Clear all records but keep demo users and their details. This also resets Supabase data.</p>
                         <button 
                           type="button"
                           onClick={() => {
                             setModalConfig({
                               show: true,
-                              title: 'Reset All Data',
-                              message: 'Are you sure you want to reset all data? This will clear all local storage data. This cannot be undone.',
+                              title: 'Reset Data (Keep Users)',
+                              message: 'This will clear all system data (attendance, grades, etc.) but keep user accounts. Continue?',
+                              type: 'warning',
+                              onConfirm: async () => {
+                                setModalConfig(prev => ({ ...prev, show: false }));
+                                setIsProcessing(true);
+                                setProcessingMessage('Resetting data...');
+                                
+                                try {
+                                  // Local Reset
+                                  const keysToClear = [
+                                    'MOCK_STUDENTS', 'MOCK_BUS_ROUTES', 'MOCK_NOTICES', 
+                                    'MOCK_SCHEDULE', 'MOCK_CHATS', 'MOCK_MESSAGES',
+                                    'MOCK_ACADEMIC_YEARS', 'MOCK_CLASSES', 'MOCK_SUBJECTS',
+                                    'MOCK_EXAMS', 'MOCK_EXAM_RESULTS', 'MOCK_ATTENDANCE',
+                                    'MOCK_BOOKS', 'MOCK_INVOICES', 'MOCK_INVENTORY'
+                                  ];
+                                  keysToClear.forEach(key => localStorage.removeItem(key));
+
+                                  // Cloud Reset
+                                  await resetDatabase(true);
+
+                                  setIsProcessing(false);
+                                  toast.success('Data reset successfully!');
+                                } catch (err) {
+                                  setIsProcessing(false);
+                                  toast.error('Failed to reset data.');
+                                }
+                              }
+                            });
+                          }}
+                          className="w-full py-2 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 rounded-lg text-xs font-bold transition-all"
+                        >
+                          Reset Data
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                          <AlertTriangle size={16} className="text-destructive" />
+                          Full Factory Reset
+                        </div>
+                        <p className="text-xs text-muted-foreground">Completely wipe all data including users from both local and cloud systems.</p>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setModalConfig({
+                              show: true,
+                              title: 'Full Factory Reset',
+                              message: 'DANGER: This will delete EVERYTHING including all user accounts. You will be logged out. Continue?',
                               type: 'danger',
                               onConfirm: async () => {
                                 setModalConfig(prev => ({ ...prev, show: false }));
                                 setIsProcessing(true);
-                                setProcessingMessage('Resetting system data...');
-                                await new Promise(resolve => setTimeout(resolve, 1000));
-                                const keys = [
-                                  'MOCK_USERS', 'MOCK_STUDENTS', 'MOCK_PARENTS', 
-                                  'MOCK_DRIVERS', 'MOCK_BUS_ROUTES', 'MOCK_NOTICES', 
-                                  'MOCK_SCHEDULE', 'MOCK_CHATS', 'MOCK_MESSAGES',
-                                  'advanced_config'
-                                ];
-                                keys.forEach(key => localStorage.removeItem(key));
-                                setIsProcessing(false);
-                                toast.success('System reset successfully! Please refresh the page.');
+                                setProcessingMessage('Performing factory reset...');
+                                
+                                try {
+                                  localStorage.clear();
+                                  await resetDatabase(false);
+                                  setIsProcessing(false);
+                                  window.location.href = '/login';
+                                } catch (err) {
+                                  setIsProcessing(false);
+                                  toast.error('Failed to perform factory reset.');
+                                }
                               }
                             });
                           }}
                           className="w-full py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg text-xs font-bold transition-all"
                         >
-                          Reset All Data
+                          Full Factory Reset
                         </button>
                       </div>
 

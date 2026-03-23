@@ -450,67 +450,126 @@ export async function createSubject(subject: any) {
 }
 
 export async function seedDatabase(demoData: any) {
-  const { MOCK_USERS, MOCK_STUDENTS, MOCK_NOTICES, MOCK_BUS_ROUTES, MOCK_PARENTS } = demoData;
+  const { 
+    MOCK_USERS, MOCK_STUDENTS, MOCK_NOTICES, MOCK_BUS_ROUTES, MOCK_PARENTS,
+    MOCK_ACADEMIC_YEARS, MOCK_CLASSES, MOCK_SUBJECTS, MOCK_EXAMS,
+    MOCK_EXAM_RESULTS, MOCK_ATTENDANCE, MOCK_BOOKS, MOCK_INVOICES,
+    MOCK_INVENTORY
+  } = demoData;
 
-  // 1. Seed Users (Staff, Admins, etc.)
-  if (MOCK_USERS?.length) {
-    const { error: userError } = await supabase
-      .from('users')
-      .upsert(MOCK_USERS.map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role.toLowerCase(),
-        avatar_url: u.avatar,
-        address: u.address,
-        phone: u.phone
-      })), { onConflict: 'id' });
-    if (userError) console.error('Error seeding users:', userError);
-  }
+  // Helper to safely upsert
+  const safeUpsert = async (table: string, data: any[], conflictColumn: string = 'id') => {
+    if (!data || data.length === 0) return;
+    const { error } = await supabase.from(table).upsert(data, { onConflict: conflictColumn });
+    if (error) console.error(`Error seeding ${table}:`, error);
+  };
+
+  // 1. Seed Users
+  await safeUpsert('users', MOCK_USERS.map((u: any) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role.toLowerCase(),
+    avatar_url: u.avatar,
+    address: u.address,
+    phone: u.phone
+  })));
 
   // 2. Seed Parents (as Users)
-  if (MOCK_PARENTS?.length) {
-    const { error: parentError } = await supabase
-      .from('users')
-      .upsert(MOCK_PARENTS.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        email: p.email,
-        role: 'parent',
-        phone: p.phone
-      })), { onConflict: 'id' });
-    if (parentError) console.error('Error seeding parents:', parentError);
-  }
+  await safeUpsert('users', MOCK_PARENTS.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    email: p.email,
+    role: 'parent',
+    phone: p.phone
+  })));
 
   // 3. Seed Students
-  if (MOCK_STUDENTS?.length) {
-    const { error: studentError } = await supabase
-      .from('students')
-      .upsert(MOCK_STUDENTS.map((s: any) => ({
-        user_id: s.id,
-        roll_number: s.studentId,
-        grade: s.grade,
-        section: s.section,
-        dob: s.dob,
-        blood_group: s.bloodGroup,
-        admission_date: s.admissionDate
-      })), { onConflict: 'user_id' });
-    if (studentError) console.error('Error seeding students:', studentError);
-  }
+  await safeUpsert('students', MOCK_STUDENTS.map((s: any) => ({
+    user_id: s.id,
+    roll_number: s.rollNumber || s.studentId,
+    grade: s.grade,
+    section: s.section || 'A',
+    dob: s.dob,
+    blood_group: s.medical?.bloodGroup || s.bloodGroup,
+    admission_date: s.admissionDate || new Date().toISOString().split('T')[0]
+  })), 'user_id');
 
   // 4. Seed Notices
-  if (MOCK_NOTICES?.length) {
-    const { error: noticeError } = await supabase
-      .from('notices')
-      .upsert(MOCK_NOTICES.map((n: any) => ({
-        id: n.id,
-        title: n.title,
-        content: n.content,
-        category: n.category || n.targetAudience,
-        date: n.date,
-        is_urgent: n.isImportant || n.isUrgent
-      })), { onConflict: 'id' });
-    if (noticeError) console.error('Error seeding notices:', noticeError);
+  await safeUpsert('notices', MOCK_NOTICES.map((n: any) => ({
+    id: n.id,
+    title: n.title,
+    content: n.content,
+    category: n.targetAudience,
+    date: n.date,
+    is_urgent: n.isImportant
+  })));
+
+  // 5. Seed Academic Years
+  await safeUpsert('academic_years', MOCK_ACADEMIC_YEARS);
+
+  // 6. Seed Subjects
+  await safeUpsert('subjects', MOCK_SUBJECTS);
+
+  // 7. Seed Classes
+  await safeUpsert('classes', MOCK_CLASSES.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    grade: c.grade,
+    section: c.section,
+    room: c.room,
+    teacher_id: c.teacher_id,
+    academic_year_id: MOCK_ACADEMIC_YEARS[0].id
+  })));
+
+  // 8. Seed Exams
+  await safeUpsert('assessments', MOCK_EXAMS.map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    subject: 'General',
+    type: e.type,
+    date: e.date,
+    status: e.status === 'Completed' ? 'published' : 'draft'
+  })));
+
+  // 9. Seed Attendance
+  await safeUpsert('attendance', MOCK_ATTENDANCE.map((a: any) => ({
+    student_id: a.student_id,
+    date: a.date,
+    status: a.status.toLowerCase()
+  })), 'student_id,date');
+
+  // 10. Seed Books
+  await safeUpsert('books', MOCK_BOOKS);
+
+  // 11. Seed Invoices
+  await safeUpsert('fee_invoices', MOCK_INVOICES.map((i: any) => ({
+    id: i.id,
+    student_id: i.student_id,
+    amount: i.amount,
+    due_date: i.due_date,
+    status: i.status,
+    description: i.description
+  })));
+
+  return { success: true };
+}
+
+export async function resetDatabase(keepUsers: boolean = true) {
+  const tables = [
+    'attendance', 'behavior_records', 'timeline_records', 'submissions', 
+    'assessments', 'fee_invoices', 'books', 'bus_stops', 'bus_routes', 
+    'parent_student', 'students', 'classes', 'subjects', 'academic_years', 'notices'
+  ];
+
+  for (const table of tables) {
+    const { error } = await supabase.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) console.error(`Error resetting ${table}:`, error);
+  }
+
+  if (!keepUsers) {
+    const { error } = await supabase.from('users').delete().neq('role', 'admin');
+    if (error) console.error('Error resetting users:', error);
   }
 
   return { success: true };

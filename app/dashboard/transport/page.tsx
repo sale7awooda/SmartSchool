@@ -156,6 +156,9 @@ export default function TransportPage() {
   useEffect(() => {
     if (!supabase) return;
     
+    let isMounted = true;
+    let localChannels: Record<string, RealtimeChannel> = {};
+
     const isParent = user?.role === 'parent';
     const isStaff = user?.role === 'staff' || user?.role === 'teacher';
     const isAdminRole = user?.role === 'admin';
@@ -174,6 +177,7 @@ export default function TransportPage() {
 
     const setupChannels = async () => {
       const studentData = await fetchParentStudent();
+      if (!isMounted) return;
       setParentStudent(studentData);
       
       const parentRoute = studentData?.bus_route_id 
@@ -212,17 +216,26 @@ export default function TransportPage() {
         newChannels[routeId] = channel;
       });
 
+      if (!isMounted) {
+        Object.values(newChannels).forEach(channel => {
+          supabase.removeChannel(channel);
+        });
+        return;
+      }
+
+      localChannels = newChannels;
       setChannels(newChannels);
     };
 
     setupChannels();
 
     return () => {
-      Object.values(channels).forEach(channel => {
+      isMounted = false;
+      Object.values(localChannels).forEach(channel => {
         supabase.removeChannel(channel);
       });
     };
-  }, [user, routes, channels]);
+  }, [user, routes]); // Removed channels from dependencies to fix infinite loop
 
   // Handle GPS Broadcasting Interval
   useEffect(() => {

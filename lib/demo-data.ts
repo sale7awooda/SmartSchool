@@ -192,6 +192,55 @@ export const MOCK_STATS = {
   pendingFees: 12000,
 };
 
+export const MOCK_ACADEMIC_YEARS = [
+  { id: 'ay1', name: '2023-2024', status: 'Active' },
+  { id: 'ay2', name: '2024-2025', status: 'Upcoming' },
+];
+
+export const MOCK_CLASSES = [
+  { id: 'c1', name: 'Grade 4-A', grade: 'Grade 4', section: 'A', room: '101', teacher_id: '4' },
+  { id: 'c2', name: 'Grade 4-B', grade: 'Grade 4', section: 'B', room: '102', teacher_id: '2' },
+  { id: 'c3', name: 'Grade 5-A', grade: 'Grade 5', section: 'A', room: '201', teacher_id: '4' },
+];
+
+export const MOCK_SUBJECTS = [
+  { id: 'sub1', name: 'Mathematics', code: 'MATH101' },
+  { id: 'sub2', name: 'Science', code: 'SCI101' },
+  { id: 'sub3', name: 'English', code: 'ENG101' },
+  { id: 'sub4', name: 'History', code: 'HIS101' },
+];
+
+export const MOCK_EXAMS = [
+  { id: 'ex1', title: 'Mid-Term Examination', type: 'Main', date: '2023-11-15', status: 'Upcoming' },
+  { id: 'ex2', title: 'Monthly Quiz - October', type: 'Quiz', date: '2023-10-20', status: 'Completed' },
+];
+
+export const MOCK_EXAM_RESULTS = [
+  { id: 'er1', exam_id: 'ex2', student_id: 'STU001', subject_id: 'sub1', marks: 85, total_marks: 100, grade: 'A' },
+  { id: 'er2', exam_id: 'ex2', student_id: 'STU002', subject_id: 'sub1', marks: 98, total_marks: 100, grade: 'A+' },
+];
+
+export const MOCK_ATTENDANCE = [
+  { id: 'att1', student_id: 'STU001', date: '2023-10-24', status: 'Present' },
+  { id: 'att2', student_id: 'STU002', date: '2023-10-24', status: 'Present' },
+  { id: 'att3', student_id: 'STU003', date: '2023-10-24', status: 'Absent', reason: 'Fever' },
+];
+
+export const MOCK_BOOKS = [
+  { id: 'bk1', title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', isbn: '9780743273565', category: 'Fiction', quantity: 5, available: 3 },
+  { id: 'bk2', title: 'A Brief History of Time', author: 'Stephen Hawking', isbn: '9780553380163', category: 'Science', quantity: 2, available: 2 },
+];
+
+export const MOCK_INVOICES = [
+  { id: 'inv1', student_id: 'STU001', amount: 1200, due_date: '2023-11-01', status: 'pending', description: 'Term 1 Tuition Fee' },
+  { id: 'inv2', student_id: 'STU002', amount: 1200, due_date: '2023-11-01', status: 'paid', description: 'Term 1 Tuition Fee' },
+];
+
+export const MOCK_INVENTORY = [
+  { id: 'item1', name: 'Whiteboard Markers', category: 'Stationery', quantity: 50, unit: 'pcs', status: 'In Stock' },
+  { id: 'item2', name: 'Projector - Room 101', category: 'Electronics', quantity: 1, unit: 'unit', status: 'In Use' },
+];
+
 export const MOCK_CHATS = [
   { id: 'c1', name: 'Edna Krabappel', role: 'Teacher', lastMessage: 'Bart is doing much better in math this week.', time: '10:30 AM', unread: 2 },
   { id: 'c2', name: 'Principal Skinner', role: 'Admin', lastMessage: 'Please review the updated school policies.', time: 'Yesterday', unread: 0 },
