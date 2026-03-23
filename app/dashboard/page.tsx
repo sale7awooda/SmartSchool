@@ -71,7 +71,7 @@ export default function DashboardHome() {
     };
 
     fetchDashboardData();
-  }, [user, isRole, supabase]);
+  }, [user, isRole]);
 
   if (!user || isLoading) return <div className="p-8 text-center">Loading dashboard...</div>;
 
@@ -288,7 +288,35 @@ function AccountantDashboard({ stats: realStats, notices }: { stats: any, notice
 }
 
 function ParentDashboard({ notices }: { notices: any[] }) {
-  const { user } = useAuth();
+  const { user, switchStudent } = useAuth();
+  const [students, setStudents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (user?.studentIds && user.studentIds.length > 0) {
+        const { data, error } = await supabase
+          .from('students')
+          .select('*')
+          .in('id', user.studentIds);
+        
+        if (!error && data) {
+          setStudents(data);
+          if (!user.studentId && data.length > 0) {
+            switchStudent(data[0].id);
+          }
+        }
+      }
+      setIsLoading(false);
+    };
+    fetchStudents();
+  }, [user?.studentIds, user?.studentId, switchStudent]);
+
+  const activeStudent = students.find(s => s.id === user?.studentId) || students[0];
+
+  if (isLoading) return <div className="p-8 text-center">Loading student data...</div>;
+  if (!activeStudent) return <div className="p-8 text-center">No student data found. Please link a student to your account.</div>;
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
       <div>
@@ -296,13 +324,27 @@ function ParentDashboard({ notices }: { notices: any[] }) {
         <p className="text-muted-foreground mt-2 font-medium">Here is the latest update for your child.</p>
       </div>
 
+      {students.length > 1 && (
+        <div className="flex gap-2 p-1 bg-muted rounded-2xl">
+          {students.map(student => (
+            <button
+              key={student.id}
+              onClick={() => switchStudent(student.id)}
+              className={`flex-1 px-4 py-2 rounded-xl font-bold text-sm transition-all ${activeStudent.id === student.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              {student.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Student Card */}
         <div className="md:col-span-3 bg-gradient-to-br from-primary to-primary/80 rounded-[2rem] p-8 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
           <div className="relative z-10">
             <p className="text-primary-foreground/80 text-sm font-semibold tracking-wider uppercase mb-2">Student Profile</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Bart Simpson</h2>
-            <p className="text-primary-foreground/90 mt-2 font-medium text-lg">Grade 4 • ID: {user?.studentId}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{activeStudent.name}</h2>
+            <p className="text-primary-foreground/90 mt-2 font-medium text-lg">{activeStudent.grade} • ID: {activeStudent.roll_number || activeStudent.id.substring(0, 8)}</p>
           </div>
           <div className="absolute -right-6 -bottom-6 opacity-10">
             <Users size={160} />

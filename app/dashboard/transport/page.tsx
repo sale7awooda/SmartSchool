@@ -115,7 +115,7 @@ export default function TransportPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     // No longer need to initialize gpsInterval here
@@ -222,7 +222,7 @@ export default function TransportPage() {
         supabase.removeChannel(channel);
       });
     };
-  }, [supabase, user, routes, channels]);
+  }, [user, routes, channels]);
 
   // Handle GPS Broadcasting Interval
   useEffect(() => {
@@ -280,7 +280,7 @@ export default function TransportPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isBroadcasting, supabase, channels, gpsInterval, user, routes]);
+  }, [isBroadcasting, channels, gpsInterval, user, routes]);
 
   if (!user) return null;
 

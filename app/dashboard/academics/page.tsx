@@ -18,9 +18,9 @@ import {
   getSubjects,
   createAcademicYear,
   createClass,
-  createSubject,
-  supabase
+  createSubject
 } from "@/lib/supabase-db";
+import { supabase } from "@/lib/supabase/client";
 import {
   BookOpen,
   GraduationCap,

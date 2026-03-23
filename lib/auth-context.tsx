@@ -28,25 +28,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         let { data: profile, error } = await supabase
           .from('users')
-          .select('*')
+          .select('*, parent_student(student_id)')
           .eq('id', session.user.id)
           .single();
         
-        // Bootstrap admin if email matches
-        if (session.user.email === 'sale7awooda@gmail.com' && (!profile || profile.role !== 'admin')) {
-          const { data: updatedProfile, error: updateError } = await supabase
+        if (profile && profile.role === 'parent') {
+          profile.studentIds = profile.parent_student?.map((ps: any) => ps.student_id) || [];
+          profile.studentId = profile.studentIds[0] || undefined;
+        }
+        delete profile?.parent_student;
+        
+        // Bootstrap roles for demo accounts
+        const demoRoles: Record<string, string> = {
+          'sale7awooda@gmail.com': 'admin',
+          'admin@smartschool.com': 'admin',
+          'staff@smartschool.com': 'staff',
+          'teacher@smartschool.com': 'teacher',
+          'accountant@smartschool.com': 'accountant',
+          'parent@smartschool.com': 'parent',
+          'student@smartschool.com': 'student'
+        };
+
+        const expectedRole = session.user.email ? demoRoles[session.user.email] : undefined;
+        
+        if (expectedRole && (!profile || profile.role !== expectedRole)) {
+          // Force it locally so the UI works immediately
+          if (profile) {
+            profile.role = expectedRole;
+            profile.name = profile.name || session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
+          } else {
+            profile = {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1),
+              role: expectedRole
+            };
+          }
+
+          // Attempt to update the database (may fail if RLS prevents users from updating their own role)
+          const { data: updatedProfile } = await supabase
             .from('users')
             .upsert({
               id: session.user.id,
               email: session.user.email,
-              name: session.user.user_metadata?.name || 'Admin',
-              role: 'admin'
+              name: profile.name,
+              role: expectedRole
             })
             .select()
             .single();
           
-          if (!updateError) {
+          if (updatedProfile) {
             profile = updatedProfile;
+          }
+          
+          // Re-fetch parent_student if role is parent
+          if (profile.role === 'parent') {
+            const { data: parentData } = await supabase
+              .from('parent_student')
+              .select('student_id')
+              .eq('parent_id', profile.id);
+              
+            profile.studentIds = parentData?.map((ps: any) => ps.student_id) || [];
+            profile.studentId = profile.studentIds[0] || undefined;
           }
         }
         
@@ -63,25 +106,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         let { data: profile } = await supabase
           .from('users')
-          .select('*')
+          .select('*, parent_student(student_id)')
           .eq('id', session.user.id)
           .single();
         
-        // Bootstrap admin if email matches
-        if (session.user.email === 'sale7awooda@gmail.com' && (!profile || profile.role !== 'admin')) {
+        if (profile && profile.role === 'parent') {
+          profile.studentIds = profile.parent_student?.map((ps: any) => ps.student_id) || [];
+          profile.studentId = profile.studentIds[0] || undefined;
+        }
+        delete profile?.parent_student;
+        
+        // Bootstrap roles for demo accounts
+        const demoRoles: Record<string, string> = {
+          'sale7awooda@gmail.com': 'admin',
+          'admin@smartschool.com': 'admin',
+          'staff@smartschool.com': 'staff',
+          'teacher@smartschool.com': 'teacher',
+          'accountant@smartschool.com': 'accountant',
+          'parent@smartschool.com': 'parent',
+          'student@smartschool.com': 'student'
+        };
+
+        const expectedRole = session.user.email ? demoRoles[session.user.email] : undefined;
+        
+        if (expectedRole && (!profile || profile.role !== expectedRole)) {
+          // Force it locally so the UI works immediately
+          if (profile) {
+            profile.role = expectedRole;
+            profile.name = profile.name || session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1);
+          } else {
+            profile = {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || expectedRole.charAt(0).toUpperCase() + expectedRole.slice(1),
+              role: expectedRole
+            };
+          }
+
+          // Attempt to update the database (may fail if RLS prevents users from updating their own role)
           const { data: updatedProfile } = await supabase
             .from('users')
             .upsert({
               id: session.user.id,
               email: session.user.email,
-              name: session.user.user_metadata?.name || 'Admin',
-              role: 'admin'
+              name: profile.name,
+              role: expectedRole
             })
             .select()
             .single();
           
           if (updatedProfile) {
             profile = updatedProfile;
+          }
+          
+          // Re-fetch parent_student if role is parent
+          if (profile.role === 'parent') {
+            const { data: parentData } = await supabase
+              .from('parent_student')
+              .select('student_id')
+              .eq('parent_id', profile.id);
+              
+            profile.studentIds = parentData?.map((ps: any) => ps.student_id) || [];
+            profile.studentId = profile.studentIds[0] || undefined;
           }
         }
 

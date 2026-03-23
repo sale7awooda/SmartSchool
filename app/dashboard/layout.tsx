@@ -29,7 +29,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import StaffProfileModal from '@/components/StaffProfileModal';
 import { DashboardHeader } from '@/components/dashboard-header';
-import { Logo } from '@/components/logo';
 import { AnimatePresence } from 'motion/react';
 
 // Mock data for the profile modal
@@ -107,18 +106,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <div className="p-4 border-b border-border/50 flex items-center justify-between h-24">
           <div className={`flex items-center gap-4 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 p-1.5">
-              <Logo className="w-full h-full" />
-            </div>
             <div className="min-w-0 leading-tight">
-              <h2 className="text-lg font-bold text-primary tracking-tight">Smart</h2>
-              <h2 className="text-lg font-bold text-primary tracking-tight">School</h2>
+              <h2 className="text-xl font-bold text-primary tracking-tight">Smart School</h2>
             </div>
           </div>
           
           {isCollapsed && (
-            <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shrink-0 p-1">
-              <Logo className="w-full h-full" />
+            <div className="mx-auto flex items-center justify-center shrink-0">
+              <h2 className="text-xl font-bold text-primary tracking-tight">SS</h2>
             </div>
           )}
 
@@ -200,12 +195,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className={`md:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-56 bg-card shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}`}>
         <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center p-1.5">
-              <Logo className="w-full h-full" />
-            </div>
             <div className="leading-tight">
-              <h2 className="text-xl font-black text-foreground tracking-tighter">Smart</h2>
-              <h2 className="text-xl font-black text-foreground tracking-tighter">School</h2>
+              <h2 className="text-xl font-black text-foreground tracking-tighter">Smart School</h2>
             </div>
           </div>
           <button 

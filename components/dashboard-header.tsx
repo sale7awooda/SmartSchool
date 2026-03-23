@@ -186,7 +186,8 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
                   <div className="p-4 border-b border-border bg-muted/30">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">{t('account')}</p>
                     <p className="text-sm font-bold text-foreground truncate">{user.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email || user.studentId}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    <p className="text-xs font-medium text-primary mt-1 capitalize">{user.role.replace(/([A-Z])/g, ' $1').trim()}</p>
                   </div>
                   
                   <div className="p-2">
