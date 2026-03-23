@@ -47,7 +47,7 @@ export default function StudentsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: studentsResponse, isLoading: isStudentsLoading } = useSWR(
+  const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
     ['students', page, debouncedSearch], 
     ([_, p, s]) => getPaginatedStudents(p, limit, s)
   );
@@ -325,12 +325,7 @@ export default function StudentsPage() {
                     });
                     
                     // Refresh data
-                    const [studentsData, parentsData] = await Promise.all([
-                      getStudents(),
-                      getParents()
-                    ]);
-                    setStudents(studentsData);
-                    setParents(parentsData);
+                    await mutateStudents();
                     
                     setIsAddStudentOpen(false);
                     // Reset form
