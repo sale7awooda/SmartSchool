@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { getPaginatedStaff } from '@/lib/supabase-db';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   UserCog, 
@@ -322,9 +323,33 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: any) => void }
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">Loading...</td>
-                </tr>
+                [1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </td>
+                    <td className="p-4 space-y-2">
+                      <Skeleton className="h-3 w-40" />
+                      <Skeleton className="h-3 w-24" />
+                    </td>
+                    <td className="p-4">
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </td>
+                    <td className="p-4 text-right">
+                      <Skeleton className="h-8 w-8 rounded-lg inline-block" />
+                    </td>
+                  </tr>
+                ))
               ) : filteredStaff.length > 0 ? filteredStaff.map((staff) => (
                 <tr key={staff.id} className="hover:bg-accent/50 transition-colors">
                   <td className="p-4">

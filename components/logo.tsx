@@ -8,6 +8,7 @@ export function Logo({ className = "w-16 h-16", withBackground = false }: { clas
         src="/icon.svg" 
         alt="Smart School Logo" 
         fill 
+        priority
         className="object-contain"
         referrerPolicy="no-referrer"
       />

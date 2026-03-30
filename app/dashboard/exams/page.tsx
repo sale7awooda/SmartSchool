@@ -17,6 +17,7 @@ import {
   PlayCircle,
   BarChart
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 
 // Mock Data
@@ -171,8 +172,25 @@ export default function ExamsPage() {
 
       {/* Exams Grid */}
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-muted-foreground font-medium">Loading exams...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col h-[280px]">
+              <div className="flex justify-between items-start mb-4">
+                <Skeleton className="w-12 h-12 rounded-2xl" />
+                <Skeleton className="w-20 h-6 rounded-full" />
+              </div>
+              <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2 mb-6" />
+              <div className="space-y-3 mt-auto">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+              <div className="mt-6 pt-4 border-t border-border flex justify-between">
+                <Skeleton className="h-10 w-24 rounded-lg" />
+                <Skeleton className="h-10 w-24 rounded-lg" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredExams.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">

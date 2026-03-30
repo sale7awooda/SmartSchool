@@ -1,10 +1,10 @@
 export async function fetchRoute(coordinates: {lat: number, lng: number}[]) {
   if (coordinates.length < 2) return null;
 
-  const mapboxToken = typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : null;
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || (typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : null);
   
   if (!mapboxToken) {
-    console.warn('Mapbox token not found. Please configure it in Settings > Advanced Configurations.');
+    console.warn('Mapbox token not found. Please configure it in your environment variables.');
     return null;
   }
 
@@ -41,7 +41,7 @@ export async function fetchRoute(coordinates: {lat: number, lng: number}[]) {
 }
 
 export async function searchAddress(query: string) {
-  const mapboxToken = typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : null;
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || (typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : null);
   
   if (!mapboxToken) {
     // Fallback to Nominatim if no Mapbox token

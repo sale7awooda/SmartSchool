@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Briefcase, 
@@ -176,7 +177,7 @@ function HRTab() {
             </div>
             
             <div className="space-y-4">
-              {MOCK_LEAVE_REQUESTS.map(leave => (
+              {MOCK_LEAVE_REQUESTS.map((leave: any) => (
                 <div key={leave.id} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/50 hover:bg-muted transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${leave.status === 'Approved' ? 'bg-emerald-500/100/20 text-emerald-500' : 'bg-amber-100 text-amber-500'}`}>
@@ -201,7 +202,7 @@ function HRTab() {
           <div className="bg-card rounded-[2rem] border border-border shadow-sm p-6 sm:p-8">
             <h2 className="text-xl font-bold text-foreground mb-6">Recent Payslips</h2>
             <div className="space-y-3">
-              {MOCK_PAYSLIPS.map(slip => (
+              {MOCK_PAYSLIPS.map((slip: any) => (
                 <div key={slip.id} className="flex items-center justify-between p-3 rounded-xl border border-border hover:border-primary/20 hover:bg-primary/10/30 transition-all cursor-pointer group">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-muted text-muted-foreground rounded-lg group-hover:bg-primary/20 group-hover:text-primary transition-colors">
@@ -316,9 +317,32 @@ function VisitorsTab() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">Loading visitors...</td>
-                </tr>
+                [1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </td>
+                    <td className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                    </td>
+                    <td className="p-4">
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </td>
+                    <td className="p-4 text-right">
+                      <Skeleton className="h-8 w-8 rounded-lg inline-block" />
+                    </td>
+                  </tr>
+                ))
               ) : visitors.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">No visitors found.</td>
@@ -559,7 +583,35 @@ function HealthTab() {
 
         <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           {isLoading ? (
-            <div className="col-span-1 md:col-span-2 p-12 text-center text-muted-foreground font-medium">Loading records...</div>
+            [1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-5 rounded-2xl border border-border bg-card shadow-sm animate-pulse">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Skeleton className="h-3 w-16 mb-2" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-6 w-16 rounded-md" />
+                      <Skeleton className="h-6 w-20 rounded-md" />
+                    </div>
+                  </div>
+                  <div>
+                    <Skeleton className="h-3 w-20 mb-2" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-6 w-24 rounded-md" />
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-border">
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                </div>
+              </div>
+            ))
           ) : records.length === 0 ? (
             <div className="col-span-1 md:col-span-2 p-12 text-center text-muted-foreground font-medium">No records found.</div>
           ) : records.map((record: any) => (
@@ -764,9 +816,31 @@ function InventoryTab() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">Loading inventory...</td>
-                </tr>
+                [1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <Skeleton className="h-4 w-24" />
+                    </td>
+                    <td className="p-4">
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </td>
+                    <td className="p-4">
+                      <Skeleton className="h-4 w-24" />
+                    </td>
+                    <td className="p-4 text-right">
+                      <Skeleton className="h-8 w-8 rounded-lg inline-block" />
+                    </td>
+                  </tr>
+                ))
               ) : inventory.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">No assets found.</td>

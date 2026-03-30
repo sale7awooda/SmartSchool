@@ -7,6 +7,7 @@ import { usePermissions } from '@/lib/permissions';
 import { MOCK_STUDENTS, FeeInvoice } from '@/lib/mock-db';
 import { getPaginatedInvoices } from '@/lib/supabase-db';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
 
@@ -259,7 +260,27 @@ function AccountantFees() {
               </div>
             </div>
           ) : isLoading ? (
-            <div className="p-12 text-center text-muted-foreground font-medium">Loading...</div>
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5 border border-border rounded-[1.5rem] shadow-sm">
+                  <div className="flex items-start gap-4 w-full">
+                    <Skeleton className="w-12 h-12 rounded-2xl shrink-0" />
+                    <div className="space-y-2 w-full max-w-md">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-6 w-20 rounded-lg" />
+                      </div>
+                      <Skeleton className="h-4 w-64" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto">
+                    <Skeleton className="h-8 w-24" />
+                    <Skeleton className="h-10 w-28 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : filteredInvoices.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground font-medium">No invoices found.</div>
           ) : (
@@ -750,7 +771,27 @@ function ParentFees() {
         
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-5">
           {isLoading ? (
-            <div className="p-12 text-center text-muted-foreground font-medium">Loading...</div>
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                  <div className="flex items-start gap-5 w-full">
+                    <Skeleton className="w-14 h-14 rounded-2xl shrink-0" />
+                    <div className="space-y-2 w-full max-w-md">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-6 w-20 rounded-lg" />
+                      </div>
+                      <Skeleton className="h-4 w-64" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto">
+                    <Skeleton className="h-8 w-24" />
+                    <Skeleton className="h-10 w-28 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : myInvoices.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground font-medium">No invoices found.</div>
           ) : myInvoices.map((invoice: any) => (

@@ -71,12 +71,6 @@ export default function SettingsPage() {
   const [profileEmail, setProfileEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_EMAIL') : '') || user?.email || '');
   const [profilePhone, setProfilePhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_PHONE') : '') || user?.phone || '');
 
-  // Configuration State
-  const [supabaseUrl, setSupabaseUrl] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_URL') : '') || '');
-  const [supabaseKey, setSupabaseKey] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SUPABASE_ANON_KEY') : '') || '');
-  const [mapboxToken, setMapboxToken] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : '') || '');
-  const [gpsInterval, setGpsInterval] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('GPS_UPDATE_INTERVAL') : '') || '1');
-  
   // System Config State
   const [schoolName, setSchoolName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_NAME') : '') || 'Greenwood High School');
   const [schoolAddress, setSchoolAddress] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_ADDRESS') : '') || '123 Education Lane, Learning City');
@@ -120,13 +114,6 @@ export default function SettingsPage() {
     setIsSaving(true);
     
     // Save configurations to localStorage
-    if (activeTab === 'configurations') {
-      localStorage.setItem('SUPABASE_URL', supabaseUrl);
-      localStorage.setItem('SUPABASE_ANON_KEY', supabaseKey);
-      localStorage.setItem('MAPBOX_ACCESS_TOKEN', mapboxToken);
-      localStorage.setItem('GPS_UPDATE_INTERVAL', gpsInterval);
-    }
-
     if (activeTab === 'general') {
       localStorage.setItem('SCHOOL_NAME', schoolName);
       localStorage.setItem('SCHOOL_ADDRESS', schoolAddress);
@@ -603,79 +590,21 @@ export default function SettingsPage() {
               {/* Advanced Configurations Tab */}
               {activeTab === 'configurations' && user.role === 'admin' && (
                 <div className="p-6 sm:p-8 space-y-8">
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground mb-1">Advanced Configurations</h3>
-                    <p className="text-sm text-muted-foreground mb-6">Manage system-level integrations, real-time services, and APIs.</p>
-                    
-                    <div className="space-y-8">
-                      {/* Real-Time Services */}
-                      <div className="space-y-4">
-                        <h4 className="font-bold text-foreground flex items-center gap-2"><Globe size={18} /> Real-Time Architecture (Supabase)</h4>
-                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4">
-                          <p className="text-sm text-primary font-medium">
-                            These settings control the live tracking and real-time updates across the platform using Supabase Realtime.
-                          </p>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-foreground">Supabase Project URL</label>
-                            <input 
-                              type="text" 
-                              value={supabaseUrl}
-                              onChange={(e) => setSupabaseUrl(e.target.value)}
-                              placeholder="https://your-project.supabase.co" 
-                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground font-mono text-sm" 
-                            />
-                            <p className="text-xs text-muted-foreground">The URL of your Supabase project.</p>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-foreground">Supabase Anon Key</label>
-                            <input 
-                              type="password" 
-                              value={supabaseKey}
-                              onChange={(e) => setSupabaseKey(e.target.value)}
-                              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
-                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground font-mono text-sm" 
-                            />
-                            <p className="text-xs text-muted-foreground">The public anon key for your Supabase project.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <hr className="border-border" />
-
-                      {/* Map & Routing APIs */}
-                      <div className="space-y-4">
-                        <h4 className="font-bold text-foreground flex items-center gap-2"><Globe size={18} /> Map & Routing Services</h4>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-foreground">Mapbox Access Token</label>
-                            <input 
-                              type="password" 
-                              value={mapboxToken}
-                              onChange={(e) => setMapboxToken(e.target.value)}
-                              placeholder="pk.eyJ1Ijoi..." 
-                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground font-mono text-sm" 
-                            />
-                            <p className="text-xs text-muted-foreground">The Mapbox access token used for calculating bus routes and ETAs.</p>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-foreground">GPS Update Interval (Minutes)</label>
-                            <select 
-                              value={gpsInterval}
-                              onChange={(e) => setGpsInterval(e.target.value)}
-                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-foreground appearance-none"
-                            >
-                              <option value="1">1 Minute (Recommended)</option>
-                              <option value="2">2 Minutes</option>
-                              <option value="3">3 Minutes</option>
-                              <option value="5">5 Minutes (Saves Quota)</option>
-                            </select>
-                            <p className="text-xs text-muted-foreground">Controls how often the bus driver/attendant app broadcasts its location to parents. Higher intervals save Supabase Realtime quota.</p>
-                          </div>
-                        </div>
-                      </div>
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4">
+                      <Shield size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-2">Managed Configurations</h3>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      System-level configurations (Supabase, Mapbox, APIs) are now managed via environment variables for enhanced security.
+                    </p>
+                    <div className="mt-6 p-4 bg-muted/50 rounded-xl border border-border text-left w-full max-w-md">
+                      <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Required Variables:</p>
+                      <ul className="text-xs font-mono space-y-1 text-foreground">
+                        <li>• NEXT_PUBLIC_SUPABASE_URL</li>
+                        <li>• NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
+                        <li>• NEXT_PUBLIC_MAPBOX_TOKEN</li>
+                      </ul>
                     </div>
                   </div>
                 </div>

@@ -82,6 +82,23 @@ export default function StudentsPage() {
     photo: null as string | null
   });
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) errors.name = 'Full name is required';
+    if (!formData.studentId.trim()) errors.studentId = 'Student ID is required';
+    else if (!/^[a-zA-Z0-9]+$/.test(formData.studentId)) errors.studentId = 'Student ID must be alphanumeric';
+    if (!formData.grade) errors.grade = 'Grade is required';
+    if (!formData.dob) errors.dob = 'Date of birth is required';
+    if (!formData.parentName.trim()) errors.parentName = 'Parent name is required';
+    if (!formData.parentPhone.trim()) errors.parentPhone = 'Parent phone is required';
+    else if (!/^\+?[0-9\s\-()]{7,15}$/.test(formData.parentPhone)) errors.parentPhone = 'Invalid phone number format';
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const isAdmin = isRole(['admin']);
   const searchParams = useSearchParams();
 
@@ -138,17 +155,17 @@ export default function StudentsPage() {
           <p className="text-muted-foreground mt-2 font-medium">Find contact information and detailed profiles for students and parents.</p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button 
               onClick={() => setIsPromotionOpen(true)}
-              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-secondary text-secondary-foreground rounded-xl font-bold hover:bg-secondary/80 transition-all active:scale-[0.98] shadow-sm"
+              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-secondary text-secondary-foreground rounded-xl font-bold hover:bg-secondary/80 transition-all active:scale-[0.98] shadow-sm w-full sm:w-auto"
             >
               <GraduationCap size={20} />
               Promote Students
             </button>
             <button 
               onClick={() => setIsAddStudentOpen(true)}
-              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
+              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 w-full sm:w-auto"
             >
               <UserPlus size={20} />
               Add Student
@@ -193,7 +210,7 @@ export default function StudentsPage() {
                 </thead>
                 <tbody>
                   {isLoadingData ? (
-                    [1, 2, 3, 4, 5].map((i) => (
+                    [1, 2, 3, 4, 5].map((i: number) => (
                       <tr key={i} className="border-b border-border last:border-0">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -217,7 +234,7 @@ export default function StudentsPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredStudents.map((student) => (
+                    filteredStudents.map((student: any) => (
                       <tr 
                         key={student.id} 
                         onClick={() => setSelectedPerson(student)}
@@ -315,6 +332,10 @@ export default function StudentsPage() {
               <form 
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (!validateForm()) {
+                    toast.error('Please fix the errors in the form');
+                    return;
+                  }
                   setIsSubmitting(true);
                   
                   try {
@@ -341,6 +362,7 @@ export default function StudentsPage() {
                       parentPhone: '',
                       photo: null
                     });
+                    setFormErrors({});
                   } catch (error) {
                     console.error('Error registering student:', error);
                     toast.error('Failed to register student');
@@ -393,9 +415,13 @@ export default function StudentsPage() {
                       type="text" 
                       placeholder="e.g., Bart Simpson" 
                       value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, name: e.target.value }));
+                        if (formErrors.name) setFormErrors(prev => ({ ...prev, name: '' }));
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                     />
+                    {formErrors.name && <p className="text-xs text-red-500 font-medium">{formErrors.name}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">Student ID</label>
@@ -404,17 +430,24 @@ export default function StudentsPage() {
                       type="text" 
                       placeholder="e.g., STU004" 
                       value={formData.studentId}
-                      onChange={(e) => setFormData(prev => ({ ...prev, studentId: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, studentId: e.target.value }));
+                        if (formErrors.studentId) setFormErrors(prev => ({ ...prev, studentId: '' }));
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.studentId ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                     />
+                    {formErrors.studentId && <p className="text-xs text-red-500 font-medium">{formErrors.studentId}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">Grade</label>
                     <select 
                       required 
                       value={formData.grade}
-                      onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, grade: e.target.value }));
+                        if (formErrors.grade) setFormErrors(prev => ({ ...prev, grade: '' }));
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.grade ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`}
                     >
                       <option value="">Select Grade</option>
                       <option value="1">Grade 1</option>
@@ -424,6 +457,7 @@ export default function StudentsPage() {
                       <option value="5">Grade 5</option>
                       <option value="6">Grade 6</option>
                     </select>
+                    {formErrors.grade && <p className="text-xs text-red-500 font-medium">{formErrors.grade}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">Date of Birth</label>
@@ -431,9 +465,13 @@ export default function StudentsPage() {
                       required 
                       type="date" 
                       value={formData.dob}
-                      onChange={(e) => setFormData(prev => ({ ...prev, dob: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, dob: e.target.value }));
+                        if (formErrors.dob) setFormErrors(prev => ({ ...prev, dob: '' }));
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.dob ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                     />
+                    {formErrors.dob && <p className="text-xs text-red-500 font-medium">{formErrors.dob}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">Gender</label>
@@ -488,9 +526,13 @@ export default function StudentsPage() {
                         type="text" 
                         placeholder="e.g., Homer Simpson" 
                         value={formData.parentName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, parentName: e.target.value }));
+                          if (formErrors.parentName) setFormErrors(prev => ({ ...prev, parentName: '' }));
+                        }}
+                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                       />
+                      {formErrors.parentName && <p className="text-xs text-red-500 font-medium">{formErrors.parentName}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-foreground">Contact Number</label>
@@ -499,9 +541,13 @@ export default function StudentsPage() {
                         type="tel" 
                         placeholder="+1 234 567 890" 
                         value={formData.parentPhone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium" 
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, parentPhone: e.target.value }));
+                          if (formErrors.parentPhone) setFormErrors(prev => ({ ...prev, parentPhone: '' }));
+                        }}
+                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                       />
+                      {formErrors.parentPhone && <p className="text-xs text-red-500 font-medium">{formErrors.parentPhone}</p>}
                     </div>
                   </div>
                 </div>
@@ -721,7 +767,7 @@ export default function StudentsPage() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {selectedPerson.medical.conditions.length > 0 ? (
-                                selectedPerson.medical.conditions.map((c, i) => (
+                                selectedPerson.medical.conditions.map((c: string, i: number) => (
                                   <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-sm font-bold border border-primary/20">{c}</span>
                                 ))
                               ) : (
@@ -738,7 +784,7 @@ export default function StudentsPage() {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {selectedPerson.medical.allergies.length > 0 ? (
-                              selectedPerson.medical.allergies.map((a, i) => (
+                              selectedPerson.medical.allergies.map((a: string, i: number) => (
                                 <span key={i} className="px-3 py-1 bg-amber-500/100/10 text-amber-500 rounded-lg text-sm font-bold border border-amber-500/20 dark:border-amber-500/20">{a}</span>
                               ))
                             ) : (
@@ -776,7 +822,7 @@ export default function StudentsPage() {
                     <div className="space-y-3">
                       <h3 className="font-bold text-foreground">Recent Records</h3>
                       {behaviorRecords.length > 0 ? (
-                        behaviorRecords.map((record) => (
+                        behaviorRecords.map((record: any) => (
                           <div key={record.id} className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border dark:border-slate-800 shadow-sm flex gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                               record.type === 'merit' ? 'bg-emerald-500/20 dark:bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 dark:bg-destructive/100/20 text-destructive'
@@ -809,7 +855,7 @@ export default function StudentsPage() {
                   <div className="space-y-6">
                     {timelineRecords.length > 0 ? (
                       <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-                        {timelineRecords.map((event) => (
+                        {timelineRecords.map((event: any) => (
                           <div key={event.id} className="relative">
                             <div className="absolute -left-[39px] w-8 h-8 rounded-full bg-card dark:bg-slate-900 border-2 border-primary/20 dark:border-indigo-900 flex items-center justify-center text-primary shadow-sm z-10">
                               {event.type === 'award' ? <Star size={14} /> : 

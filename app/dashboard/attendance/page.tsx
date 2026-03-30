@@ -97,9 +97,21 @@ function TeacherAttendance() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground font-medium">Loading attendance...</p>
+      <div className="space-y-8 h-full flex flex-col p-4 animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-10 w-64 bg-muted rounded-xl" />
+            <div className="h-5 w-96 bg-muted rounded-xl" />
+          </div>
+          <div className="h-12 w-48 bg-muted rounded-xl" />
+        </div>
+        <div className="flex gap-4">
+          <div className="h-12 w-48 bg-muted rounded-xl" />
+          <div className="h-12 w-48 bg-muted rounded-xl" />
+        </div>
+        <div className="flex-1">
+          <div className="h-full min-h-[400px] bg-muted rounded-2xl" />
+        </div>
       </div>
     );
   }

@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { getPaginatedBooks } from '@/lib/supabase-db';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Library, 
@@ -300,9 +301,17 @@ function CatalogTab({ isAdmin, onSelectBook }: { isAdmin: boolean, onSelectBook:
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
         {isLoading ? (
-          <div className="col-span-full py-12 text-center text-muted-foreground font-medium">
-            Loading books...
-          </div>
+          [1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden animate-pulse">
+              <div className="aspect-[3/4] bg-muted w-full" />
+              <div className="p-2 sm:p-3 space-y-2">
+                <Skeleton className="h-2 w-16" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-2 w-20" />
+              </div>
+            </div>
+          ))
         ) : filteredBooks.length === 0 ? (
           <div className="col-span-full py-12 text-center text-muted-foreground font-medium">
             No books found matching your criteria.

@@ -103,7 +103,7 @@ export default function TransportMap({
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : null;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || (typeof window !== 'undefined' ? localStorage.getItem('MAPBOX_ACCESS_TOKEN') : null);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (token) setMapboxToken(token);
   }, []);

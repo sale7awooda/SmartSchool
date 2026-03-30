@@ -104,32 +104,81 @@ export async function createStudent(studentData: any) {
   // For now, we'll assume the user profile exists or we create it in the public.users table
   // In a real app, you'd use a Supabase Edge Function to create the auth user
   
+  // 1. Create the student user profile
   const { data: user, error: userError } = await supabase
     .from('users')
     .insert([{
       email: `${studentData.studentId.toLowerCase()}@school.com`,
       name: studentData.name,
       role: 'student',
-      address: studentData.address
+      address: studentData.address,
+      phone: studentData.phone || null
     }])
     .select()
     .single();
 
   if (userError) throw userError;
 
+  // 2. Create the student record
   const { data: student, error: studentError } = await supabase
     .from('students')
     .insert([{
       user_id: user.id,
+      name: studentData.name, // Redundant but consistent with schema
       grade: studentData.grade,
       roll_number: studentData.studentId,
       dob: studentData.dob,
-      blood_group: studentData.bloodGroup
+      gender: studentData.gender,
+      blood_group: studentData.bloodGroup,
+      academic_year: '2025-2026' // Default for now
     }])
     .select()
     .single();
 
   if (studentError) throw studentError;
+
+  // 3. Handle Parent Registration if provided
+  if (studentData.parentName && studentData.parentPhone) {
+    try {
+      // Check if parent already exists by phone
+      let { data: parent, error: parentFetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone', studentData.parentPhone)
+        .eq('role', 'parent')
+        .single();
+      
+      if (!parent) {
+        // Create new parent user
+        const { data: newParent, error: parentCreateError } = await supabase
+          .from('users')
+          .insert([{
+            email: `parent_${studentData.parentPhone.replace(/\D/g, '')}@school.com`,
+            name: studentData.parentName,
+            role: 'parent',
+            phone: studentData.parentPhone
+          }])
+          .select()
+          .single();
+        
+        if (!parentCreateError) parent = newParent;
+      }
+
+      if (parent) {
+        // Link parent and student
+        await supabase
+          .from('parent_student')
+          .insert([{
+            parent_id: parent.id,
+            student_id: student.id,
+            relationship: 'Parent'
+          }]);
+      }
+    } catch (err) {
+      console.error('Error linking parent:', err);
+      // Don't fail the whole student creation if parent linking fails
+    }
+  }
 
   return { ...user, ...student };
 }

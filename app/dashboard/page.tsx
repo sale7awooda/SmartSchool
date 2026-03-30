@@ -341,7 +341,34 @@ function ParentDashboard({ notices }: { notices: any[] }) {
 
   const activeStudent = students.find(s => s.id === user?.studentId) || students[0];
 
-  if (isLoading) return <div className="p-8 text-center">Loading student data...</div>;
+  if (isLoading) {
+    return (
+      <div className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-4 w-80" />
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+            <Skeleton className="h-6 w-40 mb-6" />
+            <div className="space-y-4">
+              {[1, 2, 3].map((j) => (
+                <Skeleton key={j} className="h-16 w-full rounded-2xl" />
+              ))}
+            </div>
+          </div>
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+            <Skeleton className="h-6 w-40 mb-6" />
+            <div className="space-y-4">
+              {[1, 2, 3].map((j) => (
+                <Skeleton key={j} className="h-16 w-full rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!activeStudent) return <div className="p-8 text-center">No student data found. Please link a student to your account.</div>;
 
   return (
