@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { MOCK_SCHEDULE } from '@/lib/mock-db';
 import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase/client';
 import { getStudents, getSchedules } from '@/lib/supabase-db';
 
 const DAYS = [
@@ -48,29 +49,25 @@ export default function StudentScheduleView() {
           getSchedules()
         ]);
         
-        let availableStudents: any[] = [];
-        if (user?.role === 'parent') {
-          // In a real app, we'd fetch the parent_student relationship
-          // For now, let's just show all students or mock it
-          availableStudents = studentsData.slice(0, 2); // Mocking parent's students
+        let filteredStudents: any[] = [];
+        if (user?.role === 'parent' && user.studentIds) {
+          filteredStudents = studentsData.filter(s => user.studentIds.includes(s.id));
         } else if (user?.role === 'student' || user?.studentId) {
           const studentData = studentsData.find(s => s.id === user.studentId);
           if (studentData) {
-            availableStudents = [studentData];
+            filteredStudents = [studentData];
           }
         } else if (user?.role === 'teacher') {
-          // Teachers might view their own schedule, but this view is called "StudentScheduleView"
-          // Let's just show the first student for now if teacher is viewing
-          availableStudents = studentsData;
+          filteredStudents = studentsData;
         }
 
-        if (availableStudents.length === 0 && studentsData.length > 0) {
-          availableStudents = [studentsData[0]];
+        if (filteredStudents.length === 0 && studentsData.length > 0) {
+          filteredStudents = [studentsData[0]];
         }
 
-        setStudents(availableStudents);
-        if (availableStudents.length > 0) {
-          setSelectedStudentId(availableStudents[0].id);
+        setStudents(filteredStudents);
+        if (filteredStudents.length > 0) {
+          setSelectedStudentId(filteredStudents[0].id);
         }
         setSchedules(schedulesData);
       } catch (error) {
@@ -80,6 +77,18 @@ export default function StudentScheduleView() {
       }
     }
     loadData();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('schedule_changes_student')
+      .on('postgres_changes', { event: '*', table: 'schedules', schema: 'public' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   if (isLoading) {
@@ -133,14 +142,14 @@ export default function StudentScheduleView() {
           </div>
         </div>
 
-        {availableStudents.length > 1 && (
+        {students.length > 1 && (
           <div className="relative group">
             <select 
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
               className="appearance-none pl-4 pr-10 py-2.5 bg-muted border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors cursor-pointer"
             >
-              {availableStudents.map(student => (
+              {students.map(student => (
                 <option key={student.id} value={student.id}>
                   {student.name}
                 </option>

@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { FeeInvoice } from '@/lib/mock-db';
-import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, deleteFeeItem } from '@/lib/supabase-db';
+import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment } from '@/lib/supabase-db';
+import { supabase } from '@/lib/supabase/client';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
@@ -28,6 +29,7 @@ export default function FeesPage() {
 }
 
 function AccountantFees() {
+  const { user } = useAuth();
   const { can } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -38,10 +40,15 @@ function AccountantFees() {
   const [selectedInvoice, setSelectedInvoice] = useState<FeeInvoice | null>(null);
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<string | null>(null);
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    paymentMethod: 'Cash',
+    referenceNumber: ''
+  });
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   const [isVoidingInvoice, setIsVoidingInvoice] = useState(false);
   const [isAddFeeItemOpen, setIsAddFeeItemOpen] = useState(false);
+  const [editingFeeItem, setEditingFeeItem] = useState<any | null>(null);
   const [isSubmittingFeeItem, setIsSubmittingFeeItem] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [stats, setStats] = useState({ collected: 0, pending: 0, overdue: 0 });
@@ -51,7 +58,28 @@ function AccountantFees() {
     getStudents().then(setStudents).catch(console.error);
     getFeeStats().then(setStats).catch(console.error);
     getFeeItems().then(setFeeStructure).catch(console.error);
-  }, []);
+
+    // Real-time subscriptions
+    const invoicesChannel = supabase
+      .channel('fee_invoices_changes')
+      .on('postgres_changes', { event: '*', table: 'fee_invoices', schema: 'public' }, () => {
+        mutate(['invoices', page, debouncedSearch, activeTab]);
+        getFeeStats().then(setStats).catch(console.error);
+      })
+      .subscribe();
+
+    const itemsChannel = supabase
+      .channel('fee_items_changes')
+      .on('postgres_changes', { event: '*', table: 'fee_items', schema: 'public' }, () => {
+        getFeeItems().then(setFeeStructure).catch(console.error);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(invoicesChannel);
+      supabase.removeChannel(itemsChannel);
+    };
+  }, [page, debouncedSearch, activeTab]);
 
   const [newInvoiceData, setNewInvoiceData] = useState({
     studentId: '',
@@ -106,16 +134,23 @@ function AccountantFees() {
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedInvoice) return;
+    if (!selectedInvoice || !user) return;
     setIsRecordingPayment(true);
     try {
-      await updateInvoice(selectedInvoice.id, { status: 'paid' });
+      await recordPayment({
+        invoiceId: selectedInvoice.id,
+        amount: selectedInvoice.amount,
+        paymentMethod: paymentForm.paymentMethod,
+        referenceNumber: paymentForm.referenceNumber,
+        recordedBy: user.id
+      });
       mutate(['invoices', page, debouncedSearch, activeTab]);
       getFeeStats().then(setStats).catch(console.error);
       toast.success("Payment recorded", {
         description: `Successfully recorded $${selectedInvoice.amount} for ${selectedInvoice.studentName}.`,
       });
       setSelectedInvoice(null);
+      setPaymentForm({ paymentMethod: 'Cash', referenceNumber: '' });
     } catch (error) {
       console.error('Error recording payment:', error);
       toast.error("Failed to record payment");
@@ -128,19 +163,29 @@ function AccountantFees() {
     e.preventDefault();
     setIsSubmittingFeeItem(true);
     try {
-      const newItem = await createFeeItem({
-        name: newFeeItem.name,
-        amount: parseFloat(newFeeItem.amount),
-        frequency: newFeeItem.frequency,
-        category: newFeeItem.category
-      });
-      setFeeStructure(prev => [...prev, newItem]);
+      if (editingFeeItem) {
+        await updateFeeItem(editingFeeItem.id, {
+          name: newFeeItem.name,
+          amount: parseFloat(newFeeItem.amount),
+          frequency: newFeeItem.frequency,
+          category: newFeeItem.category
+        });
+        toast.success("Fee item updated");
+      } else {
+        await createFeeItem({
+          name: newFeeItem.name,
+          amount: parseFloat(newFeeItem.amount),
+          frequency: newFeeItem.frequency,
+          category: newFeeItem.category
+        });
+        toast.success("Fee item added to structure");
+      }
       setIsAddFeeItemOpen(false);
+      setEditingFeeItem(null);
       setNewFeeItem({ name: '', amount: '', frequency: 'Per Term', category: 'Academic' });
-      toast.success("Fee item added to structure");
     } catch (error) {
-      console.error('Error adding fee item:', error);
-      toast.error("Failed to add fee item");
+      console.error('Error saving fee item:', error);
+      toast.error("Failed to save fee item");
     } finally {
       setIsSubmittingFeeItem(false);
     }
@@ -288,7 +333,21 @@ function AccountantFees() {
                     <div className="text-right">
                       <p className="font-black text-lg text-foreground">${item.amount}</p>
                       <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
-                        <button className="text-[10px] font-bold text-muted-foreground hover:text-primary">Edit</button>
+                        <button 
+                          onClick={() => {
+                            setEditingFeeItem(item);
+                            setNewFeeItem({
+                              name: item.name,
+                              amount: item.amount.toString(),
+                              frequency: item.frequency,
+                              category: item.category
+                            });
+                            setIsAddFeeItemOpen(true);
+                          }}
+                          className="text-[10px] font-bold text-muted-foreground hover:text-primary"
+                        >
+                          Edit
+                        </button>
                         <button 
                           onClick={() => handleDeleteFeeItem(item.id)}
                           className="text-[10px] font-bold text-destructive hover:text-destructive/80"
@@ -368,7 +427,11 @@ function AccountantFees() {
                         Record Payment
                       </button>
                     )}
-                    <button className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Download Invoice">
+                    <button 
+                      onClick={() => toast.success("Downloading invoice...", { description: `Invoice ${invoice.id} is being prepared.` })}
+                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" 
+                      title="Download Invoice"
+                    >
                       <Download size={18} />
                     </button>
                   </div>
@@ -377,6 +440,34 @@ function AccountantFees() {
             ))
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20 shrink-0">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+              </span>
+              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+                Total: <span className="text-foreground font-bold">{totalCount}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -389,8 +480,10 @@ function AccountantFees() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add Fee Item</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Define a new standard fee for the school.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingFeeItem ? 'Edit Fee Item' : 'Add Fee Item'}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">
+                  {editingFeeItem ? 'Update the details of this standard fee.' : 'Define a new standard fee for the school.'}
+                </p>
               </div>
               
               <form onSubmit={handleAddFeeItem} className="p-6 sm:p-8 space-y-5">
@@ -451,7 +544,11 @@ function AccountantFees() {
                 <div className="flex gap-3 pt-6">
                   <button 
                     type="button"
-                    onClick={() => setIsAddFeeItemOpen(false)}
+                    onClick={() => {
+                      setIsAddFeeItemOpen(false);
+                      setEditingFeeItem(null);
+                      setNewFeeItem({ name: '', amount: '', frequency: 'Per Term', category: 'Academic' });
+                    }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
                     Cancel
@@ -461,7 +558,7 @@ function AccountantFees() {
                     disabled={isSubmittingFeeItem}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmittingFeeItem ? <Loader2 size={20} className="animate-spin" /> : 'Add Item'}
+                    {isSubmittingFeeItem ? <Loader2 size={20} className="animate-spin" /> : editingFeeItem ? 'Update Item' : 'Add Item'}
                   </button>
                 </div>
               </form>
@@ -561,7 +658,11 @@ function AccountantFees() {
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Payment Method</label>
-                  <select className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                  <select 
+                    value={paymentForm.paymentMethod}
+                    onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                    className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+                  >
                     <option>Cash</option>
                     <option>Bank Transfer</option>
                     <option>Cheque</option>
@@ -571,7 +672,13 @@ function AccountantFees() {
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Reference Number</label>
-                  <input type="text" placeholder="e.g., TXN123456" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input 
+                    type="text" 
+                    placeholder="e.g., TXN123456" 
+                    value={paymentForm.referenceNumber}
+                    onChange={(e) => setPaymentForm(prev => ({ ...prev, referenceNumber: e.target.value }))}
+                    className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-6">
@@ -755,14 +862,56 @@ function ParentFees() {
     description: inv.description
   }));
 
-  const pendingTotal = myInvoices.filter((inv: any) => inv.status !== 'paid').reduce((sum: number, inv: any) => sum + inv.amount, 0);
+  useEffect(() => {
+    // Real-time subscription for parent's student invoices
+    if (!user?.studentId) return;
+
+    const channel = supabase
+      .channel(`parent_invoices_${user.studentId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        table: 'fee_invoices', 
+        schema: 'public',
+        filter: `student_id=eq.${user.studentId}`
+      }, () => {
+        mutate(['parent_invoices', page, user.studentId]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.studentId, page]);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedInvoiceToPay) return;
+    if (!user) return;
+    
     setIsProcessingPayment(true);
     try {
-      await updateInvoice(selectedInvoiceToPay.id, { status: 'paid' });
+      if (selectedInvoiceToPay) {
+        // Pay single invoice
+        await recordPayment({
+          invoiceId: selectedInvoiceToPay.id,
+          amount: selectedInvoiceToPay.amount,
+          paymentMethod: 'Card',
+          referenceNumber: `ONLINE-${Date.now()}`,
+          recordedBy: user.id
+        });
+      } else {
+        // Pay all pending invoices
+        const pendingInvoices = myInvoices.filter((inv: any) => inv.status !== 'paid');
+        for (const inv of pendingInvoices) {
+          await recordPayment({
+            invoiceId: inv.id,
+            amount: inv.amount,
+            paymentMethod: 'Card',
+            referenceNumber: `ONLINE-BATCH-${Date.now()}`,
+            recordedBy: user.id
+          });
+        }
+      }
+      
       mutate(['parent_invoices', page, user?.studentId]);
       toast.success("Payment successful", {
         description: "Your payment has been processed and a receipt has been generated.",
@@ -871,7 +1020,11 @@ function ParentFees() {
               <p className="text-3xl font-bold text-foreground">${invoice.amount}</p>
               <div className="flex gap-2">
                 {invoice.status === 'paid' && (
-                  <button className="p-3 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors" title="Download Receipt">
+                  <button 
+                    onClick={() => toast.success("Downloading receipt...", { description: `Receipt for ${invoice.id} is being prepared.` })}
+                    className="p-3 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors" 
+                    title="Download Receipt"
+                  >
                     <Download size={20} />
                   </button>
                 )}

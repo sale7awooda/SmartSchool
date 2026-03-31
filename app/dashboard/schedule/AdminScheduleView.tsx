@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePermissions } from '@/lib/permissions';
+import { supabase } from '@/lib/supabase/client';
 import { getSchedules } from '@/lib/supabase-db';
 
 import { MOCK_SCHEDULE } from '@/lib/mock-db';
@@ -48,6 +49,18 @@ export default function AdminScheduleView() {
       }
     }
     loadSchedules();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('schedule_changes_admin')
+      .on('postgres_changes', { event: '*', table: 'schedules', schema: 'public' }, () => {
+        loadSchedules();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handlePreviousDay = () => setSelectedDate(prev => subDays(prev, 1));

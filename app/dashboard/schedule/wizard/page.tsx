@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, ArrowRight, Save, Settings, BookOpen, LayoutGrid,
   CheckCircle2, Wand2, MapPin, User, AlertCircle, Plus, X, Trash2,
-  Loader2
+  Loader2, History, FolderOpen
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { getTeachers, saveScheduleDraft, getScheduleDrafts, publishSchedule } from '@/lib/supabase-db';
+import { getTeachers, saveScheduleDraft, getScheduleDrafts, publishSchedule, deleteScheduleDraft, getSchedules } from '@/lib/supabase-db';
 import { toast } from 'sonner';
 import { User as DBUser } from '@/lib/mock-db';
 
@@ -44,7 +44,9 @@ export default function TimetableWizard() {
   const [schedule, setSchedule] = useState<any[]>(INITIAL_SCHEDULE);
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
   const [teachers, setTeachers] = useState<DBUser[]>([]);
+  const [drafts, setDrafts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
 
   // Step 1 State: Constraints
   const [constraints, setConstraints] = useState({
@@ -67,9 +69,11 @@ export default function TimetableWizard() {
           setNewMapping(prev => ({ ...prev, teacher: fetchedTeachers[0].name }));
         }
 
-        const drafts = await getScheduleDrafts();
-        if (drafts && drafts.length > 0) {
-          const latest = drafts[0];
+        const draftsData = await getScheduleDrafts();
+        setDrafts(draftsData);
+        
+        if (draftsData && draftsData.length > 0) {
+          const latest = draftsData[0];
           setConstraints(latest.constraints);
           setMappings(latest.mappings);
           setSchedule(latest.schedule);
@@ -115,18 +119,96 @@ export default function TimetableWizard() {
 
   const handleSaveDraft = async () => {
     try {
+      const draftName = `Draft ${new Date().toLocaleString()}`;
       await saveScheduleDraft({
-        name: `Draft ${new Date().toLocaleString()}`,
+        name: draftName,
         constraints,
         mappings,
         schedule
       });
       setDraftSaved(`Draft Saved`);
       toast.success('Draft saved successfully');
+      
+      // Refresh drafts list
+      const draftsData = await getScheduleDrafts();
+      setDrafts(draftsData);
+      
       setTimeout(() => setDraftSaved(null), 3000);
     } catch (error) {
       console.error('Error saving draft:', error);
       toast.error('Failed to save draft');
+    }
+  };
+
+  const handleLoadDraft = (draft: any) => {
+    setConstraints(draft.constraints);
+    setMappings(draft.mappings);
+    setSchedule(draft.schedule);
+    setIsDraftModalOpen(false);
+    toast.success(`Loaded draft: ${draft.name}`);
+  };
+
+  const handleDeleteDraft = async (id: string) => {
+    try {
+      await deleteScheduleDraft(id);
+      setDrafts(drafts.filter(d => d.id !== id));
+      toast.success('Draft deleted');
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      toast.error('Failed to delete draft');
+    }
+  };
+
+  const handleLoadCurrentSchedule = async () => {
+    try {
+      setIsLoading(true);
+      const currentSchedules = await getSchedules();
+      
+      if (!currentSchedules || currentSchedules.length === 0) {
+        toast.info('No published schedule found');
+        return;
+      }
+
+      // Convert Supabase format back to Wizard format
+      const convertedSchedule = currentSchedules.map((s: any) => ({
+        id: s.id,
+        day: DAYS[s.day_of_week - 1],
+        grade: s.class_id,
+        period: s.period,
+        subject: s.subject,
+        teacher: s.teacher?.name || 'Unknown',
+        room: s.room || 'TBD',
+        color: getColorForSubject(s.subject)
+      }));
+
+      // Extract mappings
+      const extractedMappings: any[] = [];
+      const mappingCounts: Record<string, number> = {};
+
+      convertedSchedule.forEach((s: any) => {
+        const key = `${s.grade}-${s.subject}-${s.teacher}`;
+        mappingCounts[key] = (mappingCounts[key] || 0) + 1;
+      });
+
+      Object.entries(mappingCounts).forEach(([key, count]) => {
+        const [grade, subject, teacher] = key.split('-');
+        extractedMappings.push({
+          id: `m${Date.now()}-${Math.random()}`,
+          grade,
+          subject,
+          teacher,
+          classesPerWeek: count
+        });
+      });
+
+      setSchedule(convertedSchedule);
+      setMappings(extractedMappings);
+      toast.success('Loaded current published schedule');
+    } catch (error) {
+      console.error('Error loading current schedule:', error);
+      toast.error('Failed to load current schedule');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -290,6 +372,13 @@ export default function TimetableWizard() {
         {currentStep === 3 && (
           <div className="flex items-center gap-2">
             <button 
+              onClick={() => setIsDraftModalOpen(true)}
+              className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm flex items-center gap-2"
+            >
+              <FolderOpen size={16} />
+              Drafts
+            </button>
+            <button 
               onClick={handleSaveDraft}
               className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm flex items-center gap-2"
             >
@@ -404,6 +493,19 @@ export default function TimetableWizard() {
                     className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   />
                 </div>
+              </div>
+
+              <div className="pt-6 border-t border-border">
+                <button 
+                  onClick={handleLoadCurrentSchedule}
+                  className="w-full py-4 bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 rounded-2xl font-bold hover:bg-indigo-500/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <History size={20} />
+                  Load Current Published Schedule
+                </button>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  This will overwrite your current draft with the published timetable.
+                </p>
               </div>
             </motion.div>
           )}
@@ -748,6 +850,64 @@ export default function TimetableWizard() {
                 >
                   Add to Schedule
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Drafts Modal */}
+      <AnimatePresence>
+        {isDraftModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="bg-card rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[80vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-foreground">Saved Drafts</h3>
+                <button onClick={() => setIsDraftModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                  <X size={20} className="text-muted-foreground" />
+                </button>
+              </div>
+              
+              <div className="overflow-y-auto space-y-3 pr-2">
+                {drafts.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No saved drafts found.
+                  </div>
+                ) : (
+                  drafts.map((draft) => (
+                    <div 
+                      key={draft.id}
+                      className="p-4 bg-muted/50 border border-border rounded-xl flex items-center justify-between hover:bg-muted transition-colors group"
+                    >
+                      <div>
+                        <h4 className="font-bold text-foreground">{draft.name}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Last updated: {new Date(draft.updated_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleLoadDraft(draft)}
+                          className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors"
+                        >
+                          Load
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteDraft(draft.id)}
+                          className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </motion.div>
           </motion.div>

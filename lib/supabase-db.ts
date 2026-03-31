@@ -387,6 +387,46 @@ export async function updateInvoice(invoiceId: string, updateData: any) {
   return data;
 }
 
+export async function recordPayment(paymentData: {
+  invoiceId: string;
+  amount: number;
+  paymentMethod: string;
+  referenceNumber?: string;
+  recordedBy: string;
+}) {
+  // 1. Update the invoice
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('fee_invoices')
+    .update({
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      payment_method: paymentData.paymentMethod
+    })
+    .eq('id', paymentData.invoiceId)
+    .select()
+    .single();
+
+  if (invoiceError) throw invoiceError;
+
+  // 2. Create the payment record
+  const { data: payment, error: paymentError } = await supabase
+    .from('fee_payments')
+    .insert([{
+      invoice_id: paymentData.invoiceId,
+      amount: paymentData.amount,
+      payment_method: paymentData.paymentMethod,
+      reference_number: paymentData.referenceNumber,
+      recorded_by: paymentData.recordedBy,
+      payment_date: new Date().toISOString()
+    }])
+    .select()
+    .single();
+
+  if (paymentError) throw paymentError;
+
+  return { invoice, payment };
+}
+
 export async function getFeeStats() {
   const { data, error } = await supabase
     .from('fee_invoices')
@@ -427,6 +467,18 @@ export async function createFeeItem(item: any) {
   const { data, error } = await supabase
     .from('fee_items')
     .insert([item])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updateFeeItem(id: string, item: any) {
+  const { data, error } = await supabase
+    .from('fee_items')
+    .update(item)
+    .eq('id', id)
     .select()
     .single();
   
@@ -866,14 +918,19 @@ export async function getUsersForChat() {
   return data;
 }
 
-export async function getSchedules() {
-  const { data, error } = await supabase
+export async function getSchedules(classId?: string) {
+  let query = supabase
     .from('schedules')
     .select(`
       *,
       teacher:users(name)
     `);
-  
+
+  if (classId) {
+    query = query.eq('class_id', classId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }
@@ -976,6 +1033,15 @@ export async function getScheduleDrafts() {
   return data;
 }
 
+export async function deleteScheduleDraft(id: string) {
+  const { error } = await supabase
+    .from('schedule_drafts')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
 export async function publishSchedule(scheduleItems: any[]) {
   // First, clear existing schedule to avoid conflicts
   const { error: deleteError } = await supabase
@@ -989,23 +1055,6 @@ export async function publishSchedule(scheduleItems: any[]) {
     .from('schedules')
     .insert(scheduleItems);
 
-  if (error) throw error;
-  return data;
-}
-
-export async function getSchedules(classId?: string) {
-  let query = supabase
-    .from('schedules')
-    .select(`
-      *,
-      teacher:users(*)
-    `);
-
-  if (classId) {
-    query = query.eq('class_id', classId);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

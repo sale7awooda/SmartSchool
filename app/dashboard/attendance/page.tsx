@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { Student } from '@/lib/mock-db';
+import { supabase } from '@/lib/supabase/client';
 import { getStudents, getAttendance, saveAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById } from '@/lib/supabase-db';
 import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -63,6 +64,18 @@ function TeacherAttendance() {
       }
     }
     loadData();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('attendance_changes')
+      .on('postgres_changes', { event: '*', table: 'attendance', schema: 'public' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedDate]);
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
@@ -315,6 +328,23 @@ function ParentAttendance() {
       }
     }
     loadData();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel(`parent_attendance_${user?.studentId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        table: 'attendance', 
+        schema: 'public',
+        filter: `student_id=eq.${user?.studentId}`
+      }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.studentId]);
 
   const presentDays = attendance.filter(r => r.status === 'present').length;
@@ -427,6 +457,18 @@ function AdminAttendance() {
       }
     }
     loadData();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('admin_attendance_changes')
+      .on('postgres_changes', { event: '*', table: 'attendance', schema: 'public' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedDate]);
 
   const selectedStats = history.find(h => h.date === selectedDate) || { present: 0, absent: 0, late: 0, excused: 0 };

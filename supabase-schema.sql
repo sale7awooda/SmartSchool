@@ -82,8 +82,22 @@ CREATE TABLE IF NOT EXISTS public.fee_invoices (
   due_date DATE NOT NULL,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partially_paid', 'overdue', 'void')),
   description TEXT,
+  paid_at TIMESTAMPTZ,
+  payment_method TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Fee Payments Table (For tracking individual transactions)
+CREATE TABLE IF NOT EXISTS public.fee_payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  invoice_id UUID REFERENCES public.fee_invoices(id) ON DELETE CASCADE,
+  amount NUMERIC NOT NULL,
+  payment_date TIMESTAMPTZ DEFAULT NOW(),
+  payment_method TEXT NOT NULL,
+  reference_number TEXT,
+  recorded_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Fee Items (Structure) Table
@@ -200,6 +214,8 @@ ALTER TABLE public.bus_stops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fee_invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fee_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fee_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
@@ -224,6 +240,16 @@ CREATE POLICY "Teachers can view students" ON public.students FOR SELECT USING (
 CREATE POLICY "Parents can view own children" ON public.students FOR SELECT USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = students.id));
 CREATE POLICY "Students can view own record" ON public.students FOR SELECT USING (id = (SELECT student_id FROM public.users WHERE id = auth.uid()));
 
+-- Parent Student Policies
+CREATE POLICY "Admins can manage parent_student" ON public.parent_student FOR ALL USING (get_user_role() = 'admin');
+CREATE POLICY "Parents can view their own student links" ON public.parent_student FOR SELECT USING (parent_id = auth.uid());
+CREATE POLICY "Teachers can view student links" ON public.parent_student FOR SELECT USING (get_user_role() = 'teacher');
+
+-- Academic Enrollments Policies
+CREATE POLICY "Admins can manage enrollments" ON public.academic_enrollments FOR ALL USING (get_user_role() = 'admin');
+CREATE POLICY "Teachers can view enrollments" ON public.academic_enrollments FOR SELECT USING (get_user_role() = 'teacher');
+CREATE POLICY "Parents can view their children enrollments" ON public.academic_enrollments FOR SELECT USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = academic_enrollments.student_id));
+
 -- Bus Routes Policies
 CREATE POLICY "Admins can manage all routes" ON public.bus_routes FOR ALL USING (get_user_role() = 'admin');
 CREATE POLICY "All users can view routes" ON public.bus_routes FOR SELECT USING (auth.role() = 'authenticated');
@@ -241,11 +267,26 @@ CREATE POLICY "All users can view notices" ON public.notices FOR SELECT USING (a
 CREATE POLICY "Admins can manage attendance" ON public.attendance FOR ALL USING (get_user_role() = 'admin');
 CREATE POLICY "Teachers can manage attendance" ON public.attendance FOR ALL USING (get_user_role() = 'teacher');
 CREATE POLICY "Parents can view their children attendance" ON public.attendance FOR SELECT USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = attendance.student_id));
+CREATE POLICY "Students can view their own attendance" ON public.attendance FOR SELECT USING (student_id = (SELECT student_id FROM public.users WHERE id = auth.uid()));
 
 -- Fee Invoices Policies
 CREATE POLICY "Admins can manage invoices" ON public.fee_invoices FOR ALL USING (get_user_role() = 'admin');
 CREATE POLICY "Accountants can manage invoices" ON public.fee_invoices FOR ALL USING (get_user_role() = 'accountant');
 CREATE POLICY "Parents can view their children invoices" ON public.fee_invoices FOR SELECT USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = fee_invoices.student_id));
+CREATE POLICY "Parents can update their children invoices (for payment)" ON public.fee_invoices FOR UPDATE USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = fee_invoices.student_id)) WITH CHECK (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = fee_invoices.student_id));
+CREATE POLICY "Students can view their own invoices" ON public.fee_invoices FOR SELECT USING (student_id = (SELECT student_id FROM public.users WHERE id = auth.uid()));
+
+-- Fee Payments Policies
+CREATE POLICY "Admins can manage payments" ON public.fee_payments FOR ALL USING (get_user_role() = 'admin');
+CREATE POLICY "Accountants can manage payments" ON public.fee_payments FOR ALL USING (get_user_role() = 'accountant');
+CREATE POLICY "Parents can view their children payments" ON public.fee_payments FOR SELECT USING (EXISTS (SELECT 1 FROM public.fee_invoices JOIN public.parent_student ON fee_invoices.student_id = parent_student.student_id WHERE fee_invoices.id = fee_payments.invoice_id AND parent_student.parent_id = auth.uid()));
+CREATE POLICY "Parents can insert their children payments" ON public.fee_payments FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.fee_invoices JOIN public.parent_student ON fee_invoices.student_id = parent_student.student_id WHERE fee_invoices.id = fee_payments.invoice_id AND parent_student.parent_id = auth.uid()));
+CREATE POLICY "Students can view their own payments" ON public.fee_payments FOR SELECT USING (EXISTS (SELECT 1 FROM public.fee_invoices WHERE fee_invoices.id = fee_payments.invoice_id AND fee_invoices.student_id = (SELECT student_id FROM public.users WHERE id = auth.uid())));
+
+-- Fee Items Policies
+CREATE POLICY "Admins can manage fee items" ON public.fee_items FOR ALL USING (get_user_role() = 'admin');
+CREATE POLICY "Accountants can manage fee items" ON public.fee_items FOR ALL USING (get_user_role() = 'accountant');
+CREATE POLICY "All authenticated users can view fee items" ON public.fee_items FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Assignments Policies
 CREATE POLICY "Admins can manage assignments" ON public.assignments FOR ALL USING (get_user_role() = 'admin');
@@ -256,6 +297,7 @@ CREATE POLICY "All authenticated users can view assignments" ON public.assignmen
 CREATE POLICY "Admins can manage grades" ON public.grades FOR ALL USING (get_user_role() = 'admin');
 CREATE POLICY "Teachers can manage grades" ON public.grades FOR ALL USING (get_user_role() = 'teacher');
 CREATE POLICY "Parents can view their children grades" ON public.grades FOR SELECT USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = grades.student_id));
+CREATE POLICY "Students can view their own grades" ON public.grades FOR SELECT USING (student_id = (SELECT student_id FROM public.users WHERE id = auth.uid()));
 
 -- Messages Policies
 CREATE POLICY "Users can view their own messages" ON public.messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
@@ -274,7 +316,7 @@ CREATE POLICY "All authenticated users can view schedules" ON public.schedules F
 -- Schedule Drafts Table
 CREATE TABLE IF NOT EXISTS public.schedule_drafts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
   constraints JSONB NOT NULL,
   mappings JSONB NOT NULL,
   schedule JSONB NOT NULL,
@@ -290,6 +332,10 @@ CREATE POLICY "Admins can manage schedule drafts" ON public.schedule_drafts FOR 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bus_routes;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notices;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.attendance;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.schedules;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.fee_invoices;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.fee_payments;
 
 -- 6. Functions for Business Logic
 CREATE OR REPLACE FUNCTION public.handle_new_user()
