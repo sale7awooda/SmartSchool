@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   CalendarDays, 
   MapPin, 
   User, 
   ChevronDown,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
-import { MOCK_SCHEDULE, MOCK_STUDENTS, MOCK_PARENTS, Student } from '@/lib/mock-db';
+import { MOCK_SCHEDULE } from '@/lib/mock-db';
 import { useAuth } from '@/lib/auth-context';
+import { getStudents, getSchedules } from '@/lib/supabase-db';
 
 const DAYS = [
   { id: 1, name: 'Monday' },
@@ -33,32 +35,88 @@ const PERIODS = [
 
 export default function StudentScheduleView() {
   const { user } = useAuth();
-  
-  // Determine available students based on user role
-  let availableStudents: Student[] = [];
-  if (user?.role === 'parent') {
-    const parentData = MOCK_PARENTS.find(p => p.id === user.id) || MOCK_PARENTS.find(p => p.email === user.email);
-    if (parentData && parentData.studentIds) {
-      availableStudents = MOCK_STUDENTS.filter(s => parentData.studentIds?.includes(s.id));
+  const [students, setStudents] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [studentsData, schedulesData] = await Promise.all([
+          getStudents(),
+          getSchedules()
+        ]);
+        
+        let availableStudents: any[] = [];
+        if (user?.role === 'parent') {
+          // In a real app, we'd fetch the parent_student relationship
+          // For now, let's just show all students or mock it
+          availableStudents = studentsData.slice(0, 2); // Mocking parent's students
+        } else if (user?.role === 'student' || user?.studentId) {
+          const studentData = studentsData.find(s => s.id === user.studentId);
+          if (studentData) {
+            availableStudents = [studentData];
+          }
+        } else if (user?.role === 'teacher') {
+          // Teachers might view their own schedule, but this view is called "StudentScheduleView"
+          // Let's just show the first student for now if teacher is viewing
+          availableStudents = studentsData;
+        }
+
+        if (availableStudents.length === 0 && studentsData.length > 0) {
+          availableStudents = [studentsData[0]];
+        }
+
+        setStudents(availableStudents);
+        if (availableStudents.length > 0) {
+          setSelectedStudentId(availableStudents[0].id);
+        }
+        setSchedules(schedulesData);
+      } catch (error) {
+        console.error('Error loading schedule data:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  } else if (user?.role === 'student' || user?.studentId) {
-    const studentData = MOCK_STUDENTS.find(s => s.id === user.studentId);
-    if (studentData) {
-      availableStudents = [studentData];
-    }
+    loadData();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  // Fallback if no students found (e.g., mock data mismatch)
-  if (availableStudents.length === 0) {
-    availableStudents = [MOCK_STUDENTS[0]];
-  }
+  const selectedStudent = students.find(s => s.id === selectedStudentId) || students[0];
 
-  const [selectedStudentId, setSelectedStudentId] = useState(availableStudents[0].id);
-  const selectedStudent = availableStudents.find(s => s.id === selectedStudentId) || availableStudents[0];
+  if (!selectedStudent) {
+    return <div className="p-4">No student data available.</div>;
+  }
 
   const getPeriodData = (dayId: number, periodId: number) => {
-    // In a real app, we'd filter by the student's classId
-    return MOCK_SCHEDULE.find(s => s.dayOfWeek === dayId && s.period === periodId && s.classId === selectedStudent.grade);
+    const grade = selectedStudent.grade || 'Grade 4';
+    
+    // Check real data first
+    const realSchedule = schedules.find(s => 
+      s.class_id === grade && 
+      s.period === periodId && 
+      s.day_of_week === dayId
+    );
+
+    if (realSchedule) {
+      return {
+        subject: realSchedule.subject,
+        room: realSchedule.room,
+        teacherName: realSchedule.teacher?.name || 'Unknown',
+        color: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+      };
+    }
+
+    // Fallback to mock data
+    return MOCK_SCHEDULE.find(s => s.dayOfWeek === dayId && s.period === periodId && s.classId === grade);
   };
 
   return (

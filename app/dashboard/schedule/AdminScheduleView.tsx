@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { format, addDays, subDays } from 'date-fns';
 import { 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePermissions } from '@/lib/permissions';
+import { getSchedules } from '@/lib/supabase-db';
 
 import { MOCK_SCHEDULE } from '@/lib/mock-db';
 
@@ -31,7 +32,23 @@ const PERIODS = [
 
 export default function AdminScheduleView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { can } = usePermissions();
+
+  useEffect(() => {
+    async function loadSchedules() {
+      try {
+        const data = await getSchedules();
+        setSchedules(data);
+      } catch (error) {
+        console.error('Error loading schedules:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSchedules();
+  }, []);
 
   const handlePreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
   const handleNextDay = () => setSelectedDate(prev => addDays(prev, 1));
@@ -41,6 +58,23 @@ export default function AdminScheduleView() {
     // Adjust dayOfWeek to match our 1-5 (Mon-Fri) system
     const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
     
+    // Check real data first
+    const realSchedule = schedules.find(s => 
+      s.class_id === grade && 
+      s.period === periodId && 
+      s.day_of_week === adjustedDay
+    );
+
+    if (realSchedule) {
+      return {
+        subject: realSchedule.subject,
+        room: realSchedule.room,
+        teacherName: realSchedule.teacher?.name || 'Unknown',
+        color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' // Default color
+      };
+    }
+
+    // Fallback to mock data if no real data
     return MOCK_SCHEDULE.find(s => 
       s.classId === grade && 
       s.period === periodId && 

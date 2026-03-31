@@ -80,8 +80,19 @@ CREATE TABLE IF NOT EXISTS public.fee_invoices (
   student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
   amount NUMERIC NOT NULL,
   due_date DATE NOT NULL,
-  status TEXT DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid', 'partially_paid', 'overdue')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partially_paid', 'overdue', 'void')),
   description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Fee Items (Structure) Table
+CREATE TABLE IF NOT EXISTS public.fee_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  frequency TEXT NOT NULL,
+  category TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -141,7 +152,42 @@ CREATE TABLE IF NOT EXISTS public.bus_stops (
   arrival_time TIME,
   lat NUMERIC,
   lng NUMERIC,
+  student_id UUID REFERENCES public.students(id),
   order_index INTEGER NOT NULL
+);
+
+-- Schedules Table
+CREATE TABLE IF NOT EXISTS public.schedules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  class_id TEXT NOT NULL, -- e.g., 'Grade 4'
+  day_of_week INTEGER NOT NULL, -- 1 (Monday) to 5 (Friday)
+  period INTEGER NOT NULL,
+  subject TEXT NOT NULL,
+  teacher_id UUID REFERENCES public.users(id),
+  room TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(class_id, day_of_week, period)
+);
+
+-- Messages Table
+CREATE TABLE IF NOT EXISTS public.messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sender_id UUID REFERENCES public.users(id),
+  receiver_id UUID REFERENCES public.users(id),
+  content TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Broadcasts Table
+CREATE TABLE IF NOT EXISTS public.broadcasts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT,
+  content TEXT NOT NULL,
+  type TEXT CHECK (type IN ('whatsapp', 'push', 'email')),
+  target_audience TEXT,
+  sent_by UUID REFERENCES public.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 3. Enable Row Level Security (RLS)
@@ -156,6 +202,8 @@ ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fee_invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.grades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
 
 -- 4. RLS Policies
 
@@ -209,8 +257,39 @@ CREATE POLICY "Admins can manage grades" ON public.grades FOR ALL USING (get_use
 CREATE POLICY "Teachers can manage grades" ON public.grades FOR ALL USING (get_user_role() = 'teacher');
 CREATE POLICY "Parents can view their children grades" ON public.grades FOR SELECT USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = grades.student_id));
 
+-- Messages Policies
+CREATE POLICY "Users can view their own messages" ON public.messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+CREATE POLICY "Users can send messages" ON public.messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "Users can update their received messages" ON public.messages FOR UPDATE USING (auth.uid() = receiver_id);
+
+-- Broadcasts Policies
+CREATE POLICY "Admins can manage broadcasts" ON public.broadcasts FOR ALL USING (get_user_role() = 'admin');
+CREATE POLICY "All users can view broadcasts" ON public.broadcasts FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Schedules Policies
+ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can manage schedules" ON public.schedules FOR ALL USING (get_user_role() = 'admin');
+CREATE POLICY "All authenticated users can view schedules" ON public.schedules FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Schedule Drafts Table
+CREATE TABLE IF NOT EXISTS public.schedule_drafts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  constraints JSONB NOT NULL,
+  mappings JSONB NOT NULL,
+  schedule JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by UUID REFERENCES public.users(id)
+);
+
+ALTER TABLE public.schedule_drafts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can manage schedule drafts" ON public.schedule_drafts FOR ALL USING (get_user_role() = 'admin');
+
 -- 5. Realtime Configuration
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bus_routes;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notices;
 
 -- 6. Functions for Business Logic
 CREATE OR REPLACE FUNCTION public.handle_new_user()

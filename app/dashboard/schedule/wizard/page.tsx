@@ -1,13 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, ArrowRight, Save, Settings, BookOpen, LayoutGrid,
-  CheckCircle2, Wand2, MapPin, User, AlertCircle, Plus, X, Trash2
+  CheckCircle2, Wand2, MapPin, User, AlertCircle, Plus, X, Trash2,
+  Loader2
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { getTeachers, saveScheduleDraft, getScheduleDrafts, publishSchedule } from '@/lib/supabase-db';
+import { toast } from 'sonner';
+import { User as DBUser } from '@/lib/mock-db';
 
 // Mock Data
 const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
@@ -31,18 +35,16 @@ const getColorForSubject = (subject: string) => {
   return COLORS[Math.abs(hash) % COLORS.length];
 };
 
-const INITIAL_SCHEDULE = [
-  { id: 'c1', day: 'Monday', grade: 'Grade 1', period: 1, subject: 'Math', teacher: 'Mr. Smith', room: '101', color: COLORS[0] },
-  { id: 'c2', day: 'Monday', grade: 'Grade 1', period: 2, subject: 'English', teacher: 'Mrs. Davis', room: '102', color: COLORS[1] },
-  { id: 'c3', day: 'Monday', grade: 'Grade 2', period: 1, subject: 'Science', teacher: 'Dr. Brown', room: 'Lab 1', color: COLORS[2] },
-];
+const INITIAL_SCHEDULE: any[] = [];
 
 export default function TimetableWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
+  const [schedule, setSchedule] = useState<any[]>(INITIAL_SCHEDULE);
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
+  const [teachers, setTeachers] = useState<DBUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Step 1 State: Constraints
   const [constraints, setConstraints] = useState({
@@ -53,11 +55,34 @@ export default function TimetableWizard() {
   });
 
   // Step 2 State: Subject Mapping
-  const [mappings, setMappings] = useState<{id: string, grade: string, subject: string, teacher: string, classesPerWeek: number}[]>([
-    { id: 'm1', grade: 'Grade 1', subject: 'Mathematics', teacher: 'Mr. Smith', classesPerWeek: 5 },
-    { id: 'm2', grade: 'Grade 1', subject: 'English', teacher: 'Mrs. Davis', classesPerWeek: 5 },
-  ]);
-  const [newMapping, setNewMapping] = useState({ grade: GRADES[0], subject: SYSTEM_SUBJECTS[0], teacher: SYSTEM_TEACHERS[0], classesPerWeek: 1 });
+  const [mappings, setMappings] = useState<{id: string, grade: string, subject: string, teacher: string, classesPerWeek: number}[]>([]);
+  const [newMapping, setNewMapping] = useState({ grade: GRADES[0], subject: SYSTEM_SUBJECTS[0], teacher: '', classesPerWeek: 1 });
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const fetchedTeachers = await getTeachers();
+        setTeachers(fetchedTeachers);
+        if (fetchedTeachers.length > 0) {
+          setNewMapping(prev => ({ ...prev, teacher: fetchedTeachers[0].name }));
+        }
+
+        const drafts = await getScheduleDrafts();
+        if (drafts && drafts.length > 0) {
+          const latest = drafts[0];
+          setConstraints(latest.constraints);
+          setMappings(latest.mappings);
+          setSchedule(latest.schedule);
+        }
+      } catch (error) {
+        console.error('Error loading schedule data:', error);
+        toast.error('Failed to load schedule data');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   // Step 3 State: Builder
   const [selectedDay, setSelectedDay] = useState('Monday');
@@ -88,13 +113,41 @@ export default function TimetableWizard() {
   const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, 3));
   const handleBack = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const handleSaveDraft = (draftNum: number) => {
-    setDraftSaved(`Draft ${draftNum}`);
-    setTimeout(() => setDraftSaved(null), 3000);
+  const handleSaveDraft = async () => {
+    try {
+      await saveScheduleDraft({
+        name: `Draft ${new Date().toLocaleString()}`,
+        constraints,
+        mappings,
+        schedule
+      });
+      setDraftSaved(`Draft Saved`);
+      toast.success('Draft saved successfully');
+      setTimeout(() => setDraftSaved(null), 3000);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast.error('Failed to save draft');
+    }
   };
 
-  const handlePublish = () => {
-    router.push('/dashboard/schedule');
+  const handlePublish = async () => {
+    try {
+      const scheduleItems = schedule.map(s => ({
+        class_id: s.grade,
+        day_of_week: DAYS.indexOf(s.day) + 1,
+        period: s.period,
+        subject: s.subject,
+        teacher_id: teachers.find(t => t.name === s.teacher)?.id,
+        room: s.room
+      }));
+
+      await publishSchedule(scheduleItems);
+      toast.success('Schedule published successfully');
+      router.push('/dashboard/schedule');
+    } catch (error) {
+      console.error('Error publishing schedule:', error);
+      toast.error('Failed to publish schedule');
+    }
   };
 
   const handleAddMapping = () => {
@@ -209,6 +262,14 @@ export default function TimetableWizard() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
@@ -229,23 +290,18 @@ export default function TimetableWizard() {
         {currentStep === 3 && (
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => handleSaveDraft(1)}
-              className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm"
+              onClick={handleSaveDraft}
+              className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm flex items-center gap-2"
             >
-              Save Draft 1
-            </button>
-            <button 
-              onClick={() => handleSaveDraft(2)}
-              className="px-4 py-2 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors shadow-sm"
-            >
-              Save Draft 2
+              <Save size={16} />
+              Save Draft
             </button>
             <button 
               onClick={handlePublish}
               className="px-4 py-2 bg-emerald-500 text-primary-foreground rounded-xl font-bold text-sm hover:bg-emerald-600 transition-colors shadow-sm flex items-center gap-2"
             >
-              <Save size={16} />
-              Publish Main
+              <CheckCircle2 size={16} />
+              Publish Schedule
             </button>
           </div>
         )}
@@ -403,7 +459,7 @@ export default function TimetableWizard() {
                   onChange={e => setNewMapping({...newMapping, teacher: e.target.value})}
                   className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 >
-                  {SYSTEM_TEACHERS.map(t => <option key={t} value={t}>{t}</option>)}
+                  {teachers.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                 </select>
                 <input 
                   type="number" min="1" placeholder="Classes/Week"

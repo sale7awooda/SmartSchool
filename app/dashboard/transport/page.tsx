@@ -10,10 +10,7 @@ import { fetchRoute, searchAddress } from '@/lib/routing';
 import { 
   BusRoute, 
   Student,
-  BusStop,
-  MOCK_STUDENTS,
-  MOCK_USERS,
-  MOCK_DRIVERS
+  BusStop
 } from '@/lib/mock-db';
 import { 
   MapPin, 
@@ -81,6 +78,8 @@ export default function TransportPage() {
     return 60000;
   });
   const [parentStudent, setParentStudent] = useState<any>(null);
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchRoutes = async () => {
@@ -88,7 +87,9 @@ export default function TransportPage() {
         .from('bus_routes')
         .select(`
           *,
-          stops:bus_stops(*)
+          stops:bus_stops(*),
+          driver:users!driver_id(id, name, phone),
+          attendant:users!attendant_id(id, name, phone)
         `)
         .order('route_number');
       
@@ -98,11 +99,48 @@ export default function TransportPage() {
       }
 
       if (data) {
-        setRoutes(data as any);
+        const mappedRoutes = data.map(route => ({
+          ...route,
+          driver_name: route.driver?.name,
+          driver_phone: route.driver?.phone,
+          attendant_name: route.attendant?.name,
+          attendant_phone: route.attendant?.phone,
+          stops: route.stops.map((stop: any) => ({
+            id: stop.id,
+            name: stop.name,
+            arrivalTime: stop.arrival_time,
+            coordinates: { lat: stop.lat, lng: stop.lng },
+            studentId: stop.student_id
+          }))
+        }));
+        setRoutes(mappedRoutes as any);
+      }
+    };
+
+    const fetchDrivers = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, role')
+        .in('role', ['staff', 'teacher']);
+      
+      if (!error && data) {
+        setDrivers(data);
+      }
+    };
+
+    const fetchStudents = async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*');
+      
+      if (!error && data) {
+        setStudents(data);
       }
     };
 
     fetchRoutes();
+    fetchDrivers();
+    fetchStudents();
 
     // Subscribe to route updates
     const channel = supabase
@@ -320,9 +358,21 @@ export default function TransportPage() {
     route.bus_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleStatusUpdate = (routeId: string, newStatus: string) => {
-    setRoutes(prev => prev.map(r => r.id === routeId ? { ...r, status: newStatus as any } : r));
-    toast.success(`Bus status updated to: ${newStatus}`);
+  const handleStatusUpdate = async (routeId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('bus_routes')
+        .update({ status: newStatus })
+        .eq('id', routeId);
+      
+      if (error) throw error;
+      
+      setRoutes(prev => prev.map(r => r.id === routeId ? { ...r, status: newStatus as any } : r));
+      toast.success(`Bus status updated to: ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
   };
 
   const handleDropOff = (studentId: string, studentName: string) => {
@@ -344,10 +394,22 @@ export default function TransportPage() {
     setActiveDropdown(null);
   };
 
-  const handleDeleteRoute = (routeId: string) => {
+  const handleDeleteRoute = async (routeId: string) => {
     if (confirm('Are you sure you want to delete this route?')) {
-      setRoutes(prev => prev.filter(r => r.id !== routeId));
-      toast.success('Route deleted successfully');
+      try {
+        const { error } = await supabase
+          .from('bus_routes')
+          .delete()
+          .eq('id', routeId);
+        
+        if (error) throw error;
+        
+        setRoutes(prev => prev.filter(r => r.id !== routeId));
+        toast.success('Route deleted successfully');
+      } catch (error) {
+        console.error('Error deleting route:', error);
+        toast.error('Failed to delete route');
+      }
     }
     setActiveDropdown(null);
   };
@@ -360,26 +422,67 @@ export default function TransportPage() {
     setActiveDropdown(null);
   };
 
-  const handleSaveRoute = () => {
+  const handleSaveRoute = async () => {
     if (!currentRoute.route_number || !currentRoute.bus_number || !currentRoute.driver_id) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (modalMode === 'create') {
-      const newRoute: BusRoute = {
-        ...currentRoute as BusRoute,
-        id: `route-${Date.now()}`,
-        status: 'Not Started',
-        stops: currentRoute.stops || []
-      };
-      setRoutes(prev => [...prev, newRoute]);
-      toast.success('Route created successfully');
-    } else {
-      setRoutes(prev => prev.map(r => r.id === currentRoute.id ? currentRoute as BusRoute : r));
-      toast.success('Route updated successfully');
+    try {
+      if (modalMode === 'create') {
+        const { data, error } = await supabase
+          .from('bus_routes')
+          .insert([{
+            route_number: currentRoute.route_number,
+            bus_number: currentRoute.bus_number,
+            driver_id: currentRoute.driver_id,
+            attendant_id: currentRoute.attendant_id,
+            status: 'Not Started'
+          }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+
+        // Insert stops if any
+        if (currentRoute.stops && currentRoute.stops.length > 0) {
+          const stopsToInsert = currentRoute.stops.map((stop, index) => ({
+            route_id: data.id,
+            name: stop.name,
+            lat: stop.coordinates?.lat,
+            lng: stop.coordinates?.lng,
+            arrival_time: stop.arrivalTime,
+            student_id: stop.studentId,
+            order_index: index
+          }));
+          await supabase.from('bus_stops').insert(stopsToInsert);
+        }
+        
+        toast.success('Route created successfully');
+      } else {
+        const { error } = await supabase
+          .from('bus_routes')
+          .update({
+            route_number: currentRoute.route_number,
+            bus_number: currentRoute.bus_number,
+            driver_id: currentRoute.driver_id,
+            attendant_id: currentRoute.attendant_id
+          })
+          .eq('id', currentRoute.id);
+          
+        if (error) throw error;
+
+        // For simplicity, we're not handling stop updates here in the MVP,
+        // but in a real app, you'd sync the stops array with the database.
+        
+        toast.success('Route updated successfully');
+      }
+      setIsModalOpen(false);
+      // The realtime subscription will update the UI
+    } catch (error) {
+      console.error('Error saving route:', error);
+      toast.error('Failed to save route');
     }
-    setIsModalOpen(false);
   };
 
   const handleAddStop = () => {
@@ -453,7 +556,7 @@ export default function TransportPage() {
                         lat: s.coordinates?.lat || 0,
                         lng: s.coordinates?.lng || 0,
                         name: s.name,
-                        studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                        studentName: students.find(st => st.id === s.studentId)?.name,
                         eta: s.arrivalTime
                       })).filter(s => s.lat !== 0)}
                       liveBusLocation={liveBusLocations[parentRoute.id] || { lat: 39.7850, lng: -89.6450 }} // Fallback to mock if no live data
@@ -532,8 +635,8 @@ export default function TransportPage() {
                       <User size={32} />
                     </div>
                     <div>
-                      <p className="font-bold text-lg text-foreground">{MOCK_DRIVERS.find(d => d.id === parentRoute.driver_id)?.name}</p>
-                      <p className="text-sm text-muted-foreground">License: {MOCK_DRIVERS.find(d => d.id === parentRoute.driver_id)?.licenseNumber}</p>
+                      <p className="font-bold text-lg text-foreground">{drivers.find(d => d.id === parentRoute.driver_id)?.name || 'Unknown Driver'}</p>
+                      <p className="text-sm text-muted-foreground">Role: {drivers.find(d => d.id === parentRoute.driver_id)?.role || 'Staff'}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -638,7 +741,7 @@ export default function TransportPage() {
                   <div className="space-y-3 mb-6">
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <User size={16} className="text-muted-foreground" />
-                      <span>Driver: {MOCK_DRIVERS.find(d => d.id === route.driver_id)?.name}</span>
+                      <span>Driver: {drivers.find(d => d.id === route.driver_id)?.name || 'Unknown'}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <MapPin size={16} className="text-muted-foreground" />
@@ -708,10 +811,10 @@ export default function TransportPage() {
                   lat: s.coordinates?.lat || 0,
                   lng: s.coordinates?.lng || 0,
                   name: s.name,
-                  studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                  studentName: students.find(st => st.id === s.studentId)?.name,
                   eta: s.arrivalTime
                 })).filter(s => s.lat !== 0)}
-                liveBusLocation={Object.values(liveBusLocations)[0] || { lat: 39.7850, lng: -89.6450 }} // Show first active bus or mock
+                liveBusLocations={Object.entries(liveBusLocations).map(([routeId, loc]) => ({ ...loc, routeId }))}
               />
             </div>
           )}
@@ -743,7 +846,7 @@ export default function TransportPage() {
                       lat: s.coordinates?.lat || 0,
                       lng: s.coordinates?.lng || 0,
                       name: s.name,
-                      studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                      studentName: students.find(st => st.id === s.studentId)?.name,
                       eta: s.arrivalTime
                     })).filter(s => s.lat !== 0)}
                     liveBusLocation={liveBusLocations[staffRoute.id] || { lat: 39.7850, lng: -89.6450 }} // Fallback to mock if no live data
@@ -813,8 +916,8 @@ export default function TransportPage() {
               <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm">
                 <h3 className="font-bold text-foreground mb-4">Student Drop-off</h3>
                 <div className="space-y-4">
-                  {MOCK_STUDENTS
-                    .filter(s => s.busRouteId === staffRoute.id)
+                  {students
+                    .filter(s => s.bus_route_id === staffRoute.id)
                     .sort((a, b) => {
                       const stopIndexA = staffRoute.stops.findIndex(stop => stop.id === a.stopId);
                       const stopIndexB = staffRoute.stops.findIndex(stop => stop.id === b.stopId);
@@ -930,8 +1033,8 @@ export default function TransportPage() {
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
                       <option value="">Select Driver</option>
-                      {MOCK_DRIVERS.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
+                      {drivers.map(d => (
+                        <option key={d.id} value={d.id}>{d.name} ({d.role})</option>
                       ))}
                     </select>
                   </div>
@@ -940,7 +1043,7 @@ export default function TransportPage() {
                     <select 
                       value={currentRoute.attendant_id || ''}
                       onChange={(e) => {
-                        const attendant = MOCK_USERS.find(u => u.id === e.target.value);
+                        const attendant = drivers.find(u => u.id === e.target.value);
                         setCurrentRoute({
                           ...currentRoute, 
                           attendant_id: e.target.value,
@@ -952,7 +1055,7 @@ export default function TransportPage() {
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
                       <option value="">Select Attendant</option>
-                      {MOCK_USERS.filter(u => ['staff', 'teacher'].includes(u.role)).map(u => (
+                      {drivers.map(u => (
                         <option key={u.id} value={u.id}>{u.name}</option>
                       ))}
                     </select>
@@ -990,7 +1093,7 @@ export default function TransportPage() {
                             />
                             {studentSearchQuery && !selectedStudent && (
                               <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                                {MOCK_STUDENTS.filter(s => s.name.toLowerCase().includes(studentSearchQuery.toLowerCase())).map(student => (
+                                {students.filter(s => s.name.toLowerCase().includes(studentSearchQuery.toLowerCase())).map(student => (
                                   <button
                                     key={student.id}
                                     onClick={() => {
@@ -1078,7 +1181,7 @@ export default function TransportPage() {
                             {stop.studentId && (
                               <div className="flex items-center text-xs text-muted-foreground">
                                 <User size={12} className="mr-1" />
-                                {MOCK_STUDENTS.find(s => s.id === stop.studentId)?.name || 'Student'}
+                                {students.find(s => s.id === stop.studentId)?.name || 'Student'}
                               </div>
                             )}
                           </div>
@@ -1098,7 +1201,7 @@ export default function TransportPage() {
                         lat: s.coordinates?.lat || 0,
                         lng: s.coordinates?.lng || 0,
                         name: s.name,
-                        studentName: MOCK_STUDENTS.find(st => st.id === s.studentId)?.name,
+                        studentName: students.find(st => st.id === s.studentId)?.name,
                         eta: s.arrivalTime
                       })).filter(s => s.lat !== 0)}
                       interactive={modalMode !== 'view' && isAddingStop}

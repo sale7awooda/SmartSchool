@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { Notice, MOCK_USERS, MOCK_PARENTS, MOCK_NOTICES, MOCK_CHATS, MOCK_MESSAGES } from '@/lib/mock-db';
+import { Notice, MOCK_USERS, MOCK_PARENTS, MOCK_CHATS, MOCK_MESSAGES } from '@/lib/mock-db';
 import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2, Send, Search, Smartphone, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase/client';
+import { getNotices, createNotice, getMessages, sendMessage, getUsersForChat } from '@/lib/supabase-db';
 
 export default function CommunicationPage() {
   const { user } = useAuth();
@@ -14,13 +16,16 @@ export default function CommunicationPage() {
   const [activeTab, setActiveTab] = useState<'notices' | 'messages' | 'broadcasts'>('notices');
   
   // Notices State
+  const [notices, setNotices] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newNotice, setNewNotice] = useState({ title: '', content: '', targetAudience: 'all', isImportant: false });
 
   // Messages State
-  const [activeChat, setActiveChat] = useState(MOCK_CHATS[0]);
+  const [chatUsers, setChatUsers] = useState<any[]>([]);
+  const [activeChatUser, setActiveChatUser] = useState<any>(null);
   const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<any[]>([]);
 
   // Broadcast State
   const [broadcastType, setBroadcastType] = useState<'whatsapp' | 'push' | 'email'>('whatsapp');
@@ -28,6 +33,56 @@ export default function CommunicationPage() {
   const [whatsappTemplate, setWhatsappTemplate] = useState('urgent_alert');
   const [pushPriority, setPushPriority] = useState('high');
   const [emailSubject, setEmailSubject] = useState('');
+  const [broadcastAudience, setBroadcastAudience] = useState('all');
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchInitialData = async () => {
+      const fetchedNotices = await getNotices();
+      setNotices(fetchedNotices);
+
+      const users = await getUsersForChat();
+      setChatUsers(users.filter((u: any) => u.id !== user.id));
+    };
+
+    fetchInitialData();
+
+    // Realtime subscriptions
+    const noticesChannel = supabase
+      .channel('public:notices')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notices' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setNotices(prev => [payload.new, ...prev]);
+        }
+      })
+      .subscribe();
+
+    const messagesChannel = supabase
+      .channel('public:messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const newMessage = payload.new;
+        if (newMessage.receiver_id === user.id || newMessage.sender_id === user.id) {
+          setMessages(prev => [...prev, newMessage]);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(noticesChannel);
+      supabase.removeChannel(messagesChannel);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (activeChatUser && user) {
+      const loadMessages = async () => {
+        const msgs = await getMessages(user.id, activeChatUser.id);
+        setMessages(msgs);
+      };
+      loadMessages();
+    }
+  }, [activeChatUser, user]);
 
   if (!user) return null;
 
@@ -37,36 +92,54 @@ export default function CommunicationPage() {
 
   const canCreateNotice = can('create', 'communication');
 
-  const visibleNotices = MOCK_NOTICES.filter(notice => {
-    if (notice.targetAudience === 'all') return true;
-    if (notice.targetAudience === 'staff' && ['admin', 'accountant', 'teacher', 'staff'].includes(user.role)) return true;
-    if (notice.targetAudience === 'parents' && ['admin', 'accountant', 'parent'].includes(user.role)) return true;
+  const visibleNotices = notices.filter(notice => {
+    if (notice.target_audience === 'all') return true;
+    if (notice.target_audience === 'staff' && ['admin', 'accountant', 'teacher', 'staff'].includes(user.role)) return true;
+    if (notice.target_audience === 'parents' && ['admin', 'accountant', 'parent'].includes(user.role)) return true;
     return false;
   });
 
   const handleCreateNotice = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newNotice.title || !newNotice.content) return;
+    
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmitting(false);
-    setIsCreating(false);
-    toast.success('Notice posted successfully');
+    try {
+      await createNotice({
+        title: newNotice.title,
+        content: newNotice.content,
+        target_audience: newNotice.targetAudience,
+        is_important: newNotice.isImportant,
+        author_id: user.id,
+        author_name: user.name,
+        author_role: user.role
+      });
+      setIsCreating(false);
+      setNewNotice({ title: '', content: '', targetAudience: 'all', isImportant: false });
+      toast.success('Notice posted successfully');
+    } catch (error) {
+      toast.error('Failed to post notice');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim()) return;
+    if (!messageInput.trim() || !activeChatUser) return;
     
-    const newMsg = {
-      id: `m${Date.now()}`,
-      sender: 'Me',
-      text: messageInput,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true
-    };
-    
-    setMessages([...messages, newMsg]);
+    const text = messageInput;
     setMessageInput('');
+    
+    try {
+      await sendMessage({
+        sender_id: user.id,
+        receiver_id: activeChatUser.id,
+        content: text
+      });
+    } catch (error) {
+      toast.error('Failed to send message');
+    }
   };
 
   const handleSendBroadcast = async (e: React.FormEvent) => {
@@ -74,10 +147,22 @@ export default function CommunicationPage() {
     if (!broadcastMessage.trim()) return;
     
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSubmitting(false);
-    setBroadcastMessage('');
-    toast.success(`Urgent ${broadcastType.toUpperCase()} broadcast sent successfully to all selected recipients.`);
+    try {
+      await supabase.from('broadcasts').insert([{
+        title: emailSubject || 'Urgent Broadcast',
+        content: broadcastMessage,
+        type: broadcastType,
+        target_audience: broadcastAudience,
+        sent_by: user.id
+      }]);
+      setBroadcastMessage('');
+      setEmailSubject('');
+      toast.success(`Urgent ${broadcastType.toUpperCase()} broadcast sent successfully to all selected recipients.`);
+    } catch (error) {
+      toast.error('Failed to send broadcast');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -131,10 +216,10 @@ export default function CommunicationPage() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
               key={notice.id} 
               className={`bg-card rounded-[1.5rem] border shadow-sm overflow-hidden transition-all hover:shadow-md ${
-                notice.isImportant ? 'border-amber-500/30 ring-1 ring-amber-500/10' : 'border-border'
+                notice.is_important ? 'border-amber-500/30 ring-1 ring-amber-500/10' : 'border-border'
               }`}
             >
-              {notice.isImportant && (
+              {notice.is_important && (
                 <div className="bg-amber-500/10 px-6 py-3 border-b border-amber-500/20 flex items-center gap-2 text-amber-500 text-xs font-bold uppercase tracking-wider">
                   <AlertCircle size={16} />
                   Important Announcement
@@ -148,15 +233,15 @@ export default function CommunicationPage() {
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-5 border-t border-border text-xs text-muted-foreground font-bold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <UserIcon size={16} className="text-muted-foreground" />
-                    {notice.author} <span className="text-muted-foreground/50">•</span> {notice.authorRole}
+                    {notice.author_name} <span className="text-muted-foreground/50">•</span> {notice.author_role}
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar size={16} className="text-muted-foreground" />
-                    {new Date(notice.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(notice.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                   <div className="flex items-center gap-2 ml-auto">
                     <MessageSquare size={16} className="text-muted-foreground" />
-                    Audience: <span className="text-primary bg-primary/10 px-2 py-1 rounded-md">{notice.targetAudience}</span>
+                    Audience: <span className="text-primary bg-primary/10 px-2 py-1 rounded-md">{notice.target_audience}</span>
                   </div>
                 </div>
               </div>
@@ -181,31 +266,22 @@ export default function CommunicationPage() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {MOCK_CHATS.map(chat => (
+              {chatUsers.map(chatUser => (
                 <button 
-                  key={chat.id}
-                  onClick={() => setActiveChat(chat)}
-                  className={`w-full text-left p-4 border-b border-border transition-colors flex items-start gap-3 ${activeChat.id === chat.id ? 'bg-primary/10' : 'hover:bg-card'}`}
+                  key={chatUser.id}
+                  onClick={() => setActiveChatUser(chatUser)}
+                  className={`w-full text-left p-4 border-b border-border transition-colors flex items-start gap-3 ${activeChatUser?.id === chatUser.id ? 'bg-primary/10' : 'hover:bg-card'}`}
                 >
                   <div className="relative">
                     <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-lg shrink-0">
-                      {chat.name.charAt(0)}
+                      {chatUser.name.charAt(0)}
                     </div>
-                    {chat.unread > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-card">
-                        {chat.unread}
-                      </div>
-                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-baseline mb-1">
-                      <h3 className="font-bold text-foreground truncate">{chat.name}</h3>
-                      <span className="text-xs font-medium text-muted-foreground shrink-0">{chat.time}</span>
+                      <h3 className="font-bold text-foreground truncate">{chatUser.name}</h3>
                     </div>
-                    <p className="text-xs font-bold text-primary mb-1">{chat.role}</p>
-                    <p className={`text-sm truncate ${chat.unread > 0 ? 'font-bold text-foreground' : 'text-muted-foreground font-medium'}`}>
-                      {chat.lastMessage}
-                    </p>
+                    <p className="text-xs font-bold text-primary mb-1">{chatUser.role}</p>
                   </div>
                 </button>
               ))}
@@ -214,49 +290,63 @@ export default function CommunicationPage() {
 
           {/* Chat Window */}
           <div className="flex-1 flex flex-col bg-card">
-            <div className="p-4 border-b border-border flex items-center gap-3 bg-card">
-              <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
-                {activeChat.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="font-bold text-foreground">{activeChat.name}</h3>
-                <p className="text-xs font-medium text-muted-foreground">{activeChat.role}</p>
-              </div>
-            </div>
-            
-            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 bg-muted/20">
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}>
-                  <div className={`max-w-[80%] p-4 rounded-2xl ${
-                    msg.isMe 
-                      ? 'bg-primary text-primary-foreground rounded-tr-sm' 
-                      : 'bg-card border border-border text-foreground rounded-tl-sm shadow-sm'
-                  }`}>
-                    <p className="text-sm font-medium leading-relaxed">{msg.text}</p>
+            {activeChatUser ? (
+              <>
+                <div className="p-4 border-b border-border flex items-center gap-3 bg-card">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
+                    {activeChatUser.name.charAt(0)}
                   </div>
-                  <span className="text-[10px] font-bold text-muted-foreground mt-1.5 px-1">{msg.time}</span>
+                  <div>
+                    <h3 className="font-bold text-foreground">{activeChatUser.name}</h3>
+                    <p className="text-xs font-medium text-muted-foreground">{activeChatUser.role}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
+                
+                <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 bg-muted/20">
+                  {messages.map(msg => {
+                    const isMe = msg.sender_id === user.id;
+                    return (
+                      <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className={`max-w-[80%] p-4 rounded-2xl ${
+                          isMe 
+                            ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+                            : 'bg-card border border-border text-foreground rounded-tl-sm shadow-sm'
+                        }`}>
+                          <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
+                        </div>
+                        <span className="text-[10px] font-bold text-muted-foreground mt-1.5 px-1">
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
 
-            <div className="p-4 border-t border-border bg-card">
-              <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-                <input 
-                  type="text" 
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  placeholder="Type your message..." 
-                  className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
-                />
-                <button 
-                  type="submit"
-                  disabled={!messageInput.trim()}
-                  className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20"
-                >
-                  <Send size={20} />
-                </button>
-              </form>
-            </div>
+                <div className="p-4 border-t border-border bg-card">
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                    <input 
+                      type="text" 
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      placeholder="Type your message..." 
+                      className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={!messageInput.trim()}
+                      className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20"
+                    >
+                      <Send size={20} />
+                    </button>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center flex-col text-muted-foreground">
+                <MessageSquare size={48} className="mb-4 opacity-20" />
+                <p>Select a user to start chatting</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -375,7 +465,11 @@ export default function CommunicationPage() {
 
             <div>
               <label className="block text-sm font-bold text-foreground mb-2">Target Audience</label>
-              <select className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground">
+              <select 
+                value={broadcastAudience}
+                onChange={(e) => setBroadcastAudience(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground"
+              >
                 <option value="all">Entire School (Parents & Staff)</option>
                 <option value="parents">All Parents</option>
                 <option value="staff">All Staff</option>
@@ -441,6 +535,8 @@ export default function CommunicationPage() {
                     <input 
                       type="text" 
                       required
+                      value={newNotice.title}
+                      onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
                       placeholder="e.g. Sports Day Rescheduled" 
                       className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
                     />
@@ -450,6 +546,8 @@ export default function CommunicationPage() {
                     <label className="block text-sm font-bold text-foreground mb-2">Message Content</label>
                     <textarea 
                       required
+                      value={newNotice.content}
+                      onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
                       rows={5}
                       placeholder="Write your announcement here..." 
                       className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" 
@@ -459,7 +557,11 @@ export default function CommunicationPage() {
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-sm font-bold text-foreground mb-2">Target Audience</label>
-                      <select className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground">
+                      <select 
+                        value={newNotice.targetAudience}
+                        onChange={(e) => setNewNotice({ ...newNotice, targetAudience: e.target.value })}
+                        className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground"
+                      >
                         <option value="all">Everyone</option>
                         <option value="parents">Parents Only</option>
                         <option value="staff">Staff Only</option>
@@ -469,7 +571,12 @@ export default function CommunicationPage() {
                     <div className="flex flex-col justify-end pb-3.5">
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center">
-                          <input type="checkbox" className="peer w-6 h-6 rounded-lg border-2 border-border text-primary focus:ring-primary/20 transition-all cursor-pointer appearance-none checked:bg-primary checked:border-primary" />
+                          <input 
+                            type="checkbox" 
+                            checked={newNotice.isImportant}
+                            onChange={(e) => setNewNotice({ ...newNotice, isImportant: e.target.checked })}
+                            className="peer w-6 h-6 rounded-lg border-2 border-border text-primary focus:ring-primary/20 transition-all cursor-pointer appearance-none checked:bg-primary checked:border-primary" 
+                          />
                           <CheckCircle2 size={16} className="absolute text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" />
                         </div>
                         <span className="text-sm font-bold text-foreground transition-colors">Mark as Important</span>

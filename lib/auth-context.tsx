@@ -34,6 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profile && profile.role === 'parent') {
         profile.studentIds = profile.parent_student?.map((ps: any) => ps.student_id) || [];
         profile.studentId = profile.studentIds[0] || undefined;
+      } else if (profile && profile.role === 'student') {
+        const { data: studentData } = await supabase
+          .from('students')
+          .select('id')
+          .eq('user_id', profile.id)
+          .single();
+        profile.studentId = studentData?.id;
       }
       delete profile?.parent_student;
       

@@ -1,22 +1,15 @@
 'use client';
 
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { MOCK_STUDENTS, FeeInvoice } from '@/lib/mock-db';
-import { getPaginatedInvoices } from '@/lib/supabase-db';
+import { FeeInvoice } from '@/lib/mock-db';
+import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, deleteFeeItem } from '@/lib/supabase-db';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
-
-const MOCK_INVOICES: FeeInvoice[] = [
-  { id: 'INV-2023-001', studentId: 'STU001', studentName: 'Bart Simpson', amount: 450, dueDate: '2023-11-01', status: 'pending', description: 'Tuition Fee - Term 1' },
-  { id: 'INV-2023-002', studentId: 'STU002', studentName: 'Lisa Simpson', amount: 450, dueDate: '2023-11-01', status: 'paid', description: 'Tuition Fee - Term 1' },
-  { id: 'INV-2023-003', studentId: 'STU003', studentName: 'Milhouse Van Houten', amount: 450, dueDate: '2023-10-01', status: 'overdue', description: 'Tuition Fee - Term 1' },
-  { id: 'INV-2023-004', studentId: 'STU001', studentName: 'Bart Simpson', amount: 120, dueDate: '2023-09-15', status: 'paid', description: 'Bus Transport - Q3' },
-];
 
 export default function FeesPage() {
   const { user } = useAuth();
@@ -50,14 +43,15 @@ function AccountantFees() {
   const [isVoidingInvoice, setIsVoidingInvoice] = useState(false);
   const [isAddFeeItemOpen, setIsAddFeeItemOpen] = useState(false);
   const [isSubmittingFeeItem, setIsSubmittingFeeItem] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+  const [stats, setStats] = useState({ collected: 0, pending: 0, overdue: 0 });
+  const [feeStructure, setFeeStructure] = useState<any[]>([]);
 
-  const [feeStructure, setFeeStructure] = useState([
-    { id: 'fs1', name: 'Tuition Fee', amount: 450, frequency: 'Per Term', category: 'Academic' },
-    { id: 'fs2', name: 'Bus Transport', amount: 120, frequency: 'Monthly', category: 'Transport' },
-    { id: 'fs3', name: 'Library Fee', amount: 50, frequency: 'Annual', category: 'Academic' },
-    { id: 'fs4', name: 'Lab Fee', amount: 75, frequency: 'Per Term', category: 'Academic' },
-    { id: 'fs5', name: 'Sports Fee', amount: 30, frequency: 'Annual', category: 'Extracurricular' },
-  ]);
+  useEffect(() => {
+    getStudents().then(setStudents).catch(console.error);
+    getFeeStats().then(setStats).catch(console.error);
+    getFeeItems().then(setFeeStructure).catch(console.error);
+  }, []);
 
   const [newInvoiceData, setNewInvoiceData] = useState({
     studentId: '',
@@ -84,7 +78,7 @@ function AccountantFees() {
 
   const { data: invoicesResponse, isLoading } = useSWR(
     ['invoices', page, debouncedSearch, activeTab],
-    ([_, p, s, tab]) => getPaginatedInvoices(p, limit, s) // Note: activeTab filtering should ideally be in the backend query
+    ([_, p, s, tab]) => getPaginatedInvoices(p, limit, s, undefined, tab)
   );
 
   const invoices = invoicesResponse?.data || [];
@@ -112,53 +106,101 @@ function AccountantFees() {
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedInvoice) return;
     setIsRecordingPayment(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsRecordingPayment(false);
-    toast.success("Payment recorded", {
-      description: `Successfully recorded $${selectedInvoice?.amount} for ${selectedInvoice?.studentName}.`,
-    });
-    setSelectedInvoice(null);
+    try {
+      await updateInvoice(selectedInvoice.id, { status: 'paid' });
+      mutate(['invoices', page, debouncedSearch, activeTab]);
+      getFeeStats().then(setStats).catch(console.error);
+      toast.success("Payment recorded", {
+        description: `Successfully recorded $${selectedInvoice.amount} for ${selectedInvoice.studentName}.`,
+      });
+      setSelectedInvoice(null);
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error("Failed to record payment");
+    } finally {
+      setIsRecordingPayment(false);
+    }
   };
 
   const handleAddFeeItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingFeeItem(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const newItem = {
-      id: `fs${feeStructure.length + 1}`,
-      name: newFeeItem.name,
-      amount: parseFloat(newFeeItem.amount),
-      frequency: newFeeItem.frequency,
-      category: newFeeItem.category
-    };
-    setFeeStructure(prev => [...prev, newItem]);
-    setIsSubmittingFeeItem(false);
-    setIsAddFeeItemOpen(false);
-    setNewFeeItem({ name: '', amount: '', frequency: 'Per Term', category: 'Academic' });
-    toast.success("Fee item added to structure");
+    try {
+      const newItem = await createFeeItem({
+        name: newFeeItem.name,
+        amount: parseFloat(newFeeItem.amount),
+        frequency: newFeeItem.frequency,
+        category: newFeeItem.category
+      });
+      setFeeStructure(prev => [...prev, newItem]);
+      setIsAddFeeItemOpen(false);
+      setNewFeeItem({ name: '', amount: '', frequency: 'Per Term', category: 'Academic' });
+      toast.success("Fee item added to structure");
+    } catch (error) {
+      console.error('Error adding fee item:', error);
+      toast.error("Failed to add fee item");
+    } finally {
+      setIsSubmittingFeeItem(false);
+    }
+  };
+
+  const handleDeleteFeeItem = async (id: string) => {
+    try {
+      await deleteFeeItem(id);
+      setFeeStructure(prev => prev.filter(i => i.id !== id));
+      toast.success("Fee item deleted");
+    } catch (error) {
+      console.error('Error deleting fee item:', error);
+      toast.error("Failed to delete fee item");
+    }
   };
 
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreatingInvoice(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsCreatingInvoice(false);
-    toast.success("Invoice created successfully", {
-      description: `Invoice for ${MOCK_STUDENTS.find(s => s.id === newInvoiceData.studentId)?.name} created.`
-    });
-    setIsNewInvoiceOpen(false);
-    setNewInvoiceData({ studentId: '', feeItemId: '', amount: '', dueDate: '', description: '' });
+    try {
+      await createInvoice({
+        student_id: newInvoiceData.studentId,
+        amount: parseFloat(newInvoiceData.amount),
+        due_date: newInvoiceData.dueDate,
+        description: newInvoiceData.description,
+        status: 'pending'
+      });
+      mutate(['invoices', page, debouncedSearch, activeTab]);
+      getFeeStats().then(setStats).catch(console.error);
+      const studentName = students.find(s => s.id === newInvoiceData.studentId)?.name || 'Student';
+      toast.success("Invoice created successfully", {
+        description: `Invoice for ${studentName} created.`
+      });
+      setIsNewInvoiceOpen(false);
+      setNewInvoiceData({ studentId: '', feeItemId: '', amount: '', dueDate: '', description: '' });
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      toast.error("Failed to create invoice");
+    } finally {
+      setIsCreatingInvoice(false);
+    }
   };
 
   const handleVoidInvoice = async () => {
+    if (!selectedInvoice) return;
     setIsVoidingInvoice(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsVoidingInvoice(false);
-    toast.error("Invoice voided", {
-      description: "The invoice has been cancelled and removed from active tracking.",
-    });
-    setSelectedInvoice(null);
+    try {
+      await updateInvoice(selectedInvoice.id, { status: 'void' });
+      mutate(['invoices', page, debouncedSearch, activeTab]);
+      getFeeStats().then(setStats).catch(console.error);
+      toast.error("Invoice voided", {
+        description: "The invoice has been cancelled and removed from active tracking.",
+      });
+      setSelectedInvoice(null);
+    } catch (error) {
+      console.error('Error voiding invoice:', error);
+      toast.error("Failed to void invoice");
+    } finally {
+      setIsVoidingInvoice(false);
+    }
   };
 
   return (
@@ -182,15 +224,15 @@ function AccountantFees() {
       <div className="grid grid-cols-3 gap-3 sm:gap-6">
         <div className="bg-card p-5 sm:p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all">
           <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">Collected</p>
-          <p className="text-2xl sm:text-4xl font-bold text-emerald-500 mt-2">$12,450</p>
+          <p className="text-2xl sm:text-4xl font-bold text-emerald-500 mt-2">${stats.collected}</p>
         </div>
         <div className="bg-card p-5 sm:p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all">
           <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">Pending</p>
-          <p className="text-2xl sm:text-4xl font-bold text-foreground mt-2">$4,500</p>
+          <p className="text-2xl sm:text-4xl font-bold text-foreground mt-2">${stats.pending}</p>
         </div>
         <div className="bg-card p-5 sm:p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all">
           <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">Overdue</p>
-          <p className="text-2xl sm:text-4xl font-bold text-destructive mt-2">$1,350</p>
+          <p className="text-2xl sm:text-4xl font-bold text-destructive mt-2">${stats.overdue}</p>
         </div>
       </div>
 
@@ -248,7 +290,7 @@ function AccountantFees() {
                       <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
                         <button className="text-[10px] font-bold text-muted-foreground hover:text-primary">Edit</button>
                         <button 
-                          onClick={() => setFeeStructure(prev => prev.filter(i => i.id !== item.id))}
+                          onClick={() => handleDeleteFeeItem(item.id)}
                           className="text-[10px] font-bold text-destructive hover:text-destructive/80"
                         >
                           Delete
@@ -439,7 +481,7 @@ function AccountantFees() {
                 <div>
                   <h2 className="text-2xl font-bold text-foreground tracking-tight">Student Fee Profile</h2>
                   <p className="text-sm font-medium text-muted-foreground mt-2">
-                    Viewing all invoices for {MOCK_STUDENTS.find(s => s.id === selectedStudentForProfile)?.name || selectedStudentForProfile}
+                    Viewing all invoices for {students.find(s => s.id === selectedStudentForProfile)?.name || selectedStudentForProfile}
                   </p>
                 </div>
                 <button 
@@ -590,7 +632,7 @@ function AccountantFees() {
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
                   >
                     <option value="">Select a student...</option>
-                    {MOCK_STUDENTS.map(s => (
+                    {students.map(s => (
                       <option key={s.id} value={s.id}>{s.name} ({s.grade})</option>
                     ))}
                   </select>
@@ -717,14 +759,22 @@ function ParentFees() {
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedInvoiceToPay) return;
     setIsProcessingPayment(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsProcessingPayment(false);
-    toast.success("Payment successful", {
-      description: "Your payment has been processed and a receipt has been generated.",
-    });
-    setIsPayNowOpen(false);
-    setSelectedInvoiceToPay(null);
+    try {
+      await updateInvoice(selectedInvoiceToPay.id, { status: 'paid' });
+      mutate(['parent_invoices', page, user?.studentId]);
+      toast.success("Payment successful", {
+        description: "Your payment has been processed and a receipt has been generated.",
+      });
+      setIsPayNowOpen(false);
+      setSelectedInvoiceToPay(null);
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast.error("Failed to process payment");
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const openPaymentModal = (invoice?: FeeInvoice) => {
@@ -747,7 +797,7 @@ function ParentFees() {
             {pendingTotal > 0 && (
               <p className="text-amber-400 text-sm font-medium mt-3 flex items-center gap-2 bg-amber-400/10 w-fit px-3 py-1.5 rounded-lg border border-amber-400/20">
                 <AlertCircle size={16} />
-                Payment required before Nov 1st
+                Outstanding balance requires attention
               </p>
             )}
           </div>
@@ -812,7 +862,7 @@ function ParentFees() {
                 </div>
                 <p className="text-sm font-medium text-muted-foreground">Invoice: {invoice.id}</p>
                 <p className="text-sm font-medium text-muted-foreground mt-1">
-                  {invoice.status === 'paid' ? 'Paid on Oct 15, 2023' : `Due by ${new Date(invoice.dueDate).toLocaleDateString()}`}
+                  {invoice.status === 'paid' ? `Paid on ${new Date(invoice.updated_at).toLocaleDateString()}` : `Due by ${new Date(invoice.dueDate).toLocaleDateString()}`}
                 </p>
               </div>
             </div>

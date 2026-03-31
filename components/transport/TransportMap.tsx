@@ -38,6 +38,7 @@ interface TransportMapProps {
   onLocationSelect?: (lat: number, lng: number) => void;
   selectedLocation?: { lat: number; lng: number } | null;
   liveBusLocation?: { lat: number; lng: number } | null;
+  liveBusLocations?: { lat: number; lng: number; routeId?: string }[];
   routeCoordinates?: [number, number][]; // Array of [lat, lng] for the polyline
   showMyLocationButton?: boolean;
 }
@@ -97,6 +98,7 @@ export default function TransportMap({
   onLocationSelect, 
   selectedLocation,
   liveBusLocation,
+  liveBusLocations = [],
   routeCoordinates = [],
   showMyLocationButton = true
 }: TransportMapProps) {
@@ -163,12 +165,19 @@ export default function TransportMap({
           </Marker>
         )}
 
-        {/* Draw the live bus location */}
+        {/* Draw the live bus location (single) */}
         {liveBusLocation && (
           <Marker position={[liveBusLocation.lat, liveBusLocation.lng]} icon={busIcon}>
             <Popup>Live Bus Location</Popup>
           </Marker>
         )}
+
+        {/* Draw multiple live bus locations */}
+        {liveBusLocations.map((loc, idx) => (
+          <Marker key={`bus-${idx}`} position={[loc.lat, loc.lng]} icon={busIcon}>
+            <Popup>Live Bus Location {loc.routeId ? `(Route ${loc.routeId})` : ''}</Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );

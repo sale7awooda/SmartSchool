@@ -14,7 +14,8 @@ export async function getStudents() {
   return data.map((s: any) => ({
     ...s.user,
     ...s,
-    id: s.user_id // Use user_id as the main ID for consistency with mock-db
+    userId: s.user_id,
+    id: s.id // Use student UUID as the main ID
   })) as Student[];
 }
 
@@ -213,6 +214,87 @@ export async function getAttendance(date: string) {
   return data;
 }
 
+export async function getStudentAttendance(studentId: string) {
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('date', { ascending: false });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getAttendanceByClass(date: string) {
+  // Fetch all students with their grade and section
+  const { data: students, error: studentsError } = await supabase
+    .from('students')
+    .select('id, grade, section');
+    
+  if (studentsError) throw studentsError;
+
+  // Fetch attendance for the specific date
+  const { data: attendance, error: attendanceError } = await supabase
+    .from('attendance')
+    .select('student_id, status')
+    .eq('date', date);
+    
+  if (attendanceError) throw attendanceError;
+
+  // Group by class (grade + section)
+  const classStats: Record<string, { cls: string, total: number, present: number, status: 'submitted' | 'pending' }> = {};
+
+  students.forEach((student: any) => {
+    const className = `${student.grade || 'Unknown'} - ${student.section || 'A'}`;
+    if (!classStats[className]) {
+      classStats[className] = { cls: className, total: 0, present: 0, status: 'pending' };
+    }
+    classStats[className].total++;
+  });
+
+  attendance.forEach((record: any) => {
+    const student = students.find((s: any) => s.id === record.student_id);
+    if (student) {
+      const className = `${student.grade || 'Unknown'} - ${student.section || 'A'}`;
+      if (classStats[className]) {
+        classStats[className].status = 'submitted';
+        if (record.status === 'present' || record.status === 'late') {
+          classStats[className].present++;
+        }
+      }
+    }
+  });
+
+  return Object.values(classStats).sort((a, b) => a.cls.localeCompare(b.cls));
+}
+
+export async function getAttendanceHistory() {
+  // Get all attendance records and group them by date
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('date, status');
+    
+  if (error) throw error;
+  
+  // Group by date
+  const history: Record<string, { present: number, absent: number, late: number, excused: number }> = {};
+  
+  data.forEach((record: any) => {
+    if (!history[record.date]) {
+      history[record.date] = { present: 0, absent: 0, late: 0, excused: 0 };
+    }
+    
+    if (record.status === 'present') history[record.date].present++;
+    else if (record.status === 'absent') history[record.date].absent++;
+    else if (record.status === 'late') history[record.date].late++;
+    else if (record.status === 'excused') history[record.date].excused++;
+  });
+  
+  return Object.entries(history)
+    .map(([date, counts]) => ({ date, ...counts }))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
 export async function getPaginatedStaff(page: number = 1, limit: number = 10, search: string = '') {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
@@ -236,7 +318,7 @@ export async function getPaginatedStaff(page: number = 1, limit: number = 10, se
   };
 }
 
-export async function getPaginatedInvoices(page: number = 1, limit: number = 10, search: string = '', studentId?: string) {
+export async function getPaginatedInvoices(page: number = 1, limit: number = 10, search: string = '', studentId?: string, status?: string) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -244,17 +326,35 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
     .from('fee_invoices')
     .select(`
       *,
-      student:students(user:users(name))
+      student:students!inner(user:users!inner(name))
     `, { count: 'exact' });
 
   if (studentId) {
     query = query.eq('student_id', studentId);
   }
 
-  // Note: search by student name requires a more complex query or view in Supabase, 
-  // keeping it simple for now or searching by invoice id if needed.
+  if (status && status !== 'all') {
+    if (status === 'overdue') {
+      query = query.eq('status', 'overdue');
+    } else if (status === 'pending') {
+      query = query.eq('status', 'pending');
+    } else if (status === 'paid') {
+      query = query.eq('status', 'paid');
+    }
+  } else {
+    // By default, hide void invoices
+    query = query.neq('status', 'void');
+  }
 
-  const { data, error, count } = await query.range(from, to);
+  if (search) {
+    // Search by student name or invoice ID
+    query = query.or(`description.ilike.%${search}%,id.ilike.%${search}%`);
+  }
+
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
   if (error) throw error;
 
   return {
@@ -262,6 +362,85 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
     count: count || 0,
     totalPages: Math.ceil((count || 0) / limit)
   };
+}
+
+export async function createInvoice(invoiceData: any) {
+  const { data, error } = await supabase
+    .from('fee_invoices')
+    .insert([invoiceData])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updateInvoice(invoiceId: string, updateData: any) {
+  const { data, error } = await supabase
+    .from('fee_invoices')
+    .update(updateData)
+    .eq('id', invoiceId)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getFeeStats() {
+  const { data, error } = await supabase
+    .from('fee_invoices')
+    .select('amount, status');
+  
+  if (error) throw error;
+
+  const stats = {
+    collected: 0,
+    pending: 0,
+    overdue: 0
+  };
+
+  data.forEach(inv => {
+    if (inv.status === 'paid') {
+      stats.collected += Number(inv.amount);
+    } else if (inv.status === 'pending') {
+      stats.pending += Number(inv.amount);
+    } else if (inv.status === 'overdue') {
+      stats.overdue += Number(inv.amount);
+    }
+  });
+
+  return stats;
+}
+
+export async function getFeeItems() {
+  const { data, error } = await supabase
+    .from('fee_items')
+    .select('*')
+    .order('created_at', { ascending: true });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function createFeeItem(item: any) {
+  const { data, error } = await supabase
+    .from('fee_items')
+    .insert([item])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteFeeItem(id: string) {
+  const { error } = await supabase
+    .from('fee_items')
+    .delete()
+    .eq('id', id);
+  
+  if (error) throw error;
 }
 
 export async function getPaginatedAssessments(page: number = 1, limit: number = 10, search: string = '', statusFilter: string = 'all') {
@@ -400,6 +579,17 @@ export async function saveAttendance(attendanceData: any[]) {
   const { data, error } = await supabase
     .from('attendance')
     .upsert(attendanceData, { onConflict: 'student_id,date' });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getStudentById(id: string) {
+  const { data, error } = await supabase
+    .from('students')
+    .select('id, name, roll_number, grade, section')
+    .eq('id', id)
+    .single();
   
   if (error) throw error;
   return data;
@@ -604,6 +794,101 @@ export async function seedDatabase(demoData: any) {
   return { success: true };
 }
 
+export async function getNotices() {
+  const { data, error } = await supabase
+    .from('notices')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching notices:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function createNotice(noticeData: any) {
+  const { data, error } = await supabase
+    .from('notices')
+    .insert([noticeData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating notice:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getMessages(userId: string, otherUserId: string) {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching messages:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function sendMessage(messageData: any) {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert([messageData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getUsersForChat() {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, role');
+
+  if (error) {
+    console.error('Error fetching users for chat:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function getSchedules() {
+  const { data, error } = await supabase
+    .from('schedules')
+    .select(`
+      *,
+      teacher:users(name)
+    `);
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function saveSchedule(scheduleData: any) {
+  const { data, error } = await supabase
+    .from('schedules')
+    .upsert(scheduleData, { onConflict: 'class_id,day_of_week,period' })
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function resetDatabase(keepUsers: boolean = true) {
   const tables = [
     'attendance', 'behavior_records', 'timeline_records', 'submissions', 
@@ -647,4 +932,80 @@ export async function resetDatabase(keepUsers: boolean = true) {
   }
 
   return { success: true };
+}
+
+// Schedule Management
+export async function getTeachers() {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('role', 'teacher');
+  
+  if (error) throw error;
+  return data as User[];
+}
+
+export async function saveScheduleDraft(draft: { name: string, constraints: any, mappings: any, schedule: any }) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('schedule_drafts')
+    .upsert({
+      name: draft.name,
+      constraints: draft.constraints,
+      mappings: draft.mappings,
+      schedule: draft.schedule,
+      created_by: user.id,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'name' })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getScheduleDrafts() {
+  const { data, error } = await supabase
+    .from('schedule_drafts')
+    .select('*')
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function publishSchedule(scheduleItems: any[]) {
+  // First, clear existing schedule to avoid conflicts
+  const { error: deleteError } = await supabase
+    .from('schedules')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000');
+
+  if (deleteError) throw deleteError;
+
+  const { data, error } = await supabase
+    .from('schedules')
+    .insert(scheduleItems);
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getSchedules(classId?: string) {
+  let query = supabase
+    .from('schedules')
+    .select(`
+      *,
+      teacher:users(*)
+    `);
+
+  if (classId) {
+    query = query.eq('class_id', classId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
 }
