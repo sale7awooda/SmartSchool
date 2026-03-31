@@ -862,6 +862,8 @@ function ParentFees() {
     description: inv.description
   }));
 
+  const pendingTotal = myInvoices.filter((inv: any) => inv.status !== 'paid').reduce((sum: number, inv: any) => sum + inv.amount, 0);
+
   useEffect(() => {
     // Real-time subscription for parent's student invoices
     if (!user?.studentId) return;
