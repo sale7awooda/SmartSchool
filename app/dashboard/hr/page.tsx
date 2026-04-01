@@ -63,7 +63,7 @@ const MOCK_FINANCIALS = [
 export default function HRPage() {
   const { user } = useAuth();
   const { can, isAdmin: checkIsAdmin } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'directory' | 'leave' | 'payroll' | 'financials' | 'documents'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'leave' | 'payroll' | 'financials'>('directory');
   const [selectedStaff, setSelectedStaff] = useState<typeof MOCK_STAFF[0] | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'overview' | 'qualifications' | 'schedule' | 'leave' | 'payroll' | 'financials'>('overview');
 
@@ -157,13 +157,6 @@ export default function HRPage() {
           <Banknote size={18} />
           Loans & Fines
         </button>
-        <button 
-          onClick={() => setActiveTab('documents')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'documents' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
-        >
-          <FileText size={18} />
-          Documents & Policies
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
@@ -172,7 +165,6 @@ export default function HRPage() {
           {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} />}
           {activeTab === 'payroll' && <PayrollTab key="payroll" isAdmin={isAdmin} userName={user.name} />}
           {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} />}
-          {activeTab === 'documents' && <DocumentsTab key="documents" />}
         </AnimatePresence>
       </div>
 

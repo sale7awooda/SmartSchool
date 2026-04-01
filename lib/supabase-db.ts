@@ -659,6 +659,109 @@ export async function getStudentByUserId(userId: string) {
   return data;
 }
 
+export async function getPaginatedVisitors(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('visitors')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false });
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,host.ilike.%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+export async function createVisitor(visitorData: any) {
+  const { data, error } = await supabase
+    .from('visitors')
+    .insert([visitorData])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getPaginatedMedicalRecords(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('medical_records')
+    .select(`
+      *,
+      student:students(name, grade)
+    `, { count: 'exact' });
+
+  if (search) {
+    query = query.ilike('student.name', `%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+export async function createMedicalRecord(recordData: any) {
+  const { data, error } = await supabase
+    .from('medical_records')
+    .insert([recordData])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getPaginatedInventory(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('inventory')
+    .select('*', { count: 'exact' });
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,category.ilike.%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+export async function createInventoryItem(itemData: any) {
+  const { data, error } = await supabase
+    .from('inventory')
+    .insert([itemData])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function getParentByUserId(userId: string) {
   const { data, error } = await supabase
     .from('users')
@@ -679,13 +782,60 @@ export async function getParentByUserId(userId: string) {
   };
 }
 
-export async function getAcademicYears() {
-  const { data, error } = await supabase
-    .from('academic_years')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data;
+export async function getAcademicStats() {
+  // In a real app, this would aggregate data from grades and students tables
+  // Returning mock structure for now to match the UI expectations
+  return {
+    avgGrade: 86.4,
+    trends: [
+      { month: 'Sep', math: 78, science: 82, english: 85, avg: 81.6 },
+      { month: 'Oct', math: 80, science: 81, english: 86, avg: 82.3 },
+      { month: 'Nov', math: 82, science: 85, english: 84, avg: 83.6 },
+      { month: 'Dec', math: 85, science: 88, english: 87, avg: 86.6 },
+      { month: 'Jan', math: 84, science: 86, english: 88, avg: 86.0 },
+      { month: 'Feb', math: 88, science: 89, english: 90, avg: 89.0 },
+    ]
+  };
+}
+
+export async function getAttendanceStats() {
+  // In a real app, this would aggregate data from attendance table
+  return {
+    avgAttendance: 94.8,
+    patterns: [
+      { week: 'Week 1', present: 95, absent: 5, late: 2 },
+      { week: 'Week 2', present: 94, absent: 6, late: 3 },
+      { week: 'Week 3', present: 92, absent: 8, late: 4 },
+      { week: 'Week 4', present: 96, absent: 4, late: 1 },
+      { week: 'Week 5', present: 97, absent: 3, late: 2 },
+      { week: 'Week 6', present: 93, absent: 7, late: 5 },
+    ]
+  };
+}
+
+export async function getFinancialStats() {
+  // In a real app, this would aggregate data from fee_invoices and fee_payments tables
+  return {
+    ytdRevenue: 768000,
+    health: [
+      { month: 'Sep', revenue: 120000, expenses: 95000 },
+      { month: 'Oct', revenue: 125000, expenses: 98000 },
+      { month: 'Nov', revenue: 118000, expenses: 92000 },
+      { month: 'Dec', revenue: 130000, expenses: 105000 },
+      { month: 'Jan', revenue: 140000, expenses: 96000 },
+      { month: 'Feb', revenue: 135000, expenses: 99000 },
+    ]
+  };
+}
+
+export async function getAtRiskStudents() {
+  // In a real app, this would query students with low grades or high absenteeism
+  return [
+    { id: 1, student: 'Milhouse Van Houten', grade: 'Grade 4', risk: 'High', factor: 'Academic Drop', reason: 'Math score dropped by 18% over last 3 weeks. Missed 2 assignments.', action: 'Schedule parent-teacher meeting.' },
+    { id: 2, student: 'Nelson Muntz', grade: 'Grade 4', risk: 'High', factor: 'Attendance', reason: 'Absent for 4 consecutive days without medical note. Historical pattern of mid-term absenteeism.', action: 'Initiate wellness check.' },
+    { id: 3, student: 'Ralph Wiggum', grade: 'Grade 2', risk: 'Medium', factor: 'Engagement', reason: 'Decreased participation in class activities. Reading comprehension below benchmark.', action: 'Assign reading specialist.' },
+    { id: 4, student: 'Jimbo Jones', grade: 'Grade 6', risk: 'Medium', factor: 'Behavioral', reason: '3 minor incidents reported in the last 10 days.', action: 'Counselor check-in.' },
+  ];
 }
 
 export async function getClasses() {

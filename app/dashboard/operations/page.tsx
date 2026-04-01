@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { 
+  getPaginatedVisitors, 
+  createVisitor, 
+  getPaginatedMedicalRecords, 
+  createMedicalRecord, 
+  getPaginatedInventory, 
+  createInventoryItem 
+} from '@/lib/supabase-db';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -255,9 +263,9 @@ function VisitorsTab() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: response, isLoading } = useSWR(
+  const { data: response, isLoading, mutate } = useSWR(
     ['visitors', page, debouncedSearch],
-    ([_, p, s]) => fetchPaginatedVisitors(p, limit, s)
+    ([_, p, s]) => getPaginatedVisitors(p, limit, s)
   );
 
   const visitors = response?.data || [];
@@ -266,11 +274,27 @@ function VisitorsTab() {
 
   const handleNewCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const visitorData = {
+      name: formData.get('name'),
+      purpose: formData.get('purpose'),
+      host: formData.get('host'),
+      status: 'Active',
+      time_in: new Date().toLocaleTimeString(),
+    };
+
     setIsSubmittingCheckIn(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmittingCheckIn(false);
-    toast.success("Visitor checked in successfully");
-    setIsNewCheckInOpen(false);
+    try {
+      await createVisitor(visitorData);
+      toast.success("Visitor checked in successfully");
+      setIsNewCheckInOpen(false);
+      mutate();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to check in visitor");
+    } finally {
+      setIsSubmittingCheckIn(false);
+    }
   };
 
   return (
@@ -446,17 +470,17 @@ function VisitorsTab() {
               <form onSubmit={handleNewCheckIn} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Visitor Name</label>
-                  <input required type="text" placeholder="Jane Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="name" type="text" placeholder="Jane Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Purpose of Visit</label>
-                  <input required type="text" placeholder="e.g., Parent-Teacher Meeting" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="purpose" type="text" placeholder="e.g., Parent-Teacher Meeting" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Host (Staff Member)</label>
-                  <input required type="text" placeholder="e.g., Edna Krabappel" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="host" type="text" placeholder="e.g., Edna Krabappel" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div className="flex gap-3 pt-6">
@@ -501,9 +525,9 @@ function HealthTab() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: response, isLoading } = useSWR(
+  const { data: response, isLoading, mutate } = useSWR(
     ['health', page, debouncedSearch],
-    ([_, p, s]) => fetchPaginatedMedicalRecords(p, limit, s)
+    ([_, p, s]) => getPaginatedMedicalRecords(p, limit, s)
   );
 
   const records = response?.data || [];
@@ -512,11 +536,25 @@ function HealthTab() {
 
   const handleLogIncident = async (e: React.FormEvent) => {
     e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const recordData = {
+      student_name: formData.get('student_name'),
+      symptoms: formData.get('symptoms'),
+      treatment: formData.get('treatment'),
+    };
+
     setIsSubmittingIncident(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmittingIncident(false);
-    toast.success("Medical incident logged successfully");
-    setIsLogIncidentOpen(false);
+    try {
+      await createMedicalRecord(recordData);
+      toast.success("Medical incident logged successfully");
+      setIsLogIncidentOpen(false);
+      mutate();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to log medical incident");
+    } finally {
+      setIsSubmittingIncident(false);
+    }
   };
 
   return (
@@ -699,17 +737,17 @@ function HealthTab() {
               <form onSubmit={handleLogIncident} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Student Name</label>
-                  <input required type="text" placeholder="e.g., Bart Simpson" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="student_name" type="text" placeholder="e.g., Bart Simpson" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Incident / Symptoms</label>
-                  <textarea required rows={3} placeholder="Describe the reason for the visit..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <textarea required name="symptoms" rows={3} placeholder="Describe the reason for the visit..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Treatment Provided</label>
-                  <textarea required rows={2} placeholder="e.g., Bandage applied, rested for 15 mins" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <textarea required name="treatment" rows={2} placeholder="e.g., Bandage applied, rested for 15 mins" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
                 <div className="flex gap-3 pt-6">
@@ -754,9 +792,9 @@ function InventoryTab() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: response, isLoading } = useSWR(
+  const { data: response, isLoading, mutate } = useSWR(
     ['inventory', page, debouncedSearch],
-    ([_, p, s]) => fetchPaginatedInventory(p, limit, s)
+    ([_, p, s]) => getPaginatedInventory(p, limit, s)
   );
 
   const inventory = response?.data || [];
@@ -765,11 +803,25 @@ function InventoryTab() {
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const assetData = {
+      name: formData.get('name'),
+      category: formData.get('category'),
+      status: 'Available',
+    };
+
     setIsSubmittingAsset(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmittingAsset(false);
-    toast.success("Asset added successfully");
-    setIsAddAssetOpen(false);
+    try {
+      await createInventoryItem(assetData);
+      toast.success("Asset added successfully");
+      setIsAddAssetOpen(false);
+      mutate();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to add asset");
+    } finally {
+      setIsSubmittingAsset(false);
+    }
   };
 
   return (
@@ -940,22 +992,22 @@ function InventoryTab() {
               <form onSubmit={handleAddAsset} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Asset Name</label>
-                  <input required type="text" placeholder="e.g., Dell Latitude 3420" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="name" type="text" placeholder="e.g., Dell Latitude 3420" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Category</label>
-                    <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
-                      <option value="laptop">Laptop</option>
-                      <option value="projector">Projector</option>
-                      <option value="sports">Sports Equipment</option>
-                      <option value="furniture">Furniture</option>
+                    <select required name="category" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                      <option value="Laptop">Laptop</option>
+                      <option value="Projector">Projector</option>
+                      <option value="Sports">Sports Equipment</option>
+                      <option value="Furniture">Furniture</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Assigned To</label>
-                    <input required type="text" placeholder="e.g., Room 101" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                    <input required name="assigned_to" type="text" placeholder="e.g., Room 101" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
                 </div>
 
