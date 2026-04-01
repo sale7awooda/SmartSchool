@@ -51,7 +51,7 @@ export default function StudentScheduleView() {
         
         let filteredStudents: any[] = [];
         if (user?.role === 'parent' && user.studentIds) {
-          filteredStudents = studentsData.filter(s => user.studentIds.includes(s.id));
+          filteredStudents = studentsData.filter(s => user.studentIds?.includes(s.id));
         } else if (user?.role === 'student' || user?.studentId) {
           const studentData = studentsData.find(s => s.id === user.studentId);
           if (studentData) {
