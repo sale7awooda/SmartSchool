@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';

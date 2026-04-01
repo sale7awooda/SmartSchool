@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { getPaginatedStaff, updateUserRole } from '@/lib/supabase-db';
 import { usePermissions } from '@/lib/permissions';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -61,7 +62,7 @@ import {
 export default function SettingsPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'general' | 'admin' | 'configurations' | 'data' | 'master'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'general' | 'admin' | 'configurations' | 'data' | 'master' | 'staff'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
@@ -76,6 +77,13 @@ export default function SettingsPage() {
   const [schoolAddress, setSchoolAddress] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_ADDRESS') : '') || '123 Education Lane, Learning City');
   const [schoolPhone, setSchoolPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_PHONE') : '') || '+1 (555) 012-3456');
   const [schoolEmail, setSchoolEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_EMAIL') : '') || 'info@greenwoodhigh.edu');
+  const [staff, setStaff] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (activeTab === 'staff') {
+      getPaginatedStaff(1, 50).then(data => setStaff(data.data));
+    }
+  }, [activeTab]);
 
   // Permissions State
   const [rolePermissions, setRolePermissions] = useState<Record<string, string[]>>(() => {
@@ -161,7 +169,8 @@ export default function SettingsPage() {
               { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
               { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
               { id: 'master', label: 'Master Data', icon: Database, show: isAdmin() },
-              { id: 'roles', label: 'Roles & Permissions', icon: Users, show: isAdmin() },
+              { id: 'roles', label: 'Roles & Permissions', icon: Shield, show: isAdmin() },
+              { id: 'staff', label: 'Staff Management', icon: Users, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
               { id: 'data', label: 'Data Management', icon: RefreshCw, show: isAdmin() },
               { id: 'configurations', label: 'Advanced Configurations', icon: Globe, show: user.role === 'admin' },
@@ -434,10 +443,7 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </div>
-              )}
-
-              {/* Roles & Permissions Tab */}
-              {activeTab === 'roles' && (
+              )}                {activeTab === 'roles' && (
                 <div className="p-6 sm:p-8 space-y-6">
                   <div>
                     <h3 className="text-lg font-bold text-foreground mb-1">Roles & Permissions</h3>
@@ -494,6 +500,52 @@ export default function SettingsPage() {
                                 />
                               </td>
                             ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'staff' && (
+                <div className="p-6 sm:p-8 space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Staff Management</h3>
+                    <p className="text-sm text-muted-foreground">Manage staff roles and assignments.</p>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Name</th>
+                          <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Role</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {staff.map(member => (
+                          <tr key={member.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                            <td className="py-4 px-4 text-sm font-medium text-foreground">{member.name}</td>
+                            <td className="py-4 px-4 text-sm text-muted-foreground">
+                              <select 
+                                value={member.role}
+                                onChange={async (e) => {
+                                  const newRole = e.target.value;
+                                  await updateUserRole(member.id, newRole);
+                                  setStaff(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
+                                }}
+                                className="bg-transparent border-none text-sm font-medium text-primary focus:ring-0"
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="staff">Staff</option>
+                                <option value="accountant">Accountant</option>
+                                <option value="driver">Driver</option>
+                                <option value="cleaner">Cleaner</option>
+                                <option value="guard">Guard</option>
+                              </select>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

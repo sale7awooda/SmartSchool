@@ -782,6 +782,18 @@ export async function getParentByUserId(userId: string) {
   };
 }
 
+export async function updateUserRole(userId: string, role: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ role })
+    .eq('id', userId)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function getAcademicStats() {
   // In a real app, this would aggregate data from grades and students tables
   // Returning mock structure for now to match the UI expectations
