@@ -270,18 +270,13 @@ export default function CommunicationPage() {
                 <button 
                   key={chatUser.id}
                   onClick={() => setActiveChatUser(chatUser)}
-                  className={`w-full text-left p-4 border-b border-border transition-colors flex items-start gap-3 ${activeChatUser?.id === chatUser.id ? 'bg-primary/10' : 'hover:bg-card'}`}
+                  className={`w-full text-left p-5 border-b border-border transition-colors flex items-start gap-4 ${activeChatUser?.id === chatUser.id ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
                 >
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-lg shrink-0">
-                      {chatUser.name.charAt(0)}
-                    </div>
-                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <h3 className="font-bold text-foreground truncate">{chatUser.name}</h3>
+                    <div className="flex justify-between items-baseline mb-1.5">
+                      <h3 className="font-bold text-foreground text-base truncate">{chatUser.name}</h3>
                     </div>
-                    <p className="text-xs font-bold text-primary mb-1">{chatUser.role}</p>
+                    <p className="text-xs font-bold text-primary">{chatUser.role}</p>
                   </div>
                 </button>
               ))}
@@ -307,10 +302,10 @@ export default function CommunicationPage() {
                     const isMe = msg.sender_id === user.id;
                     return (
                       <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                        <div className={`max-w-[80%] p-4 rounded-2xl ${
+                        <div className={`max-w-[85%] px-5 py-3.5 rounded-2xl ${
                           isMe 
-                            ? 'bg-primary text-primary-foreground rounded-tr-sm' 
-                            : 'bg-card border border-border text-foreground rounded-tl-sm shadow-sm'
+                            ? 'bg-primary text-primary-foreground rounded-br-sm' 
+                            : 'bg-muted text-foreground rounded-bl-sm'
                         }`}>
                           <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
                         </div>
