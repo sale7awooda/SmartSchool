@@ -48,36 +48,50 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 sm:p-8 relative overflow-hidden">
       {/* Decorative Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-primary rounded-b-[3rem] sm:rounded-b-[5rem] -z-10" />
-      <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-      <div className="absolute top-40 right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-0 w-full h-96 bg-slate-50 rounded-b-[3rem] sm:rounded-b-[5rem] -z-10" />
+      <div className="absolute top-10 left-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
+      <div className="absolute top-40 right-10 w-48 h-48 bg-primary/5 rounded-full blur-3xl" />
 
       <div className="w-full max-w-md z-10">
         {/* Logo & Header */}
-        <div className="text-center mb-4 relative">
+        <div className="text-center mb-12 relative">
           <motion.div 
-            initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
-            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            initial={{ scale: 0.5, opacity: 0, y: -20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="relative inline-flex items-center justify-center w-72 h-32 mb-4 group cursor-default bg-primary rounded-3xl shadow-lg p-4"
+            className="flex flex-col items-center gap-4 group cursor-default"
           >
-            {/* Floating Elements */}
-            <motion.div 
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-4 -right-4 w-16 h-16 bg-card rounded-2xl shadow-lg flex items-center justify-center text-primary"
-            >
-              <GraduationCap size={32} />
-            </motion.div>
-            <motion.div 
-              animate={{ y: [0, 5, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute -bottom-4 -left-4 w-12 h-12 bg-card rounded-xl shadow-lg flex items-center justify-center text-emerald-500"
-            >
-              <BookOpen size={24} />
-            </motion.div>
+            <div className="relative">
+              {/* Floating Elements - Moved to be around the text */}
+              <motion.div 
+                animate={{ 
+                  y: [0, -10, 0],
+                  rotate: [0, 10, 0]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-4 -right-12 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-primary border border-primary/10"
+              >
+                <GraduationCap size={24} />
+              </motion.div>
+              
+              <motion.div 
+                animate={{ 
+                  y: [0, 10, 0],
+                  rotate: [0, -10, 0]
+                }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="absolute -bottom-2 -left-12 w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-emerald-500 border border-emerald-500/10"
+              >
+                <BookOpen size={20} />
+              </motion.div>
 
-            <Logo className="w-full h-full transform group-hover:scale-105 transition-transform duration-500" withBackground={false} />
+              <h1 className="text-5xl font-black text-primary tracking-tighter drop-shadow-sm">
+                SMART SCHOOL
+              </h1>
+              <p className="text-primary/60 font-medium tracking-widest text-xs uppercase">
+                Management System
+              </p>
+            </div>
           </motion.div>
         </div>
 

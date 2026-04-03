@@ -872,6 +872,15 @@ export async function getSubjects() {
   return data;
 }
 
+export async function getAcademicYears() {
+  const { data, error } = await supabase
+    .from('academic_years')
+    .select('*')
+    .order('name');
+  if (error) throw error;
+  return data;
+}
+
 export async function createAcademicYear(year: any) {
   const { data, error } = await supabase
     .from('academic_years')
