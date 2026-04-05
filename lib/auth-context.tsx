@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('users')
         .select('*, parent_student(student_id)')
         .eq('id', sessionUser.id)
-        .single();
+        .maybeSingle();
       
       if (profile && profile.role === 'parent') {
         profile.studentIds = profile.parent_student?.map((ps: any) => ps.student_id) || [];
@@ -39,34 +39,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from('students')
           .select('id')
           .eq('user_id', profile.id)
-          .single();
+          .maybeSingle();
         profile.studentId = studentData?.id;
       }
       delete profile?.parent_student;
       
-      // Bootstrap roles for primary admin
-      const PRIMARY_ADMIN_EMAIL = 'sale7awooda@gmail.com';
-      const isPrimaryAdmin = sessionUser.email === PRIMARY_ADMIN_EMAIL;
-      
-      if (isPrimaryAdmin && (!profile || profile.role !== 'admin')) {
-        const adminProfile = {
+      // Bootstrap missing users (especially for MVP demo accounts)
+      if (!profile) {
+        let role = 'parent';
+        const email = sessionUser.email || '';
+        
+        if (email === 'sale7awooda@gmail.com' || email.startsWith('admin')) role = 'admin';
+        else if (email.startsWith('teacher')) role = 'teacher';
+        else if (email.startsWith('accountant')) role = 'accountant';
+        else if (email.startsWith('staff')) role = 'staff';
+        else if (email.startsWith('student')) role = 'student';
+
+        const newProfile = {
           id: sessionUser.id,
-          email: sessionUser.email,
-          name: sessionUser.user_metadata?.name || 'Admin User',
-          role: 'admin'
+          email: email,
+          name: sessionUser.user_metadata?.name || email.split('@')[0],
+          role: role
         };
 
-        // Attempt to update the database
-        const { data: updatedProfile } = await supabase
+        const { data: updatedProfile, error: upsertError } = await supabase
           .from('users')
-          .upsert(adminProfile)
+          .upsert(newProfile)
           .select()
-          .single();
+          .maybeSingle();
         
         if (updatedProfile) {
           profile = updatedProfile;
-        } else if (!profile) {
-          profile = adminProfile;
+        } else {
+          console.error("Failed to bootstrap user:", upsertError);
+          profile = newProfile; // Fallback to allow login
+        }
+      } else {
+        // Ensure primary admin always has admin role
+        const PRIMARY_ADMIN_EMAIL = 'sale7awooda@gmail.com';
+        if (sessionUser.email === PRIMARY_ADMIN_EMAIL && profile.role !== 'admin') {
+          const { data: updatedProfile } = await supabase
+            .from('users')
+            .update({ role: 'admin' })
+            .eq('id', sessionUser.id)
+            .select()
+            .maybeSingle();
+          if (updatedProfile) profile = updatedProfile;
         }
       }
 
@@ -83,29 +101,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return profile as User;
     };
 
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const profile = await getProfile(session.user);
-        setUser(profile);
+    let mounted = true;
+
+    const loadProfile = async (session: any) => {
+      if (!session?.user) {
+        if (mounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+        return;
       }
-      setIsLoading(false);
+
+      try {
+        const profile = await getProfile(session.user);
+        if (mounted) {
+          setUser(profile);
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
-    fetchUser();
+    // Initial fetch
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Error getting session:", error);
+      }
+      loadProfile(session);
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-      setIsLoading(true);
-      if (session?.user) {
-        const profile = await getProfile(session.user);
-        setUser(profile);
-      } else {
-        setUser(null);
+      if (event === 'INITIAL_SESSION') return; // Handled by getSession
+      
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setIsLoading(true);
       }
-      setIsLoading(false);
+      
+      loadProfile(session);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);

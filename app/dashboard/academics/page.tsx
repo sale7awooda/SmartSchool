@@ -120,7 +120,7 @@ function AdminAcademics() {
     const formData = new FormData(e.currentTarget);
     const classData = {
       name: formData.get("name") as string,
-      grade_level: formData.get("gradeLevel") as string,
+      grade: formData.get("grade") as string,
       section: formData.get("section") as string,
       academic_year_id: formData.get("academicYearId") as string
     };
@@ -301,7 +301,7 @@ function AdminAcademics() {
                         {cls.name}
                       </h4>
                       <p className="text-sm font-medium text-muted-foreground mt-1">
-                        {cls.grade_level} • Section {cls.section || "N/A"}
+                        {cls.grade} • Section {cls.section || "N/A"}
                       </p>
                       <p className="text-xs font-medium text-muted-foreground mt-1">
                         Year: {cls.academic_year?.name} • Teacher: {cls.teacher?.name || "Unassigned"}
@@ -477,8 +477,8 @@ function AdminAcademics() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Grade Level</label>
-                    <input required name="gradeLevel" type="text" placeholder="e.g., Grade 4" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                    <label className="block text-sm font-bold text-foreground mb-2">Grade</label>
+                    <input required name="grade" type="text" placeholder="e.g., Grade 4" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Section</label>

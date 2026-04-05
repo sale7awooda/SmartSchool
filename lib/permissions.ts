@@ -10,14 +10,14 @@ type Resource =
   | 'academics' 
   | 'schedule' 
   | 'exams' 
-  | 'library' 
+  | 'visitors' 
   | 'communication' 
   | 'transport' 
   | 'settings'
   | 'analytics'
   | 'attendance'
   | 'hr'
-  | 'operations'
+  | 'inventory'
   | 'fees';
 
 // Define permissions matrix
@@ -30,14 +30,14 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     academics: ['view', 'create', 'edit', 'delete', 'manage'],
     schedule: ['view', 'create', 'edit', 'delete', 'manage'],
     exams: ['view', 'create', 'edit', 'delete', 'manage'],
-    library: ['view', 'create', 'edit', 'delete', 'manage'],
+    visitors: ['view', 'create', 'edit', 'delete', 'manage'],
     communication: ['view', 'create', 'edit', 'delete', 'manage'],
     transport: ['view', 'create', 'edit', 'delete', 'manage'],
     settings: ['view', 'create', 'edit', 'delete', 'manage'],
     analytics: ['view', 'create', 'edit', 'delete', 'manage'],
     attendance: ['view', 'create', 'edit', 'delete', 'manage'],
     hr: ['view', 'create', 'edit', 'delete', 'manage'],
-    operations: ['view', 'create', 'edit', 'delete', 'manage'],
+    inventory: ['view', 'create', 'edit', 'delete', 'manage'],
     fees: ['view', 'create', 'edit', 'delete', 'manage'],
   },
   accountant: {
@@ -48,14 +48,14 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     academics: ['view'],
     schedule: ['view'],
     exams: [],
-    library: [],
+    visitors: [],
     communication: ['view', 'create'],
     transport: ['view'],
     settings: ['view'],
     analytics: ['view'],
     attendance: ['view'],
     hr: ['view'],
-    operations: ['view'],
+    inventory: ['view'],
     fees: ['view', 'create', 'edit', 'delete', 'manage'],
   },
   teacher: {
@@ -66,14 +66,14 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     academics: ['view', 'edit'], // Edit grades
     schedule: ['view'],
     exams: ['view', 'create', 'edit', 'delete'], // Manage own exams
-    library: ['view'],
+    visitors: ['view'],
     communication: ['view', 'create'],
     transport: [],
     settings: ['view'], // Personal settings
     analytics: [],
     attendance: ['view', 'create', 'edit'], // Teachers take attendance
     hr: ['view'],
-    operations: ['view'],
+    inventory: ['view'],
     fees: [],
   },
   staff: { // Generic staff (e.g. librarian, driver)
@@ -84,14 +84,14 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     academics: [],
     schedule: ['view'],
     exams: [],
-    library: ['view', 'create', 'edit', 'delete', 'manage'], // Assuming librarian role falls here for now, or we restrict by department
+    visitors: ['view', 'create', 'edit', 'delete', 'manage'],
     communication: ['view'],
     transport: ['view', 'create', 'edit', 'delete', 'manage'], // Assuming driver role falls here
     settings: ['view'],
     analytics: [],
     attendance: ['view'],
     hr: ['view'],
-    operations: ['view', 'create', 'edit', 'delete', 'manage'],
+    inventory: ['view', 'create', 'edit', 'delete', 'manage'],
     fees: [],
   },
   parent: {
@@ -102,14 +102,14 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     academics: ['view'], // View own children's grades
     schedule: ['view'], // View own children's schedule
     exams: ['view'], // View own children's exams
-    library: ['view'], // View own children's library books
+    visitors: [],
     communication: ['view', 'create'],
     transport: ['view'],
     settings: ['view'],
     analytics: [],
     attendance: ['view'],
     hr: [],
-    operations: [],
+    inventory: [],
     fees: ['view'],
   },
   student: {
@@ -120,14 +120,14 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     academics: ['view'], // View own grades
     schedule: ['view'], // View own schedule
     exams: ['view', 'edit'], // View exams, take exams (edit)
-    library: ['view'], // View own library books
+    visitors: [],
     communication: ['view', 'create'],
     transport: ['view'],
     settings: ['view'],
     analytics: [],
     attendance: ['view'],
     hr: [],
-    operations: [],
+    inventory: [],
     fees: [],
   }
 };

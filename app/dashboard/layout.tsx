@@ -20,10 +20,10 @@ import {
   Menu,
   Bus,
   MessageSquare,
-  Briefcase,
   TrendingUp,
-  Library,
-  UserCog
+  UserCog,
+  UserCheck,
+  Package
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -69,13 +69,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground gap-4">
         <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
         <p className="text-muted-foreground font-medium animate-pulse">Loading dashboard...</p>
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // Will redirect in auth-context
   }
 
   const getNavItems = () => {
@@ -86,11 +90,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: t('exams'), href: '/dashboard/exams', icon: FileText, show: can('view', 'exams') },
       { name: t('schedule'), href: '/dashboard/schedule', icon: CalendarDays, show: can('view', 'schedule') },
       { name: t('attendance'), href: '/dashboard/attendance', icon: CalendarCheck, show: can('view', 'attendance') },
-      { name: t('library'), href: '/dashboard/library', icon: Library, show: can('view', 'library') },
       { name: t('fees'), href: '/dashboard/fees', icon: CreditCard, show: can('view', 'fees') },
       { name: t('hr'), href: '/dashboard/hr', icon: UserCog, show: can('view', 'hr') },
       { name: t('transport'), href: '/dashboard/transport', icon: Bus, show: can('view', 'transport') },
-      { name: t('operations'), href: '/dashboard/operations', icon: Briefcase, show: can('view', 'operations') },
+      { name: 'Visitors', href: '/dashboard/visitors', icon: UserCheck, show: can('view', 'visitors') },
+      { name: 'Inventory', href: '/dashboard/inventory', icon: Package, show: can('view', 'inventory') },
       { name: t('analytics'), href: '/dashboard/analytics', icon: TrendingUp, show: can('view', 'analytics') },
       { name: t('communication'), href: '/dashboard/communication', icon: MessageSquare, show: can('view', 'communication') },
       { name: t('settings'), href: '/dashboard/settings', icon: Settings, show: can('view', 'settings') },

@@ -92,12 +92,12 @@ export default function SettingsPage() {
       if (saved) return JSON.parse(saved);
     }
     return {
-      admin: ['dashboard', 'students', 'staff', 'attendance', 'schedule', 'exams', 'fees', 'transport', 'library', 'inventory', 'notices', 'settings'],
+      admin: ['dashboard', 'students', 'staff', 'attendance', 'schedule', 'exams', 'fees', 'transport', 'visitors', 'inventory', 'notices', 'settings'],
       teacher: ['dashboard', 'students', 'attendance', 'schedule', 'exams', 'notices'],
-      student: ['dashboard', 'schedule', 'exams', 'fees', 'library', 'notices'],
+      student: ['dashboard', 'schedule', 'exams', 'fees', 'notices'],
       parent: ['dashboard', 'students', 'attendance', 'schedule', 'fees', 'notices'],
       accountant: ['dashboard', 'fees', 'inventory', 'notices'],
-      librarian: ['dashboard', 'library', 'notices'],
+      librarian: ['dashboard', 'notices'],
     };
   });
 
@@ -472,7 +472,7 @@ export default function SettingsPage() {
                           { id: 'exams', label: 'Exams & Results' },
                           { id: 'fees', label: 'Fees & Finance' },
                           { id: 'transport', label: 'Transport/Live Map' },
-                          { id: 'library', label: 'Library' },
+                          { id: 'visitors', label: 'Visitors' },
                           { id: 'inventory', label: 'Inventory' },
                           { id: 'notices', label: 'Notices & Events' },
                           { id: 'settings', label: 'System Settings' },

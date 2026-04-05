@@ -226,10 +226,10 @@ export async function getStudentAttendance(studentId: string) {
 }
 
 export async function getAttendanceByClass(date: string) {
-  // Fetch all students with their grade and section
+  // Fetch all students with their grade
   const { data: students, error: studentsError } = await supabase
     .from('students')
-    .select('id, grade, section');
+    .select('id, grade');
     
   if (studentsError) throw studentsError;
 
@@ -241,11 +241,11 @@ export async function getAttendanceByClass(date: string) {
     
   if (attendanceError) throw attendanceError;
 
-  // Group by class (grade + section)
+  // Group by class (grade)
   const classStats: Record<string, { cls: string, total: number, present: number, status: 'submitted' | 'pending' }> = {};
 
   students.forEach((student: any) => {
-    const className = `${student.grade || 'Unknown'} - ${student.section || 'A'}`;
+    const className = `${student.grade || 'Unknown'}`;
     if (!classStats[className]) {
       classStats[className] = { cls: className, total: 0, present: 0, status: 'pending' };
     }
@@ -255,7 +255,7 @@ export async function getAttendanceByClass(date: string) {
   attendance.forEach((record: any) => {
     const student = students.find((s: any) => s.id === record.student_id);
     if (student) {
-      const className = `${student.grade || 'Unknown'} - ${student.section || 'A'}`;
+      const className = `${student.grade || 'Unknown'}`;
       if (classStats[className]) {
         classStats[className].status = 'submitted';
         if (record.status === 'present' || record.status === 'late') {
@@ -639,7 +639,7 @@ export async function saveAttendance(attendanceData: any[]) {
 export async function getStudentById(id: string) {
   const { data, error } = await supabase
     .from('students')
-    .select('id, name, roll_number, grade, section')
+    .select('id, name, roll_number, grade')
     .eq('id', id)
     .single();
   
@@ -649,10 +649,18 @@ export async function getStudentById(id: string) {
 
 // Academic Management
 export async function getStudentByUserId(userId: string) {
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('student_id')
+    .eq('id', userId)
+    .single();
+  
+  if (userError || !user?.student_id) throw userError || new Error('Student ID not found for user');
+
   const { data, error } = await supabase
     .from('students')
     .select('id, name, roll_number')
-    .eq('user_id', userId)
+    .eq('id', user.student_id)
     .single();
   
   if (error) throw error;
@@ -856,7 +864,7 @@ export async function getClasses() {
     .select(`
       *,
       academic_year:academic_year_id(name),
-      teacher:teacher_id(name)
+      teacher:class_teacher_id(name)
     `)
     .order('name');
   if (error) throw error;
@@ -926,20 +934,31 @@ export async function seedDatabase(demoData: any) {
     if (error) console.error(`Error seeding ${table}:`, error);
   };
 
+  // Helper to convert mock string IDs to UUIDs
+  const toUUID = (id: string) => {
+    if (!id) return null;
+    // Simple hash to UUID format
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = ((hash << 5) - hash) + id.charCodeAt(i);
+      hash |= 0;
+    }
+    const hex = Math.abs(hash).toString(16).padStart(12, '0');
+    return `00000000-0000-4000-8000-${hex}`;
+  };
+
   // 1. Seed Users
   await safeUpsert('users', MOCK_USERS.map((u: any) => ({
-    id: u.id,
+    id: toUUID(u.id),
     name: u.name,
     email: u.email,
     role: u.role.toLowerCase(),
-    avatar_url: u.avatar,
-    address: u.address,
     phone: u.phone
   })));
 
   // 2. Seed Parents (as Users)
   await safeUpsert('users', MOCK_PARENTS.map((p: any) => ({
-    id: p.id,
+    id: toUUID(p.id),
     name: p.name,
     email: p.email,
     role: 'parent',
@@ -948,14 +967,15 @@ export async function seedDatabase(demoData: any) {
 
   // 3. Seed Students
   await safeUpsert('students', MOCK_STUDENTS.map((s: any) => ({
-    user_id: s.id,
-    roll_number: s.rollNumber || s.studentId,
+    id: toUUID(s.id),
+    name: s.name,
     grade: s.grade,
-    section: s.section || 'A',
+    roll_number: s.rollNumber || s.studentId,
     dob: s.dob,
-    blood_group: s.medical?.bloodGroup || s.bloodGroup,
-    admission_date: s.admissionDate || new Date().toISOString().split('T')[0]
-  })), 'user_id');
+    gender: s.gender || 'Other',
+    address: s.address || 'Unknown',
+    academic_year: MOCK_ACADEMIC_YEARS[0].name
+  })));
 
   // 4. Seed Notices
   await safeUpsert('notices', MOCK_NOTICES.map((n: any) => ({
@@ -980,7 +1000,7 @@ export async function seedDatabase(demoData: any) {
     grade: c.grade,
     section: c.section,
     room: c.room,
-    teacher_id: c.teacher_id,
+    class_teacher_id: toUUID(c.teacher_id),
     academic_year_id: MOCK_ACADEMIC_YEARS[0].id
   })));
 
@@ -996,7 +1016,7 @@ export async function seedDatabase(demoData: any) {
 
   // 9. Seed Attendance
   await safeUpsert('attendance', MOCK_ATTENDANCE.map((a: any) => ({
-    student_id: a.student_id,
+    student_id: toUUID(a.student_id),
     date: a.date,
     status: a.status.toLowerCase()
   })), 'student_id,date');
@@ -1007,12 +1027,31 @@ export async function seedDatabase(demoData: any) {
   // 11. Seed Invoices
   await safeUpsert('fee_invoices', MOCK_INVOICES.map((i: any) => ({
     id: i.id,
-    student_id: i.student_id,
+    student_id: toUUID(i.student_id),
     amount: i.amount,
     due_date: i.due_date,
     status: i.status,
     description: i.description
   })));
+
+  // 12. Seed Parent-Student Links
+  const parentStudentLinks: any[] = [];
+  MOCK_PARENTS.forEach((p: any) => {
+    if (p.studentIds) {
+      p.studentIds.forEach((sId: string) => {
+        parentStudentLinks.push({
+          parent_id: toUUID(p.id),
+          student_id: toUUID(sId)
+        });
+      });
+    } else if (p.studentId) {
+      parentStudentLinks.push({
+        parent_id: toUUID(p.id),
+        student_id: toUUID(p.studentId)
+      });
+    }
+  });
+  await safeUpsert('parent_student', parentStudentLinks, 'parent_id,student_id');
 
   return { success: true };
 }
