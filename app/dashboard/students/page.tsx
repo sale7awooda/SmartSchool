@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent } from '@/lib/mock-db';
-import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses } from '@/lib/supabase-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
   MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown,
@@ -68,6 +68,9 @@ export default function StudentsPage() {
   
   const behaviorRecords = behaviorData || [];
   const timelineRecords = timelineData || [];
+
+  const { data: classesData } = useSWR('classes', getClasses);
+  const classesList = classesData?.map(c => c.name) || [];
 
   const [formData, setFormData] = useState({
     name: '',
@@ -450,12 +453,9 @@ export default function StudentsPage() {
                       className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.grade ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`}
                     >
                       <option value="">Select Grade</option>
-                      <option value="1">Grade 1</option>
-                      <option value="2">Grade 2</option>
-                      <option value="3">Grade 3</option>
-                      <option value="4">Grade 4</option>
-                      <option value="5">Grade 5</option>
-                      <option value="6">Grade 6</option>
+                      {classesList.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
                     </select>
                     {formErrors.grade && <p className="text-xs text-red-500 font-medium">{formErrors.grade}</p>}
                   </div>

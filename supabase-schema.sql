@@ -308,7 +308,7 @@ CREATE POLICY "All users can view stops" ON public.bus_stops FOR SELECT USING (a
 
 -- Notices Policies
 DROP POLICY IF EXISTS "Admins can manage notices" ON public.notices;
-CREATE POLICY "Admins can manage notices" ON public.notices FOR ALL USING (get_user_role() = 'admin');
+CREATE POLICY "Staff can manage notices" ON public.notices FOR ALL USING (get_user_role() IN ('admin', 'teacher', 'accountant', 'staff'));
 DROP POLICY IF EXISTS "All users can view notices" ON public.notices;
 CREATE POLICY "All users can view notices" ON public.notices FOR SELECT USING (auth.role() = 'authenticated');
 

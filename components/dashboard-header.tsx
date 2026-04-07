@@ -21,36 +21,8 @@ import { useTheme } from 'next-themes';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { motion, AnimatePresence } from 'motion/react';
-
-const MOCK_NOTIFICATIONS = [
-  {
-    id: 1,
-    title: 'New Grade Posted',
-    message: 'Mathematics Mid-term results are now available.',
-    time: '2 mins ago',
-    type: 'success',
-    icon: CheckCircle2,
-    color: 'text-emerald-500 bg-emerald-500/10'
-  },
-  {
-    id: 2,
-    title: 'Attendance Alert',
-    message: 'Student ID #1234 was marked absent for the first period.',
-    time: '1 hour ago',
-    type: 'warning',
-    icon: Clock,
-    color: 'text-amber-500 bg-amber-500/10'
-  },
-  {
-    id: 3,
-    title: 'Fee Reminder',
-    message: 'Term 2 tuition fees are due by next Friday.',
-    time: '5 hours ago',
-    type: 'error',
-    icon: AlertCircle,
-    color: 'text-rose-500 bg-destructive/10'
-  }
-];
+import useSWR from 'swr';
+import { getNotices } from '@/lib/supabase-db';
 
 interface DashboardHeaderProps {
   onShowProfile?: () => void;
@@ -64,6 +36,18 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const { data: notices } = useSWR('notices', getNotices);
+  
+  const notifications = notices?.slice(0, 5).map(notice => ({
+    id: notice.id,
+    title: notice.title,
+    message: notice.content,
+    time: new Date(notice.created_at).toLocaleDateString(),
+    type: notice.is_important ? 'error' : 'info',
+    icon: notice.is_important ? AlertCircle : Bell,
+    color: notice.is_important ? 'text-rose-500 bg-destructive/10' : 'text-primary bg-primary/10'
+  })) || [];
 
   if (!user) return null;
 
@@ -124,12 +108,16 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
                 >
                   <div className="p-4 border-b border-border flex items-center justify-between">
                     <h3 className="font-bold text-foreground">{t('notifications')}</h3>
-                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">3 {t('new')}</span>
+                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">{notifications.length} {t('new')}</span>
                   </div>
                   <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                    {MOCK_NOTIFICATIONS.map((notification) => (
+                    {notifications.length > 0 ? notifications.map((notification) => (
                       <div 
                         key={notification.id}
+                        onClick={() => {
+                          setShowNotifications(false);
+                          router.push('/dashboard/communication');
+                        }}
                         className="p-4 hover:bg-muted/50 transition-colors cursor-pointer border-b border-border last:border-0"
                       >
                         <div className="flex gap-3">
@@ -143,10 +131,22 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="p-8 text-center text-muted-foreground text-sm">
+                        No new notifications
+                      </div>
+                    )}
                   </div>
                   <div className="p-3 bg-muted/30 text-center border-t border-border">
-                    <button className="text-xs font-bold text-primary hover:text-primary/80">{t('view_all_notifications')}</button>
+                    <button 
+                      onClick={() => {
+                        setShowNotifications(false);
+                        router.push('/dashboard/communication');
+                      }}
+                      className="text-xs font-bold text-primary hover:text-primary/80"
+                    >
+                      {t('view_all_notifications')}
+                    </button>
                   </div>
                 </motion.div>
               </>

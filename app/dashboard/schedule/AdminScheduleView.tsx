@@ -15,7 +15,8 @@ import {
 import Link from 'next/link';
 import { usePermissions } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase/client';
-import { getSchedules } from '@/lib/supabase-db';
+import { getSchedules, getClasses } from '@/lib/supabase-db';
+import useSWR from 'swr';
 
 import { MOCK_SCHEDULE } from '@/lib/mock-db';
 
@@ -36,6 +37,8 @@ export default function AdminScheduleView() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { can } = usePermissions();
+  const { data: classesData } = useSWR('classes', getClasses);
+  const grades = classesData?.map(c => c.name) || ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
 
   useEffect(() => {
     async function loadSchedules() {
@@ -157,7 +160,7 @@ export default function AdminScheduleView() {
 
           {/* Grid Body */}
           <div className="divide-y divide-slate-100">
-            {GRADES.map(grade => (
+            {grades.map(grade => (
               <div key={grade} className="grid grid-cols-[120px_repeat(7,1fr)]">
                 {/* Grade Column */}
                 <div className="p-4 border-r border-border flex items-center justify-center bg-muted/30 font-bold text-foreground">

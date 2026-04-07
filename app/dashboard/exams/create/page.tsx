@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
+import { getSubjects, getClasses } from '@/lib/supabase-db';
 import { 
   ArrowLeft, 
   Save, 
@@ -15,24 +17,36 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
-const SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Art', 'Physical Education', 'Music', 'Computer Science'];
-
 export default function CreateExamPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
 
+  const { data: subjectsData } = useSWR('subjects', getSubjects);
+  const { data: classesData } = useSWR('classes', getClasses);
+
+  const subjectsList = subjectsData?.map(s => s.name) || ['Loading...'];
+  const gradesList = classesData?.map(c => c.name) || ['Loading...'];
+
   // Exam Details
   const [examDetails, setExamDetails] = useState({
     title: '',
-    subject: SUBJECTS[0],
-    grade: GRADES[0],
+    subject: '',
+    grade: '',
     date: '',
     duration: 60,
     totalMarks: 100,
   });
+
+  useEffect(() => {
+    if (subjectsData && subjectsData.length > 0 && !examDetails.subject) {
+      setExamDetails(prev => ({ ...prev, subject: subjectsData[0].name }));
+    }
+    if (classesData && classesData.length > 0 && !examDetails.grade) {
+      setExamDetails(prev => ({ ...prev, grade: classesData[0].name }));
+    }
+  }, [subjectsData, classesData]);
 
   // Questions
   const [questions, setQuestions] = useState([
@@ -158,7 +172,7 @@ export default function CreateExamPage() {
                   onChange={(e) => setExamDetails({...examDetails, subject: e.target.value})}
                   className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 >
-                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {subjectsList.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
@@ -168,7 +182,7 @@ export default function CreateExamPage() {
                   onChange={(e) => setExamDetails({...examDetails, grade: e.target.value})}
                   className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 >
-                  {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+                  {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
             </div>

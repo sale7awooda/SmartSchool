@@ -768,8 +768,11 @@ function TeacherAcademics() {
     Record<string, Record<string, string>>
   >({});
 
-  const classes = ["Grade 4 - Section A", "Grade 4 - Section B"];
-  const subjects = ["Mathematics", "Science", "English"];
+  const { data: classesData } = useSWR('classes', getClasses);
+  const { data: subjectsData } = useSWR('subjects', getSubjects);
+
+  const classes = classesData?.map(c => c.name) || ["Loading..."];
+  const subjects = subjectsData?.map(s => s.name) || ["Loading..."];
 
   const handleGradeChange = (studentId: string, value: string) => {
     if (!selectedAssessment) return;
