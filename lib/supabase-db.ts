@@ -947,23 +947,8 @@ export async function seedDatabase(demoData: any) {
     return `00000000-0000-4000-8000-${hex}`;
   };
 
-  // 1. Seed Users
-  await safeUpsert('users', MOCK_USERS.map((u: any) => ({
-    id: toUUID(u.id),
-    name: u.name,
-    email: u.email,
-    role: u.role.toLowerCase(),
-    phone: u.phone
-  })));
-
-  // 2. Seed Parents (as Users)
-  await safeUpsert('users', MOCK_PARENTS.map((p: any) => ({
-    id: toUUID(p.id),
-    name: p.name,
-    email: p.email,
-    role: 'parent',
-    phone: p.phone
-  })));
+  // 1. Seed Users - SKIPPED due to auth.users foreign key constraint
+  // 2. Seed Parents - SKIPPED due to auth.users foreign key constraint
 
   // 3. Seed Students
   await safeUpsert('students', MOCK_STUDENTS.map((s: any) => ({
@@ -979,39 +964,47 @@ export async function seedDatabase(demoData: any) {
 
   // 4. Seed Notices
   await safeUpsert('notices', MOCK_NOTICES.map((n: any) => ({
-    id: n.id,
+    id: toUUID(n.id),
     title: n.title,
     content: n.content,
-    category: n.targetAudience,
-    date: n.date,
-    is_urgent: n.isImportant
+    target_audience: n.targetAudience || 'all',
+    is_important: n.isImportant || false
   })));
 
   // 5. Seed Academic Years
-  await safeUpsert('academic_years', MOCK_ACADEMIC_YEARS);
+  await safeUpsert('academic_years', MOCK_ACADEMIC_YEARS.map((y: any) => ({
+    id: toUUID(y.id),
+    name: y.name,
+    start_date: y.startDate,
+    end_date: y.endDate,
+    is_active: y.status === 'Active'
+  })));
 
   // 6. Seed Subjects
-  await safeUpsert('subjects', MOCK_SUBJECTS);
+  await safeUpsert('subjects', MOCK_SUBJECTS.map((s: any) => ({
+    id: toUUID(s.id),
+    name: s.name,
+    code: s.code || s.name.substring(0, 3).toUpperCase(),
+    description: s.description || ''
+  })));
 
   // 7. Seed Classes
   await safeUpsert('classes', MOCK_CLASSES.map((c: any) => ({
-    id: c.id,
+    id: toUUID(c.id),
     name: c.name,
     grade: c.grade,
     section: c.section,
-    room: c.room,
-    class_teacher_id: toUUID(c.teacher_id),
-    academic_year_id: MOCK_ACADEMIC_YEARS[0].id
+    academic_year_id: toUUID(MOCK_ACADEMIC_YEARS[0].id)
   })));
 
   // 8. Seed Exams
   await safeUpsert('assessments', MOCK_EXAMS.map((e: any) => ({
-    id: e.id,
+    id: toUUID(e.id),
     title: e.title,
-    subject: 'General',
-    type: e.type,
-    date: e.date,
-    status: e.status === 'Completed' ? 'published' : 'draft'
+    subject: e.subject || 'General',
+    grade: e.grade || 'Grade 4',
+    type: 'exam',
+    due_date: e.date ? new Date(e.date).toISOString() : new Date().toISOString()
   })));
 
   // 9. Seed Attendance
@@ -1021,38 +1014,20 @@ export async function seedDatabase(demoData: any) {
     status: a.status.toLowerCase()
   })), 'student_id,date');
 
-  // 10. Seed Books
-  await safeUpsert('books', MOCK_BOOKS);
+  // 10. Seed Books - SKIPPED (Library module removed)
 
   // 11. Seed Invoices
-  await safeUpsert('fee_invoices', MOCK_INVOICES.map((i: any) => ({
-    id: i.id,
+  await safeUpsert('fee_invoices', MOCK_INVOICES?.map((i: any) => ({
+    id: toUUID(i.id),
     student_id: toUUID(i.student_id),
     amount: i.amount,
     due_date: i.due_date,
-    status: i.status,
+    status: i.status.toLowerCase(),
     description: i.description
-  })));
+  })) || []);
 
-  // 12. Seed Parent-Student Links
-  const parentStudentLinks: any[] = [];
-  MOCK_PARENTS.forEach((p: any) => {
-    if (p.studentIds) {
-      p.studentIds.forEach((sId: string) => {
-        parentStudentLinks.push({
-          parent_id: toUUID(p.id),
-          student_id: toUUID(sId)
-        });
-      });
-    } else if (p.studentId) {
-      parentStudentLinks.push({
-        parent_id: toUUID(p.id),
-        student_id: toUUID(p.studentId)
-      });
-    }
-  });
-  await safeUpsert('parent_student', parentStudentLinks, 'parent_id,student_id');
-
+  // 12. Seed Parent-Student Links - SKIPPED due to users foreign key constraint
+  
   return { success: true };
 }
 
@@ -1159,7 +1134,7 @@ export async function saveSchedule(scheduleData: any) {
 export async function resetDatabase(keepUsers: boolean = true) {
   const tables = [
     'attendance', 'behavior_records', 'timeline_records', 'submissions', 
-    'assessments', 'fee_invoices', 'books', 'bus_stops', 'bus_routes', 
+    'assessments', 'fee_invoices', 'bus_stops', 'bus_routes', 
     'parent_student', 'students', 'classes', 'subjects', 'academic_years', 'notices'
   ];
 
