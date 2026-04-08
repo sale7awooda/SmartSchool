@@ -7,6 +7,7 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { SWRProvider } from '@/components/swr-provider';
+import { SettingsProvider } from '@/lib/settings-context';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -47,9 +48,11 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         >
           <LanguageProvider>
             <SWRProvider>
-              <AuthProvider>
-                {children}
-              </AuthProvider>
+              <SettingsProvider>
+                <AuthProvider>
+                  {children}
+                </AuthProvider>
+              </SettingsProvider>
             </SWRProvider>
           </LanguageProvider>
         </ThemeProvider>

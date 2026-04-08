@@ -9,14 +9,13 @@ import {
   Loader2, History, FolderOpen
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { getTeachers, saveScheduleDraft, getScheduleDrafts, publishSchedule, deleteScheduleDraft, getSchedules } from '@/lib/supabase-db';
+import { getTeachers, saveScheduleDraft, getScheduleDrafts, publishSchedule, deleteScheduleDraft, getSchedules, getClasses, getSubjects, getActiveAcademicYear } from '@/lib/supabase-db';
 import { toast } from 'sonner';
 import { User as DBUser } from '@/lib/mock-db';
+import useSWR from 'swr';
 
 // Mock Data
-const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const SYSTEM_SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Art', 'Physical Education', 'Music', 'Computer Science'];
 const SYSTEM_TEACHERS = ['Mr. Smith', 'Mrs. Davis', 'Dr. Brown', 'Ms. Wilson', 'Mr. Taylor', 'Ms. Anderson', 'Mr. Thomas', 'Mrs. Jackson', 'Mr. White'];
 const COLORS = [
   'bg-blue-500/20 text-blue-800 border-blue-200', 
@@ -39,6 +38,7 @@ const INITIAL_SCHEDULE: any[] = [];
 
 export default function TimetableWizard() {
   const router = useRouter();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [schedule, setSchedule] = useState<any[]>(INITIAL_SCHEDULE);
@@ -47,6 +47,12 @@ export default function TimetableWizard() {
   const [drafts, setDrafts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+
+  const { data: classesData } = useSWR('classes', getClasses);
+  const { data: subjectsData } = useSWR('subjects', getSubjects);
+
+  const GRADES = useMemo(() => classesData?.map(c => c.name) || ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'], [classesData]);
+  const SYSTEM_SUBJECTS = useMemo(() => subjectsData?.map(s => s.name) || ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Art', 'Physical Education', 'Music', 'Computer Science'], [subjectsData]);
 
   // Step 1 State: Constraints
   const [constraints, setConstraints] = useState({
@@ -58,7 +64,17 @@ export default function TimetableWizard() {
 
   // Step 2 State: Subject Mapping
   const [mappings, setMappings] = useState<{id: string, grade: string, subject: string, teacher: string, classesPerWeek: number}[]>([]);
-  const [newMapping, setNewMapping] = useState({ grade: GRADES[0], subject: SYSTEM_SUBJECTS[0], teacher: '', classesPerWeek: 1 });
+  const [newMapping, setNewMapping] = useState({ grade: '', subject: '', teacher: '', classesPerWeek: 1 });
+
+  useEffect(() => {
+    if (GRADES.length > 0 && SYSTEM_SUBJECTS.length > 0 && !newMapping.grade) {
+      setNewMapping(prev => ({
+        ...prev,
+        grade: GRADES[0],
+        subject: SYSTEM_SUBJECTS[0]
+      }));
+    }
+  }, [GRADES, SYSTEM_SUBJECTS, newMapping.grade]);
 
   useEffect(() => {
     async function loadData() {
@@ -69,7 +85,7 @@ export default function TimetableWizard() {
           setNewMapping(prev => ({ ...prev, teacher: fetchedTeachers[0].name }));
         }
 
-        const draftsData = await getScheduleDrafts();
+        const draftsData = await getScheduleDrafts(activeAcademicYear?.name);
         setDrafts(draftsData);
         
         if (draftsData && draftsData.length > 0) {
@@ -124,13 +140,14 @@ export default function TimetableWizard() {
         name: draftName,
         constraints,
         mappings,
-        schedule
+        schedule,
+        academic_year: activeAcademicYear?.name
       });
       setDraftSaved(`Draft Saved`);
       toast.success('Draft saved successfully');
       
       // Refresh drafts list
-      const draftsData = await getScheduleDrafts();
+      const draftsData = await getScheduleDrafts(activeAcademicYear?.name);
       setDrafts(draftsData);
       
       setTimeout(() => setDraftSaved(null), 3000);
@@ -213,6 +230,10 @@ export default function TimetableWizard() {
   };
 
   const handlePublish = async () => {
+    if (!activeAcademicYear) {
+      toast.error('Active academic year not found');
+      return;
+    }
     try {
       const scheduleItems = schedule.map(s => ({
         class_id: s.grade,
@@ -223,7 +244,7 @@ export default function TimetableWizard() {
         room: s.room
       }));
 
-      await publishSchedule(scheduleItems);
+      await publishSchedule(scheduleItems, activeAcademicYear.name);
       toast.success('Schedule published successfully');
       router.push('/dashboard/schedule');
     } catch (error) {

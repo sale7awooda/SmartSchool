@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { getPaginatedAssessments } from '@/lib/supabase-db';
+import { getPaginatedAssessments, getActiveAcademicYear } from '@/lib/supabase-db';
 import { motion } from 'motion/react';
 import { 
   FileText, 
@@ -60,6 +60,7 @@ const EXAMS = [
 
 export default function ExamsPage() {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const { can, isRole } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -76,8 +77,8 @@ export default function ExamsPage() {
   }, [searchQuery]);
 
   const { data: examsResponse, isLoading } = useSWR(
-    ['exams', page, debouncedSearch, statusFilter],
-    ([_, p, s, status]) => getPaginatedAssessments(p, limit, s, status)
+    ['exams', page, debouncedSearch, statusFilter, activeAcademicYear?.name],
+    ([_, p, s, status, a]) => getPaginatedAssessments(p, limit, s, status, a)
   );
 
   const exams = examsResponse?.data || [];

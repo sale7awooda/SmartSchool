@@ -1,9 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
-import { getPaginatedStaff, updateUserRole } from '@/lib/supabase-db';
+import { 
+  getPaginatedStaff, 
+  updateUserRole, 
+  getAcademicYears, 
+  setActiveAcademicYear,
+  getClasses,
+  getSubjects,
+  createAcademicYear,
+  createClass,
+  createSubject,
+  deleteAcademicYear,
+  deleteClass,
+  deleteSubject,
+  createStaff
+} from '@/lib/supabase-db';
 import { usePermissions } from '@/lib/permissions';
+import { useSettings } from '@/lib/settings-context';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
@@ -62,22 +78,39 @@ import {
 export default function SettingsPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
+  const { settings, updateSettings } = useSettings();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'general' | 'admin' | 'configurations' | 'data' | 'master' | 'staff'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  
+  const { data: academicYears, mutate: mutateAcademicYears } = useSWR('academic_years', getAcademicYears);
+  const { data: classes, mutate: mutateClasses } = useSWR('classes', getClasses);
+  const { data: subjects, mutate: mutateSubjects } = useSWR('subjects', getSubjects);
   
   // Profile State
   const [profileName, setProfileName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_NAME') : '') || user?.name || '');
   const [profileEmail, setProfileEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_EMAIL') : '') || user?.email || '');
   const [profilePhone, setProfilePhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('USER_PROFILE_PHONE') : '') || user?.phone || '');
 
-  // System Config State
-  const [schoolName, setSchoolName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_NAME') : '') || 'Greenwood High School');
-  const [schoolAddress, setSchoolAddress] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_ADDRESS') : '') || '123 Education Lane, Learning City');
-  const [schoolPhone, setSchoolPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_PHONE') : '') || '+1 (555) 012-3456');
-  const [schoolEmail, setSchoolEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('SCHOOL_EMAIL') : '') || 'info@greenwoodhigh.edu');
+  // System Config State (from context)
+  const [schoolName, setSchoolName] = useState(settings?.school_name || '');
+  const [schoolAddress, setSchoolAddress] = useState(settings?.school_address || '');
+  const [schoolPhone, setSchoolPhone] = useState(settings?.school_phone || '');
+  const [schoolEmail, setSchoolEmail] = useState(settings?.school_email || '');
+
+  useEffect(() => {
+    if (settings) {
+      setSchoolName(settings.school_name);
+      setSchoolAddress(settings.school_address);
+      setSchoolPhone(settings.school_phone);
+      setSchoolEmail(settings.school_email);
+    }
+  }, [settings]);
+
   const [staff, setStaff] = useState<any[]>([]);
+  const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
+  const [isAddMasterOpen, setIsAddMasterOpen] = useState<{show: boolean, type: 'year' | 'class' | 'subject'}>({show: false, type: 'year'});
 
   useEffect(() => {
     if (activeTab === 'staff') {
@@ -121,30 +154,40 @@ export default function SettingsPage() {
     e.preventDefault();
     setIsSaving(true);
     
-    // Save configurations to localStorage
-    if (activeTab === 'general') {
-      localStorage.setItem('SCHOOL_NAME', schoolName);
-      localStorage.setItem('SCHOOL_ADDRESS', schoolAddress);
-      localStorage.setItem('SCHOOL_PHONE', schoolPhone);
-      localStorage.setItem('SCHOOL_EMAIL', schoolEmail);
-    }
+    try {
+      if (activeTab === 'general') {
+        await updateSettings({
+          school_name: schoolName,
+          school_address: schoolAddress,
+          school_phone: schoolPhone,
+          school_email: schoolEmail
+        });
+      }
 
-    if (activeTab === 'profile') {
-      // In a real app, you'd call a Supabase update here
-      localStorage.setItem('USER_PROFILE_NAME', profileName);
-      localStorage.setItem('USER_PROFILE_EMAIL', profileEmail);
-      localStorage.setItem('USER_PROFILE_PHONE', profilePhone);
-      toast.info('Profile changes saved locally. Refresh to see updates.');
-    }
+      if (activeTab === 'profile') {
+        localStorage.setItem('USER_PROFILE_NAME', profileName);
+        localStorage.setItem('USER_PROFILE_EMAIL', profileEmail);
+        localStorage.setItem('USER_PROFILE_PHONE', profilePhone);
+        toast.info('Profile changes saved locally. Refresh to see updates.');
+      }
 
-    if (activeTab === 'roles') {
-      localStorage.setItem('ROLE_PERMISSIONS', JSON.stringify(rolePermissions));
-    }
+      if (activeTab === 'roles') {
+        localStorage.setItem('ROLE_PERMISSIONS', JSON.stringify(rolePermissions));
+      }
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSaving(false);
-    toast.success('Settings saved successfully');
+      if (activeTab === 'admin') {
+        // Handle appearance settings if any
+      }
+
+      // Simulate API call for other tabs
+      await new Promise(resolve => setTimeout(resolve, 800));
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -358,13 +401,31 @@ export default function SettingsPage() {
                     <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold text-foreground">Grade Levels & Sections</h4>
-                        <button className="text-xs text-primary hover:underline font-bold">+ Add Grade</button>
+                        <button 
+                          type="button"
+                          onClick={() => setIsAddMasterOpen({ show: true, type: 'class' })}
+                          className="text-xs text-primary hover:underline font-bold"
+                        >
+                          + Add Grade
+                        </button>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'].map(grade => (
-                          <div key={grade} className="px-3 py-2 bg-background border border-border rounded-lg text-xs flex items-center justify-between">
-                            {grade}
-                            <button className="text-muted-foreground hover:text-destructive"><X size={12} /></button>
+                        {classes?.map(cls => (
+                          <div key={cls.id} className="px-3 py-2 bg-background border border-border rounded-lg text-xs flex items-center justify-between">
+                            {cls.name}
+                            <button 
+                              type="button"
+                              onClick={async () => {
+                                if (confirm(`Delete ${cls.name}?`)) {
+                                  await deleteClass(cls.id);
+                                  mutateClasses();
+                                  toast.success('Grade deleted');
+                                }
+                              }}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -373,13 +434,31 @@ export default function SettingsPage() {
                     <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold text-foreground">Subjects</h4>
-                        <button className="text-xs text-primary hover:underline font-bold">+ Add Subject</button>
+                        <button 
+                          type="button"
+                          onClick={() => setIsAddMasterOpen({ show: true, type: 'subject' })}
+                          className="text-xs text-primary hover:underline font-bold"
+                        >
+                          + Add Subject
+                        </button>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {['Mathematics', 'Science', 'English', 'History', 'Geography', 'Art'].map(subject => (
-                          <div key={subject} className="px-3 py-2 bg-background border border-border rounded-lg text-xs flex items-center justify-between">
-                            {subject}
-                            <button className="text-muted-foreground hover:text-destructive"><X size={12} /></button>
+                        {subjects?.map(subject => (
+                          <div key={subject.id} className="px-3 py-2 bg-background border border-border rounded-lg text-xs flex items-center justify-between">
+                            {subject.name}
+                            <button 
+                              type="button"
+                              onClick={async () => {
+                                if (confirm(`Delete ${subject.name}?`)) {
+                                  await deleteSubject(subject.id);
+                                  mutateSubjects();
+                                  toast.success('Subject deleted');
+                                }
+                              }}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -388,21 +467,36 @@ export default function SettingsPage() {
                     <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold text-foreground">Academic Years</h4>
-                        <button className="text-xs text-primary hover:underline font-bold">+ Add Year</button>
+                        <button 
+                          type="button"
+                          onClick={() => setIsAddMasterOpen({ show: true, type: 'year' })}
+                          className="text-xs text-primary hover:underline font-bold"
+                        >
+                          + Add Year
+                        </button>
                       </div>
                       <div className="space-y-2">
-                        {[
-                          { name: '2023-2024', status: 'Active' },
-                          { name: '2024-2025', status: 'Upcoming' }
-                        ].map(year => (
-                          <div key={year.name} className="px-4 py-3 bg-background border border-border rounded-lg text-sm flex items-center justify-between">
+                        {academicYears?.map(year => (
+                          <div key={year.id} className="px-4 py-3 bg-background border border-border rounded-lg text-sm flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <span className="font-bold">{year.name}</span>
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${year.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                                {year.status}
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${year.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
+                                {year.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </div>
-                            <button className="text-muted-foreground hover:text-destructive"><X size={14} /></button>
+                            <button 
+                              type="button"
+                              onClick={async () => {
+                                if (confirm(`Delete ${year.name}?`)) {
+                                  await deleteAcademicYear(year.id);
+                                  mutateAcademicYears();
+                                  toast.success('Academic year deleted');
+                                }
+                              }}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X size={14} />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -510,9 +604,19 @@ export default function SettingsPage() {
 
               {activeTab === 'staff' && (
                 <div className="p-6 sm:p-8 space-y-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground mb-1">Staff Management</h3>
-                    <p className="text-sm text-muted-foreground">Manage staff roles and assignments.</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground mb-1">Staff Management</h3>
+                      <p className="text-sm text-muted-foreground">Manage staff roles and assignments.</p>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setIsAddStaffOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+                    >
+                      <Plus size={16} />
+                      Add Staff
+                    </button>
                   </div>
                   
                   <div className="overflow-x-auto">
@@ -568,7 +672,24 @@ export default function SettingsPage() {
                           <h4 className="font-bold text-foreground flex items-center gap-2"><LayoutGrid size={18} /> Academic Setup</h4>
                           <div className="space-y-2">
                             <label className="text-sm font-bold text-foreground">Current Academic Year</label>
-                            <input type="text" defaultValue="2025-2026" className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground" />
+                            <select 
+                              value={academicYears?.find(y => y.is_active)?.id || ''}
+                              onChange={async (e) => {
+                                try {
+                                  await setActiveAcademicYear(e.target.value);
+                                  mutateAcademicYears();
+                                  toast.success('Academic year updated successfully');
+                                } catch (error) {
+                                  toast.error('Failed to update academic year');
+                                }
+                              }}
+                              className="w-full px-4 py-3 bg-muted/50 border border-border rounded-xl outline-none text-foreground"
+                            >
+                              <option value="" disabled>Select Academic Year</option>
+                              {academicYears?.map(year => (
+                                <option key={year.id} value={year.id}>{year.name}</option>
+                              ))}
+                            </select>
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-bold text-foreground">Grading Scale</label>
@@ -642,21 +763,53 @@ export default function SettingsPage() {
               {/* Advanced Configurations Tab */}
               {activeTab === 'configurations' && user.role === 'admin' && (
                 <div className="p-6 sm:p-8 space-y-8">
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4">
-                      <Shield size={32} />
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Advanced System Configurations</h3>
+                    <p className="text-sm text-muted-foreground mb-6">Fine-tune system behavior and feature availability.</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {[
+                        { id: 'enable_online_registration', label: 'Online Registration', desc: 'Allow new students to register via the public portal.', icon: Globe },
+                        { id: 'maintenance_mode', label: 'Maintenance Mode', desc: 'Disable all user access except for administrators.', icon: ShieldAlert },
+                        { id: 'automatic_attendance', label: 'Automatic Attendance', desc: 'Mark students present automatically based on bus entry.', icon: UserCheck },
+                        { id: 'enable_sms', label: 'SMS Notifications', desc: 'Send automated SMS for critical alerts and fee reminders.', icon: MessageSquare },
+                      ].map(config => (
+                        <div key={config.id} className="flex items-start justify-between p-5 rounded-2xl border border-border bg-muted/30 hover:bg-muted/50 transition-all">
+                          <div className="flex gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <config.icon size={20} />
+                            </div>
+                            <div>
+                              <p className="font-bold text-foreground">{config.label}</p>
+                              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{config.desc}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => updateSettings({ [config.id]: !settings?.[config.id as keyof typeof settings] })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings?.[config.id as keyof typeof settings] ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings?.[config.id as keyof typeof settings] ? 'translate-x-6' : 'translate-x-1'}`} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <h3 className="text-xl font-bold text-foreground mb-2">Managed Configurations</h3>
-                    <p className="text-sm text-muted-foreground max-w-md">
-                      System-level configurations (Supabase, Mapbox, APIs) are now managed via environment variables for enhanced security.
+                  </div>
+
+                  <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
+                    <div className="flex items-center gap-3 text-amber-600 mb-3">
+                      <Shield size={20} />
+                      <h4 className="font-bold">Environment Variables</h4>
+                    </div>
+                    <p className="text-sm text-amber-700/80 leading-relaxed mb-4">
+                      Sensitive infrastructure settings are managed via secure environment variables. Contact your system administrator to update these values.
                     </p>
-                    <div className="mt-6 p-4 bg-muted/50 rounded-xl border border-border text-left w-full max-w-md">
-                      <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Required Variables:</p>
-                      <ul className="text-xs font-mono space-y-1 text-foreground">
-                        <li>• NEXT_PUBLIC_SUPABASE_URL</li>
-                        <li>• NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
-                        <li>• NEXT_PUBLIC_MAPBOX_TOKEN</li>
-                      </ul>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_MAPBOX_TOKEN'].map(v => (
+                        <div key={v} className="px-3 py-2 bg-white/50 border border-amber-500/10 rounded-lg text-[10px] font-mono text-amber-800 truncate">
+                          {v}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -993,6 +1146,221 @@ export default function SettingsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Add Staff Modal */}
+      <AnimatePresence>
+        {isAddStaffOpen && (
+          <AddStaffModal 
+            onClose={() => setIsAddStaffOpen(false)} 
+            onSuccess={() => {
+              getPaginatedStaff(1, 50).then(data => setStaff(data.data));
+              setIsAddStaffOpen(false);
+            }} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Add Master Data Modal */}
+      <AnimatePresence>
+        {isAddMasterOpen.show && (
+          <AddMasterModal 
+            type={isAddMasterOpen.type}
+            onClose={() => setIsAddMasterOpen({ show: false, type: 'year' })} 
+            onSuccess={() => {
+              mutateAcademicYears();
+              mutateClasses();
+              mutateSubjects();
+              setIsAddMasterOpen({ show: false, type: 'year' });
+            }} 
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
+  );
+}
+
+function AddStaffModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'teacher',
+    phone: '',
+    department: 'Academics'
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await createStaff(formData);
+      toast.success('Staff member added successfully');
+      onSuccess();
+    } catch (error) {
+      toast.error('Failed to add staff member');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
+      >
+        <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Staff</h2>
+          <p className="text-sm font-medium text-muted-foreground mt-2">Enter the details for the new staff member.</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Full Name</label>
+            <input 
+              required 
+              type="text" 
+              value={formData.name}
+              onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="John Doe" 
+              className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Email Address</label>
+            <input 
+              required 
+              type="email" 
+              value={formData.email}
+              onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="john.doe@school.edu" 
+              className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Role</label>
+              <select 
+                required 
+                value={formData.role}
+                onChange={e => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+              >
+                <option value="teacher">Teacher</option>
+                <option value="staff">Staff</option>
+                <option value="admin">Administrator</option>
+                <option value="accountant">Accountant</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Department</label>
+              <select 
+                required 
+                value={formData.department}
+                onChange={e => setFormData(prev => ({ ...prev, department: e.target.value }))}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+              >
+                <option value="Academics">Academics</option>
+                <option value="Administration">Administration</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Finance">Finance</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-6">
+            <button 
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Staff'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
+function AddMasterModal({ type, onClose, onSuccess }: { type: 'year' | 'class' | 'subject', onClose: () => void, onSuccess: () => void }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (type === 'year') {
+        await createAcademicYear({ name, is_active: false });
+      } else if (type === 'class') {
+        await createClass({ name });
+      } else if (type === 'subject') {
+        await createSubject({ name });
+      }
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully`);
+      onSuccess();
+    } catch (error) {
+      toast.error(`Failed to add ${type}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col"
+      >
+        <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New {type === 'year' ? 'Academic Year' : type === 'class' ? 'Grade' : 'Subject'}</h2>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Name / Title</label>
+            <input 
+              required 
+              type="text" 
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={type === 'year' ? '2024-2025' : type === 'class' ? 'Grade 7' : 'Physics'} 
+              className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+            />
+          </div>
+
+          <div className="flex gap-3 pt-6">
+            <button 
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Item'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
   );
 }

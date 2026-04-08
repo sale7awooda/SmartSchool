@@ -1,13 +1,13 @@
 'use client';
 
 import useSWR from 'swr';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent } from '@/lib/mock-db';
-import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear } from '@/lib/supabase-db';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
   MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown,
@@ -47,11 +47,13 @@ export default function StudentsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
+
   const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
-    ['students', page, debouncedSearch], 
-    ([_, p, s]) => getPaginatedStudents(p, limit, s)
+    ['students', page, debouncedSearch, activeAcademicYear?.name], 
+    ([_, p, s, a]) => getPaginatedStudents(p, limit, s, a)
   );
-  
+
   const students = studentsResponse?.data || [];
   const totalPages = studentsResponse?.totalPages || 1;
   const totalCount = studentsResponse?.count || 0;
@@ -105,14 +107,31 @@ export default function StudentsPage() {
   const isAdmin = isRole(['admin']);
   const searchParams = useSearchParams();
 
+  const handleOpenAddStudent = useCallback(async () => {
+    setIsAddStudentOpen(true);
+    
+    if (activeAcademicYear) {
+      try {
+        const count = await getStudentCountForAcademicYear(activeAcademicYear.name);
+        const yearSuffix = activeAcademicYear.name.split('-')[0].slice(-2); // e.g., "2025-2026" -> "25"
+        const nextNumber = String(count + 1).padStart(3, '0');
+        const generatedId = `S${yearSuffix}${nextNumber}`;
+        
+        setFormData(prev => ({ ...prev, studentId: generatedId }));
+      } catch (error) {
+        console.error("Failed to generate student ID:", error);
+      }
+    }
+  }, [activeAcademicYear]);
+
   useEffect(() => {
     if (searchParams.get('add') === 'true' && isAdmin) {
       const timer = setTimeout(() => {
-        setIsAddStudentOpen(true);
+        handleOpenAddStudent();
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [searchParams, isAdmin]);
+  }, [searchParams, isAdmin, handleOpenAddStudent]);
 
   if (!user) return null;
 
@@ -167,7 +186,7 @@ export default function StudentsPage() {
               Promote Students
             </button>
             <button 
-              onClick={() => setIsAddStudentOpen(true)}
+              onClick={handleOpenAddStudent}
               className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 w-full sm:w-auto"
             >
               <UserPlus size={20} />
@@ -342,7 +361,10 @@ export default function StudentsPage() {
                   setIsSubmitting(true);
                   
                   try {
-                    const newStudent = await createStudent(formData);
+                    const newStudent = await createStudent({
+        ...formData,
+        academicYear: activeAcademicYear?.name
+      });
                     
                     toast.success("Student registered successfully", {
                       description: `${formData.name} has been added to Grade ${formData.grade}.`
@@ -427,17 +449,14 @@ export default function StudentsPage() {
                     {formErrors.name && <p className="text-xs text-red-500 font-medium">{formErrors.name}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Student ID</label>
+                    <label className="text-sm font-bold text-foreground">Student ID (Auto-generated)</label>
                     <input 
                       required 
                       type="text" 
-                      placeholder="e.g., STU004" 
+                      placeholder="e.g., S26001" 
                       value={formData.studentId}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, studentId: e.target.value }));
-                        if (formErrors.studentId) setFormErrors(prev => ({ ...prev, studentId: '' }));
-                      }}
-                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.studentId ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border bg-muted/50 border-border font-medium text-muted-foreground cursor-not-allowed" 
                     />
                     {formErrors.studentId && <p className="text-xs text-red-500 font-medium">{formErrors.studentId}</p>}
                   </div>

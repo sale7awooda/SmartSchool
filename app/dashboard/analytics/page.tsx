@@ -26,19 +26,32 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend, LineChart, Line, ComposedChart
 } from 'recharts';
-import { getAcademicStats, getAttendanceStats, getFinancialStats, getAtRiskStudents } from '@/lib/supabase-db';
+import { getAcademicStats, getAttendanceStats, getFinancialStats, getAtRiskStudents, getActiveAcademicYear } from '@/lib/supabase-db';
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
   const { can } = usePermissions();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [activeTab, setActiveTab] = useState<'overview' | 'academic' | 'attendance' | 'financial' | 'predictive'>('overview');
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   // Fetch data using SWR
-  const { data: academicStats, isLoading: academicLoading } = useSWR('academicStats', getAcademicStats);
-  const { data: attendanceStats, isLoading: attendanceLoading } = useSWR('attendanceStats', getAttendanceStats);
-  const { data: financialStats, isLoading: financialLoading } = useSWR('financialStats', getFinancialStats);
-  const { data: atRiskStudents, isLoading: atRiskLoading } = useSWR('atRiskStudents', getAtRiskStudents);
+  const { data: academicStats, isLoading: academicLoading } = useSWR(
+    ['academicStats', activeAcademicYear?.name], 
+    ([_, a]) => getAcademicStats(a)
+  );
+  const { data: attendanceStats, isLoading: attendanceLoading } = useSWR(
+    ['attendanceStats', activeAcademicYear?.name], 
+    ([_, a]) => getAttendanceStats(a)
+  );
+  const { data: financialStats, isLoading: financialLoading } = useSWR(
+    ['financialStats', activeAcademicYear?.name], 
+    ([_, a]) => getFinancialStats(a)
+  );
+  const { data: atRiskStudents, isLoading: atRiskLoading } = useSWR(
+    ['atRiskStudents', activeAcademicYear?.name], 
+    ([_, a]) => getAtRiskStudents(a)
+  );
 
   if (!user || !can('view', 'analytics')) {
     return (

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { useLanguage } from '@/lib/language-context';
+import { useSettings } from '@/lib/settings-context';
 import { 
   LayoutDashboard, 
   Users, 
@@ -44,6 +45,7 @@ const MOCK_FINANCIALS = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, switchStudent, isLoading } = useAuth();
+  const { settings } = useSettings();
   const { can } = usePermissions();
   const { t, isRTL } = useLanguage();
   const pathname = usePathname();
@@ -116,13 +118,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="p-4 border-b border-border/50 flex items-center justify-center h-24 relative">
           <div className={`flex items-center justify-center gap-4 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
             <div className="min-w-0 leading-tight text-center">
-              <h2 className="text-xl font-bold text-primary tracking-tight">Smart School</h2>
+              <h2 className="text-xl font-bold text-primary tracking-tight">{settings?.school_name || 'Smart School'}</h2>
             </div>
           </div>
           
           {isCollapsed && (
             <div className="mx-auto flex items-center justify-center shrink-0">
-              <h2 className="text-xl font-bold text-primary tracking-tight">SS</h2>
+              <h2 className="text-xl font-bold text-primary tracking-tight">
+                {(settings?.school_name || 'Smart School').split(' ').map(n => n[0]).join('').substring(0, 2)}
+              </h2>
             </div>
           )}
 
@@ -205,7 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="p-5 border-b border-border flex items-center justify-center relative">
           <div className="flex items-center gap-3">
             <div className="leading-tight text-center">
-              <h2 className="text-xl font-black text-foreground tracking-tighter">Smart School</h2>
+              <h2 className="text-xl font-black text-foreground tracking-tighter">{settings?.school_name || 'Smart School'}</h2>
             </div>
           </div>
           <button 

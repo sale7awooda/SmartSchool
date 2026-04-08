@@ -1,13 +1,19 @@
 import { supabase } from './supabase/client';
 import { Student, User, Parent } from './mock-db';
 
-export async function getStudents() {
-  const { data, error } = await supabase
+export async function getStudents(academicYear?: string) {
+  let query = supabase
     .from('students')
     .select(`
       *,
       user:users(*)
     `);
+  
+  if (academicYear) {
+    query = query.eq('academic_year', academicYear);
+  }
+
+  const { data, error } = await query;
   
   if (error) throw error;
   
@@ -19,7 +25,7 @@ export async function getStudents() {
   })) as Student[];
 }
 
-export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '') {
+export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -32,6 +38,10 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
         parent:users(*)
       )
     `, { count: 'exact' });
+
+  if (academicYear) {
+    query = query.eq('academic_year', academicYear);
+  }
 
   if (search) {
     // Search by student name or roll number
@@ -100,6 +110,16 @@ export async function getUsers() {
   return data as User[];
 }
 
+export async function getStudentCountForAcademicYear(academicYearName: string) {
+  const { count, error } = await supabase
+    .from('students')
+    .select('*', { count: 'exact', head: true })
+    .eq('academic_year', academicYearName);
+    
+  if (error) throw error;
+  return count || 0;
+}
+
 export async function createStudent(studentData: any) {
   // This would involve creating an auth user (usually via an admin API or invite)
   // For now, we'll assume the user profile exists or we create it in the public.users table
@@ -131,7 +151,7 @@ export async function createStudent(studentData: any) {
       dob: studentData.dob,
       gender: studentData.gender,
       blood_group: studentData.bloodGroup,
-      academic_year: '2025-2026' // Default for now
+      academic_year: studentData.academicYear || '2025-2026'
     }])
     .select()
     .single();
@@ -318,7 +338,7 @@ export async function getPaginatedStaff(page: number = 1, limit: number = 10, se
   };
 }
 
-export async function getPaginatedInvoices(page: number = 1, limit: number = 10, search: string = '', studentId?: string, status?: string) {
+export async function getPaginatedInvoices(page: number = 1, limit: number = 10, search: string = '', studentId?: string, status?: string, academicYear?: string) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -326,8 +346,12 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
     .from('fee_invoices')
     .select(`
       *,
-      student:students!inner(user:users!inner(name))
+      student:students!inner(user:users!inner(name), academic_year)
     `, { count: 'exact' });
+
+  if (academicYear) {
+    query = query.eq('student.academic_year', academicYear);
+  }
 
   if (studentId) {
     query = query.eq('student_id', studentId);
@@ -427,10 +451,20 @@ export async function recordPayment(paymentData: {
   return { invoice, payment };
 }
 
-export async function getFeeStats() {
-  const { data, error } = await supabase
+export async function getFeeStats(academicYear?: string) {
+  let query = supabase
     .from('fee_invoices')
-    .select('amount, status');
+    .select(`
+      amount, 
+      status,
+      student:students!inner(academic_year)
+    `);
+  
+  if (academicYear) {
+    query = query.eq('student.academic_year', academicYear);
+  }
+
+  const { data, error } = await query;
   
   if (error) throw error;
 
@@ -495,7 +529,7 @@ export async function deleteFeeItem(id: string) {
   if (error) throw error;
 }
 
-export async function getPaginatedAssessments(page: number = 1, limit: number = 10, search: string = '', statusFilter: string = 'all') {
+export async function getPaginatedAssessments(page: number = 1, limit: number = 10, search: string = '', statusFilter: string = 'all', academicYear?: string) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -503,6 +537,10 @@ export async function getPaginatedAssessments(page: number = 1, limit: number = 
     .from('assessments')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
+
+  if (academicYear) {
+    query = query.eq('academic_year', academicYear);
+  }
 
   if (search) {
     query = query.or(`title.ilike.%${search}%,subject.ilike.%${search}%`);
@@ -565,11 +603,17 @@ export async function getPaginatedBooks(page: number = 1, limit: number = 10, se
     totalPages: Math.ceil((count || 0) / limit)
   };
 }
-export async function getAssessments() {
-  const { data, error } = await supabase
+export async function getAssessments(academicYear?: string) {
+  let query = supabase
     .from('assessments')
     .select('*')
     .order('created_at', { ascending: false });
+
+  if (academicYear) {
+    query = query.eq('academic_year', academicYear);
+  }
+
+  const { data, error } = await query;
   
   if (error) throw error;
   return data;
@@ -802,7 +846,7 @@ export async function updateUserRole(userId: string, role: string) {
   return data;
 }
 
-export async function getAcademicStats() {
+export async function getAcademicStats(academicYear?: string) {
   // In a real app, this would aggregate data from grades and students tables
   // Returning mock structure for now to match the UI expectations
   return {
@@ -818,7 +862,7 @@ export async function getAcademicStats() {
   };
 }
 
-export async function getAttendanceStats() {
+export async function getAttendanceStats(academicYear?: string) {
   // In a real app, this would aggregate data from attendance table
   return {
     avgAttendance: 94.8,
@@ -833,7 +877,7 @@ export async function getAttendanceStats() {
   };
 }
 
-export async function getFinancialStats() {
+export async function getFinancialStats(academicYear?: string) {
   // In a real app, this would aggregate data from fee_invoices and fee_payments tables
   return {
     ytdRevenue: 768000,
@@ -848,7 +892,7 @@ export async function getFinancialStats() {
   };
 }
 
-export async function getAtRiskStudents() {
+export async function getAtRiskStudents(academicYear?: string) {
   // In a real app, this would query students with low grades or high absenteeism
   return [
     { id: 1, student: 'Milhouse Van Houten', grade: 'Grade 4', risk: 'High', factor: 'Academic Drop', reason: 'Math score dropped by 18% over last 3 weeks. Missed 2 assignments.', action: 'Schedule parent-teacher meeting.' },
@@ -889,6 +933,33 @@ export async function getAcademicYears() {
   return data;
 }
 
+export async function getActiveAcademicYear() {
+  const { data, error } = await supabase
+    .from('academic_years')
+    .select('*')
+    .eq('is_active', true)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') throw error; // PGRST116 is no rows returned
+  return data;
+}
+
+export async function setActiveAcademicYear(id: string) {
+  // First, set all to false
+  await supabase.from('academic_years').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+  
+  // Then set the selected one to true
+  const { data, error } = await supabase
+    .from('academic_years')
+    .update({ is_active: true })
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+}
+
 export async function createAcademicYear(year: any) {
   const { data, error } = await supabase
     .from('academic_years')
@@ -915,6 +986,75 @@ export async function createSubject(subject: any) {
     .insert(subject)
     .select()
     .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAcademicYear(id: string) {
+  const { error } = await supabase.from('academic_years').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteClass(id: string) {
+  const { error } = await supabase.from('classes').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteSubject(id: string) {
+  const { error } = await supabase.from('subjects').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function createStaff(staffData: any) {
+  const { data, error } = await supabase.from('users').insert({
+    ...staffData,
+    created_at: new Date().toISOString()
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getSystemSettings() {
+  const { data, error } = await supabase.from('system_settings').select('*').single();
+  if (error) {
+    if (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message.includes('relation "system_settings" does not exist')) {
+      // Fallback to localStorage or defaults
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('SYSTEM_SETTINGS');
+        if (saved) return JSON.parse(saved);
+      }
+      return {
+        school_name: 'Greenwood High School',
+        school_address: '123 Education Lane, Learning City',
+        school_phone: '+1 (555) 012-3456',
+        school_email: 'info@greenwoodhigh.edu',
+        grading_scale: 'Standard (A-F)',
+        theme_color: 'indigo',
+        font_family: 'Inter (Default)',
+        compact_design: false,
+        enable_online_registration: true,
+        maintenance_mode: false,
+        automatic_attendance: false,
+        enable_sms: false
+      };
+    }
+    throw error;
+  }
+  return data;
+}
+
+export async function updateSystemSettings(settings: any) {
+  // Use a fixed ID for single row settings
+  const { data, error } = await supabase.from('system_settings').upsert({ id: 1, ...settings }).select().single();
+  
+  if (error && (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message.includes('relation "system_settings" does not exist'))) {
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('SYSTEM_SETTINGS', JSON.stringify(settings));
+    }
+    return settings;
+  }
+  
   if (error) throw error;
   return data;
 }
@@ -1103,7 +1243,7 @@ export async function getUsersForChat() {
   return data;
 }
 
-export async function getSchedules(classId?: string) {
+export async function getSchedules(classId?: string, academicYear?: string) {
   let query = supabase
     .from('schedules')
     .select(`
@@ -1113,6 +1253,10 @@ export async function getSchedules(classId?: string) {
 
   if (classId) {
     query = query.eq('class_id', classId);
+  }
+
+  if (academicYear) {
+    query = query.eq('academic_year', academicYear);
   }
 
   const { data, error } = await query;
@@ -1187,7 +1331,7 @@ export async function getTeachers() {
   return data as User[];
 }
 
-export async function saveScheduleDraft(draft: { name: string, constraints: any, mappings: any, schedule: any }) {
+export async function saveScheduleDraft(draft: { name: string, constraints: any, mappings: any, schedule: any, academic_year?: string }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -1198,6 +1342,7 @@ export async function saveScheduleDraft(draft: { name: string, constraints: any,
       constraints: draft.constraints,
       mappings: draft.mappings,
       schedule: draft.schedule,
+      academic_year: draft.academic_year,
       created_by: user.id,
       updated_at: new Date().toISOString()
     }, { onConflict: 'name' })
@@ -1208,12 +1353,17 @@ export async function saveScheduleDraft(draft: { name: string, constraints: any,
   return data;
 }
 
-export async function getScheduleDrafts() {
-  const { data, error } = await supabase
+export async function getScheduleDrafts(academicYear?: string) {
+  let query = supabase
     .from('schedule_drafts')
     .select('*')
     .order('updated_at', { ascending: false });
 
+  if (academicYear) {
+    query = query.eq('academic_year', academicYear);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }
@@ -1227,18 +1377,18 @@ export async function deleteScheduleDraft(id: string) {
   if (error) throw error;
 }
 
-export async function publishSchedule(scheduleItems: any[]) {
-  // First, clear existing schedule to avoid conflicts
+export async function publishSchedule(scheduleItems: any[], academicYear: string) {
+  // First, clear existing schedule for the SPECIFIC academic year to avoid conflicts
   const { error: deleteError } = await supabase
     .from('schedules')
     .delete()
-    .neq('id', '00000000-0000-0000-0000-000000000000');
+    .eq('academic_year', academicYear);
 
   if (deleteError) throw deleteError;
 
   const { data, error } = await supabase
     .from('schedules')
-    .insert(scheduleItems);
+    .insert(scheduleItems.map(item => ({ ...item, academic_year: academicYear })));
 
   if (error) throw error;
   return data;

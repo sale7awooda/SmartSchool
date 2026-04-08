@@ -19,7 +19,8 @@ import {
   getSubjects,
   createAcademicYear,
   createClass,
-  createSubject
+  createSubject,
+  getActiveAcademicYear
 } from "@/lib/supabase-db";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -702,6 +703,8 @@ const getAssessmentColor = (type: AssessmentType) => {
 
 // --- Teacher View ---
 function TeacherAcademics() {
+  const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [activeTab, setActiveTab] = useState<
     "assessments" | "gradebook" | "submissions"
   >("assessments");
@@ -718,8 +721,14 @@ function TeacherAcademics() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedSubmissionToReview, setSelectedSubmissionToReview] = useState<any>(null);
 
-  const { data: assessmentsData, isLoading: isAssessmentsLoading, mutate: mutateAssessments } = useSWR('assessments', () => getAssessments());
-  const { data: studentsData, isLoading: isStudentsLoading } = useSWR('students', () => getStudents());
+  const { data: assessmentsData, isLoading: isAssessmentsLoading, mutate: mutateAssessments } = useSWR(
+    ['assessments', activeAcademicYear?.name], 
+    ([_, a]) => getAssessments(a)
+  );
+  const { data: studentsData, isLoading: isStudentsLoading } = useSWR(
+    ['students', activeAcademicYear?.name], 
+    ([_, a]) => getStudents(a)
+  );
   const { data: submissionsData, isLoading: isSubmissionsLoading, mutate: mutateSubmissions } = useSWR(
     activeTab === 'submissions' ? 'submissions' : null, 
     () => getSubmissions()
@@ -826,6 +835,7 @@ function TeacherAcademics() {
       date: formData.get("date") as string,
       status: "Published",
       description: formData.get("description") as string,
+      academic_year: activeAcademicYear?.name,
     };
 
     try {
@@ -1745,6 +1755,7 @@ function TeacherAcademics() {
 }
 function ParentAcademics() {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [activeTab, setActiveTab] = useState<
     "overview" | "assessments" | "assignments"
   >("overview");
@@ -1799,7 +1810,7 @@ function ParentAcademics() {
           setStudentSubmissions(submissions);
 
           // Also get all published assessments to show what's "To Do"
-          const assessments = await getAssessments();
+          const assessments = await getAssessments(activeAcademicYear?.name);
           // Filter out assessments that already have a submission
           const submittedAssessmentIds = new Set(submissions.map((s: any) => s.assessment_id));
           const pendingAssessments = assessments.filter((a: any) => 

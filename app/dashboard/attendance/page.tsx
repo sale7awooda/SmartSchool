@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { Student } from '@/lib/mock-db';
 import { supabase } from '@/lib/supabase/client';
-import { getStudents, getAttendance, saveAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById } from '@/lib/supabase-db';
+import { getStudents, getAttendance, saveAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById, getActiveAcademicYear } from '@/lib/supabase-db';
 import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ export default function AttendancePage() {
 
 function TeacherAttendance() {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [activeTab, setActiveTab] = useState<'mark' | 'history'>('mark');
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [students, setStudents] = useState<Student[]>([]);
@@ -44,7 +46,7 @@ function TeacherAttendance() {
     async function loadData() {
       try {
         const [studentsData, attendanceData, historyData] = await Promise.all([
-          getStudents(),
+          getStudents(activeAcademicYear?.name),
           getAttendance(selectedDate),
           getAttendanceHistory()
         ]);
@@ -431,6 +433,7 @@ function ParentAttendance() {
 }
 
 function AdminAttendance() {
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
   const [history, setHistory] = useState<any[]>([]);
@@ -444,7 +447,7 @@ function AdminAttendance() {
       try {
         const [historyData, studentsData, classData] = await Promise.all([
           getAttendanceHistory(),
-          getStudents(),
+          getStudents(activeAcademicYear?.name),
           getAttendanceByClass(selectedDate)
         ]);
         setHistory(historyData);

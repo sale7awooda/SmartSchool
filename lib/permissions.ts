@@ -154,13 +154,11 @@ export function usePermissions() {
         try {
           const parsed = JSON.parse(savedPermissions);
           if (parsed[user.role]) {
-            // Map the matrix format (boolean) to the Action[] format
-            const matrix = parsed[user.role];
+            // Map the array of module IDs to the Action[] format
+            const allowedModules = parsed[user.role];
             const actions: Action[] = [];
-            
-            // If the matrix has a value for this resource, use it
-            if (matrix[resource] !== undefined) {
-              if (matrix[resource]) {
+            if (Array.isArray(allowedModules)) {
+              if (allowedModules.includes(resource)) {
                 actions.push('view', 'create', 'edit', 'delete', 'manage');
               }
             } else {

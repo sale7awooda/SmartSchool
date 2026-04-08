@@ -5,7 +5,8 @@ import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { getSubjects, getClasses } from '@/lib/supabase-db';
+import { getSubjects, getClasses, createAssessment, getActiveAcademicYear } from '@/lib/supabase-db';
+import { toast } from 'sonner';
 import { 
   ArrowLeft, 
   Save, 
@@ -19,6 +20,7 @@ import Link from 'next/link';
 
 export default function CreateExamPage() {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,14 +41,22 @@ export default function CreateExamPage() {
     totalMarks: 100,
   });
 
+  // Set default subject and grade when data is loaded
+  const [defaultsSet, setDefaultsSet] = useState(false);
+
   useEffect(() => {
-    if (subjectsData && subjectsData.length > 0 && !examDetails.subject) {
-      setExamDetails(prev => ({ ...prev, subject: subjectsData[0].name }));
+    if (!defaultsSet && subjectsData && subjectsData.length > 0 && classesData && classesData.length > 0) {
+      const timer = setTimeout(() => {
+        setExamDetails(prev => ({
+          ...prev,
+          subject: prev.subject || subjectsData[0].name,
+          grade: prev.grade || classesData[0].name
+        }));
+        setDefaultsSet(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-    if (classesData && classesData.length > 0 && !examDetails.grade) {
-      setExamDetails(prev => ({ ...prev, grade: classesData[0].name }));
-    }
-  }, [subjectsData, classesData]);
+  }, [subjectsData, classesData, defaultsSet]);
 
   // Questions
   const [questions, setQuestions] = useState([
@@ -85,13 +95,40 @@ export default function CreateExamPage() {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!activeAcademicYear) {
+      toast.error('Active academic year not found');
+      return;
+    }
     setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      await createAssessment({
+        title: examDetails.title,
+        subject: examDetails.subject,
+        grade: examDetails.grade,
+        date: examDetails.date,
+        duration: examDetails.duration,
+        total_marks: totalMarksCalculated,
+        questions_count: questions.length,
+        status: 'upcoming',
+        academic_year: activeAcademicYear.name,
+        created_by: user?.id,
+        questions: questions.map(q => ({
+          text: q.text,
+          type: q.type,
+          marks: q.marks,
+          options: q.options,
+          correct_answer: q.correctAnswer
+        }))
+      });
+      toast.success('Exam created successfully');
       router.push('/dashboard/exams');
-    }, 1500);
+    } catch (error) {
+      console.error('Error creating exam:', error);
+      toast.error('Failed to create exam');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const totalMarksCalculated = questions.reduce((sum, q) => sum + q.marks, 0);

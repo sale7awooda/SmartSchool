@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase/client';
+import { getActiveAcademicYear } from '@/lib/supabase-db';
 import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
@@ -14,15 +15,24 @@ export default function DashboardHome() {
   const { user } = useAuth();
   const { isRole } = usePermissions();
 
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
+
   const fetchDashboardData = async () => {
     if (!user) return null;
     let stats = { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0 };
     let notices = [];
 
     if (isRole(['admin', 'accountant'])) {
-      const { count: studentCount } = await supabase
+      // Filter students by academic year
+      let studentQuery = supabase
         .from('students')
         .select('*', { count: 'exact', head: true });
+      
+      if (activeAcademicYear) {
+        studentQuery = studentQuery.eq('academic_year', activeAcademicYear.name);
+      }
+
+      const { count: studentCount } = await studentQuery;
       
       const { data: attendanceData } = await supabase
         .from('attendance')
@@ -32,12 +42,23 @@ export default function DashboardHome() {
       const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
       const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
 
-      const { data: feeData } = await supabase
+      // Filter fee invoices by academic year via student relation
+      let feeQuery = supabase
         .from('fee_invoices')
-        .select('amount, status');
+        .select(`
+          amount, 
+          status,
+          student:students!inner(academic_year)
+        `);
+      
+      if (activeAcademicYear) {
+        feeQuery = feeQuery.eq('student.academic_year', activeAcademicYear.name);
+      }
+
+      const { data: feeData } = await feeQuery;
       
       const collected = feeData?.filter((f: any) => f.status === 'paid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
-      const pending = feeData?.filter((f: any) => f.status === 'unpaid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+      const pending = feeData?.filter((f: any) => f.status === 'pending').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
 
       stats = {
         totalStudents: studentCount || 0,
@@ -58,7 +79,10 @@ export default function DashboardHome() {
     return { stats, notices };
   };
 
-  const { data, isLoading } = useSWR(user ? `dashboard-${user.id}-${user.role}` : null, fetchDashboardData);
+  const { data, isLoading } = useSWR(
+    user ? `dashboard-${user.id}-${user.role}-${activeAcademicYear?.name}` : null, 
+    fetchDashboardData
+  );
 
   if (!user) return null;
 
@@ -110,6 +134,7 @@ export default function DashboardHome() {
 
 function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: any[] }) {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   
   const stats = [
     { label: 'Total Students', value: realStats.totalStudents.toLocaleString(), icon: Users, color: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
@@ -128,7 +153,7 @@ function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: an
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-card border border-border rounded-xl shadow-sm">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Academic Year</p>
-            <p className="text-sm font-bold text-foreground">2023-2024</p>
+            <p className="text-sm font-bold text-foreground">{activeAcademicYear?.name || 'Loading...'}</p>
           </div>
         </div>
       </div>

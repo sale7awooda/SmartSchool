@@ -13,7 +13,8 @@ import {
 import { MOCK_SCHEDULE } from '@/lib/mock-db';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase/client';
-import { getStudents, getSchedules } from '@/lib/supabase-db';
+import { getStudents, getSchedules, getActiveAcademicYear } from '@/lib/supabase-db';
+import useSWR from 'swr';
 
 const DAYS = [
   { id: 1, name: 'Monday' },
@@ -36,6 +37,7 @@ const PERIODS = [
 
 export default function StudentScheduleView() {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [students, setStudents] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -45,8 +47,8 @@ export default function StudentScheduleView() {
     async function loadData() {
       try {
         const [studentsData, schedulesData] = await Promise.all([
-          getStudents(),
-          getSchedules()
+          getStudents(activeAcademicYear?.name),
+          getSchedules(undefined, activeAcademicYear?.name)
         ]);
         
         let filteredStudents: any[] = [];
@@ -81,7 +83,12 @@ export default function StudentScheduleView() {
     // Real-time subscription
     const channel = supabase
       .channel('schedule_changes_student')
-      .on('postgres_changes', { event: '*', table: 'schedules', schema: 'public' }, () => {
+      .on('postgres_changes', { 
+        event: '*', 
+        table: 'schedules', 
+        schema: 'public',
+        filter: activeAcademicYear ? `academic_year=eq.${activeAcademicYear.name}` : undefined
+      }, () => {
         loadData();
       })
       .subscribe();
@@ -89,7 +96,7 @@ export default function StudentScheduleView() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, activeAcademicYear]);
 
   if (isLoading) {
     return (

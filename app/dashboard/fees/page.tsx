@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { FeeInvoice } from '@/lib/mock-db';
-import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment } from '@/lib/supabase-db';
+import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment, getActiveAcademicYear } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,6 +30,7 @@ export default function FeesPage() {
 
 function AccountantFees() {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const { can } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -55,16 +56,16 @@ function AccountantFees() {
   const [feeStructure, setFeeStructure] = useState<any[]>([]);
 
   useEffect(() => {
-    getStudents().then(setStudents).catch(console.error);
-    getFeeStats().then(setStats).catch(console.error);
+    getStudents(activeAcademicYear?.name).then(setStudents).catch(console.error);
+    getFeeStats(activeAcademicYear?.name).then(setStats).catch(console.error);
     getFeeItems().then(setFeeStructure).catch(console.error);
 
     // Real-time subscriptions
     const invoicesChannel = supabase
       .channel('fee_invoices_changes')
       .on('postgres_changes', { event: '*', table: 'fee_invoices', schema: 'public' }, () => {
-        mutate(['invoices', page, debouncedSearch, activeTab]);
-        getFeeStats().then(setStats).catch(console.error);
+        mutate(['invoices', page, debouncedSearch, activeTab, activeAcademicYear?.name]);
+        getFeeStats(activeAcademicYear?.name).then(setStats).catch(console.error);
       })
       .subscribe();
 
@@ -105,8 +106,8 @@ function AccountantFees() {
   }, [searchQuery]);
 
   const { data: invoicesResponse, isLoading } = useSWR(
-    ['invoices', page, debouncedSearch, activeTab],
-    ([_, p, s, tab]) => getPaginatedInvoices(p, limit, s, undefined, tab)
+    ['invoices', page, debouncedSearch, activeTab, activeAcademicYear?.name],
+    ([_, p, s, tab, a]) => getPaginatedInvoices(p, limit, s, undefined, tab, a)
   );
 
   const invoices = invoicesResponse?.data || [];

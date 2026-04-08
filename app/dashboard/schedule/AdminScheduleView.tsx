@@ -15,13 +15,12 @@ import {
 import Link from 'next/link';
 import { usePermissions } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase/client';
-import { getSchedules, getClasses } from '@/lib/supabase-db';
+import { getSchedules, getClasses, getActiveAcademicYear } from '@/lib/supabase-db';
 import useSWR from 'swr';
 
 import { MOCK_SCHEDULE } from '@/lib/mock-db';
 
 // Mock data for the master schedule
-const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
 const PERIODS = [
   { id: 1, time: '08:00 AM - 08:50 AM' },
   { id: 2, time: '09:00 AM - 09:50 AM' },
@@ -33,6 +32,7 @@ const PERIODS = [
 ];
 
 export default function AdminScheduleView() {
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +43,7 @@ export default function AdminScheduleView() {
   useEffect(() => {
     async function loadSchedules() {
       try {
-        const data = await getSchedules();
+        const data = await getSchedules(undefined, activeAcademicYear?.name);
         setSchedules(data);
       } catch (error) {
         console.error('Error loading schedules:', error);
@@ -56,7 +56,12 @@ export default function AdminScheduleView() {
     // Real-time subscription
     const channel = supabase
       .channel('schedule_changes_admin')
-      .on('postgres_changes', { event: '*', table: 'schedules', schema: 'public' }, () => {
+      .on('postgres_changes', { 
+        event: '*', 
+        table: 'schedules', 
+        schema: 'public',
+        filter: activeAcademicYear ? `academic_year=eq.${activeAcademicYear.name}` : undefined
+      }, () => {
         loadSchedules();
       })
       .subscribe();
@@ -64,7 +69,7 @@ export default function AdminScheduleView() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [activeAcademicYear]);
 
   const handlePreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
   const handleNextDay = () => setSelectedDate(prev => addDays(prev, 1));

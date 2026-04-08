@@ -7,6 +7,8 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { fetchRoute, searchAddress } from '@/lib/routing';
+import { getActiveAcademicYear } from '@/lib/supabase-db';
+import useSWR from 'swr';
 import { 
   BusRoute, 
   Student,
@@ -40,6 +42,7 @@ const TransportMap = dynamic(() => import('@/components/transport/TransportMap')
 
 export default function TransportPage() {
   const { user } = useAuth();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const { can, isAdmin, isRole } = usePermissions();
   const [activeTab, setActiveTab] = useState<'routes' | 'tracking'>('routes');
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,9 +132,11 @@ export default function TransportPage() {
     };
 
     const fetchStudents = async () => {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*');
+      let query = supabase.from('students').select('*');
+      if (activeAcademicYear) {
+        query = query.eq('academic_year', activeAcademicYear.name);
+      }
+      const { data, error } = await query;
       
       if (!error && data) {
         setStudents(data);
