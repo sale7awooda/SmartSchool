@@ -158,7 +158,7 @@ export default function TransportPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [activeAcademicYear]);
 
   useEffect(() => {
     // No longer need to initialize gpsInterval here

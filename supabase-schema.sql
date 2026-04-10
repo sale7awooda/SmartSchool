@@ -246,6 +246,32 @@ ALTER TABLE public.grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
 
+-- System Settings Table
+CREATE TABLE IF NOT EXISTS public.system_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  school_name TEXT DEFAULT 'Smart School',
+  school_address TEXT,
+  school_phone TEXT,
+  school_email TEXT,
+  grading_scale TEXT DEFAULT 'Standard (A-F)',
+  theme_color TEXT DEFAULT 'indigo',
+  font_family TEXT DEFAULT 'Inter (Default)',
+  compact_design BOOLEAN DEFAULT FALSE,
+  enable_online_registration BOOLEAN DEFAULT TRUE,
+  maintenance_mode BOOLEAN DEFAULT FALSE,
+  automatic_attendance BOOLEAN DEFAULT FALSE,
+  enable_sms BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT one_row_only CHECK (id = 1)
+);
+
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins can manage system settings" ON public.system_settings;
+CREATE POLICY "Admins can manage system settings" ON public.system_settings FOR ALL USING (get_user_role() = 'admin');
+DROP POLICY IF EXISTS "All users can view system settings" ON public.system_settings;
+CREATE POLICY "All users can view system settings" ON public.system_settings FOR SELECT USING (auth.role() = 'authenticated');
+
 -- 4. RLS Policies
 
 -- Helper Function to get user role

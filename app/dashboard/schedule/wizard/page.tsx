@@ -15,7 +15,7 @@ import { User as DBUser } from '@/lib/mock-db';
 import useSWR from 'swr';
 
 // Mock Data
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SYSTEM_TEACHERS = ['Mr. Smith', 'Mrs. Davis', 'Dr. Brown', 'Ms. Wilson', 'Mr. Taylor', 'Ms. Anderson', 'Mr. Thomas', 'Mrs. Jackson', 'Mr. White'];
 const COLORS = [
   'bg-blue-500/20 text-blue-800 border-blue-200', 
@@ -60,11 +60,40 @@ export default function TimetableWizard() {
     daysPerWeek: 5,
     periodLength: 50,
     breakLength: 30,
+    startTime: '08:00',
+    startOfWeek: 'Monday'
   });
 
+  const activeDays = useMemo(() => {
+    const startIndex = ALL_DAYS.indexOf(constraints.startOfWeek);
+    if (startIndex === -1) return ALL_DAYS.slice(0, constraints.daysPerWeek);
+    const days = [];
+    for (let i = 0; i < constraints.daysPerWeek; i++) {
+      days.push(ALL_DAYS[(startIndex + i) % 7]);
+    }
+    return days;
+  }, [constraints.startOfWeek, constraints.daysPerWeek]);
+
   // Step 2 State: Subject Mapping
-  const [mappings, setMappings] = useState<{id: string, grade: string, subject: string, teacher: string, classesPerWeek: number}[]>([]);
-  const [newMapping, setNewMapping] = useState({ grade: '', subject: '', teacher: '', classesPerWeek: 1 });
+  const [mappings, setMappings] = useState<{
+    id: string, 
+    grade: string, 
+    subject: string, 
+    teacher: string, 
+    classesPerWeek: number,
+    doublePeriods?: boolean,
+    beforeBreakfast?: boolean,
+    linkedGrade?: string
+  }[]>([]);
+  const [newMapping, setNewMapping] = useState({ 
+    grade: '', 
+    subject: '', 
+    teacher: '', 
+    classesPerWeek: 1,
+    doublePeriods: false,
+    beforeBreakfast: false,
+    linkedGrade: ''
+  });
 
   useEffect(() => {
     if (GRADES.length > 0 && SYSTEM_SUBJECTS.length > 0 && !newMapping.grade) {
@@ -102,10 +131,16 @@ export default function TimetableWizard() {
       }
     }
     loadData();
-  }, []);
+  }, [activeAcademicYear?.name]);
 
   // Step 3 State: Builder
-  const [selectedDay, setSelectedDay] = useState('Monday');
+  const [selectedDay, setSelectedDay] = useState(ALL_DAYS[0]);
+
+  useEffect(() => {
+    if (activeDays.length > 0 && !activeDays.includes(selectedDay)) {
+      setSelectedDay(activeDays[0]);
+    }
+  }, [activeDays, selectedDay]);
   const [selectedSlot, setSelectedSlot] = useState<{grade: string, period: number} | null>(null);
   const [slotForm, setSlotForm] = useState({ mappingId: '', room: '' });
 
@@ -256,7 +291,15 @@ export default function TimetableWizard() {
   const handleAddMapping = () => {
     if (!newMapping.subject || !newMapping.teacher) return;
     setMappings([...mappings, { ...newMapping, id: `m${Date.now()}` }]);
-    setNewMapping({ grade: GRADES[0], subject: '', teacher: '', classesPerWeek: 1 });
+    setNewMapping({ 
+      grade: newMapping.grade, // Keep the same grade selected
+      subject: '', 
+      teacher: '', 
+      classesPerWeek: 1,
+      doublePeriods: false,
+      beforeBreakfast: false,
+      linkedGrade: ''
+    });
   };
 
   const handleRemoveMapping = (id: string) => {
@@ -269,19 +312,71 @@ export default function TimetableWizard() {
       const newSchedule: any[] = [];
       let idCounter = 1;
 
-      mappings.forEach((mapping) => {
+      // Sort mappings to handle linked grades and double periods first
+      const sortedMappings = [...mappings].sort((a, b) => {
+        if (a.linkedGrade && !b.linkedGrade) return -1;
+        if (!a.linkedGrade && b.linkedGrade) return 1;
+        if (a.doublePeriods && !b.doublePeriods) return -1;
+        if (!a.doublePeriods && b.doublePeriods) return 1;
+        return b.classesPerWeek - a.classesPerWeek;
+      });
+
+      sortedMappings.forEach((mapping) => {
         const color = getColorForSubject(mapping.subject);
         let classesPlaced = 0;
         let attempts = 0;
 
-        while (classesPlaced < mapping.classesPerWeek && attempts < 200) {
+        while (classesPlaced < mapping.classesPerWeek && attempts < 500) {
           attempts++;
-          const randomDay = DAYS[Math.floor(Math.random() * constraints.daysPerWeek)];
-          const randomPeriod = Math.floor(Math.random() * constraints.periodsPerDay) + 1;
-
-          const isOccupied = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.period === randomPeriod);
+          const randomDay = activeDays[Math.floor(Math.random() * activeDays.length)];
           
-          if (!isOccupied) {
+          // Determine valid periods based on constraints
+          let validPeriods = Array.from({ length: constraints.periodsPerDay }, (_, i) => i + 1);
+          
+          if (mapping.beforeBreakfast) {
+            // Assuming breakfast is after period 2 or 3. Let's say periods 1 and 2 are before breakfast.
+            validPeriods = [1, 2];
+          }
+
+          const randomPeriod = validPeriods[Math.floor(Math.random() * validPeriods.length)];
+
+          // Check for conflicts
+          // 1. Class conflict (grade already has a class in this period)
+          const isClassOccupied = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.period === randomPeriod);
+          
+          // 2. Teacher conflict (teacher is already teaching another class in this period)
+          // UNLESS it's a linked grade scenario where they are supposed to teach both at the same time
+          const isTeacherOccupied = newSchedule.some(s => 
+            s.day === randomDay && 
+            s.teacher === mapping.teacher && 
+            s.period === randomPeriod &&
+            !(mapping.linkedGrade === s.grade && s.subject === mapping.subject) // Allow if it's the linked grade
+          );
+
+          if (!isClassOccupied && !isTeacherOccupied) {
+            
+            // Handle double periods
+            if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
+              const nextPeriod = randomPeriod + 1;
+              if (nextPeriod <= constraints.periodsPerDay) {
+                const isNextClassOccupied = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.period === nextPeriod);
+                const isNextTeacherOccupied = newSchedule.some(s => s.day === randomDay && s.teacher === mapping.teacher && s.period === nextPeriod);
+                
+                if (!isNextClassOccupied && !isNextTeacherOccupied) {
+                  // Place both
+                  newSchedule.push({
+                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: randomPeriod, subject: mapping.subject, teacher: mapping.teacher, room: 'TBD', color
+                  });
+                  newSchedule.push({
+                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, room: 'TBD', color
+                  });
+                  classesPlaced += 2;
+                  continue;
+                }
+              }
+            }
+
+            // Normal placement
             newSchedule.push({
               id: `gen-${idCounter++}`,
               day: randomDay,
@@ -514,6 +609,27 @@ export default function TimetableWizard() {
                     className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">Start of Day Time</label>
+                  <input 
+                    type="time" 
+                    value={constraints.startTime}
+                    onChange={(e) => setConstraints({...constraints, startTime: e.target.value})}
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">Start of Week</label>
+                  <select 
+                    value={constraints.startOfWeek}
+                    onChange={(e) => setConstraints({...constraints, startOfWeek: e.target.value})}
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
+                  >
+                    <option value="Monday">Monday</option>
+                    <option value="Sunday">Sunday</option>
+                    <option value="Saturday">Saturday</option>
+                  </select>
+                </div>
               </div>
 
               <div className="pt-6 border-t border-border">
@@ -562,41 +678,106 @@ export default function TimetableWizard() {
               </div>
 
               {/* Add Mapping Form */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <select 
-                  value={newMapping.grade}
-                  onChange={e => setNewMapping({...newMapping, grade: e.target.value})}
-                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
-                >
-                  {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-                <select 
-                  value={newMapping.subject}
-                  onChange={e => setNewMapping({...newMapping, subject: e.target.value})}
-                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
-                >
-                  {SYSTEM_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <select 
-                  value={newMapping.teacher}
-                  onChange={e => setNewMapping({...newMapping, teacher: e.target.value})}
-                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
-                >
-                  {teachers.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-                </select>
-                <input 
-                  type="number" min="1" placeholder="Classes/Week"
-                  value={newMapping.classesPerWeek}
-                  onChange={e => setNewMapping({...newMapping, classesPerWeek: parseInt(e.target.value) || 1})}
-                  className="p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
-                />
-                <button 
-                  onClick={handleAddMapping}
-                  disabled={!newMapping.subject || !newMapping.teacher}
-                  className="p-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <Plus size={18} /> Add
-                </button>
+              <div className="bg-muted/50 p-4 rounded-xl border border-border space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground">Grade</label>
+                    <select 
+                      value={newMapping.grade}
+                      onChange={e => setNewMapping({...newMapping, grade: e.target.value, subject: ''})}
+                      className="w-full p-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
+                    >
+                      {GRADES.map(g => {
+                        const used = mappings.filter(m => m.grade === g).reduce((acc, m) => acc + m.classesPerWeek, 0);
+                        const total = constraints.periodsPerDay * constraints.daysPerWeek;
+                        return (
+                          <option key={g} value={g}>
+                            {g} ({total - used}/{total} remaining)
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground">Subject</label>
+                    <select 
+                      value={newMapping.subject}
+                      onChange={e => setNewMapping({...newMapping, subject: e.target.value})}
+                      className="w-full p-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
+                    >
+                      <option value="">Select Subject</option>
+                      {SYSTEM_SUBJECTS.filter(s => !mappings.some(m => m.grade === newMapping.grade && m.subject === s)).map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground">Teacher</label>
+                    <select 
+                      value={newMapping.teacher}
+                      onChange={e => setNewMapping({...newMapping, teacher: e.target.value})}
+                      className="w-full p-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
+                    >
+                      <option value="">Select Teacher</option>
+                      {teachers.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground">Classes / Week</label>
+                    <input 
+                      type="number" min="1" placeholder="Classes/Week"
+                      value={newMapping.classesPerWeek}
+                      onChange={e => setNewMapping({...newMapping, classesPerWeek: parseInt(e.target.value) || 1})}
+                      className="w-full p-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="doublePeriods"
+                      checked={newMapping.doublePeriods}
+                      onChange={e => setNewMapping({...newMapping, doublePeriods: e.target.checked})}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="doublePeriods" className="text-sm font-medium text-foreground">Prefers Double Periods</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="beforeBreakfast"
+                      checked={newMapping.beforeBreakfast}
+                      onChange={e => setNewMapping({...newMapping, beforeBreakfast: e.target.checked})}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="beforeBreakfast" className="text-sm font-medium text-foreground">Prefers Before Breakfast</label>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground">Link with Grade (Optional)</label>
+                    <select 
+                      value={newMapping.linkedGrade}
+                      onChange={e => setNewMapping({...newMapping, linkedGrade: e.target.value})}
+                      className="w-full p-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary text-sm"
+                    >
+                      <option value="">None</option>
+                      {GRADES.filter(g => g !== newMapping.grade).map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button 
+                    onClick={handleAddMapping}
+                    disabled={!newMapping.subject || !newMapping.teacher}
+                    className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Plus size={18} /> Add Mapping
+                  </button>
+                </div>
               </div>
 
               <div className="border border-border rounded-xl overflow-hidden">
@@ -606,7 +787,7 @@ export default function TimetableWizard() {
                       <th className="p-4 font-bold text-foreground">Grade</th>
                       <th className="p-4 font-bold text-foreground">Subject</th>
                       <th className="p-4 font-bold text-foreground">Teacher</th>
-                      <th className="p-4 font-bold text-foreground">Classes / Week</th>
+                      <th className="p-4 font-bold text-foreground">Details</th>
                       <th className="p-4 font-bold text-foreground">Actions</th>
                     </tr>
                   </thead>
@@ -616,7 +797,14 @@ export default function TimetableWizard() {
                         <td className="p-4 font-medium">{mapping.grade}</td>
                         <td className="p-4">{mapping.subject}</td>
                         <td className="p-4">{mapping.teacher}</td>
-                        <td className="p-4">{mapping.classesPerWeek}</td>
+                        <td className="p-4">
+                          <div className="flex flex-col gap-1 text-xs">
+                            <span>{mapping.classesPerWeek} classes/wk</span>
+                            {mapping.doublePeriods && <span className="text-indigo-500 font-medium">Double Periods</span>}
+                            {mapping.beforeBreakfast && <span className="text-emerald-500 font-medium">Before Breakfast</span>}
+                            {mapping.linkedGrade && <span className="text-amber-500 font-medium">Linked: {mapping.linkedGrade}</span>}
+                          </div>
+                        </td>
                         <td className="p-4">
                           <button 
                             onClick={() => handleRemoveMapping(mapping.id)}
@@ -669,7 +857,7 @@ export default function TimetableWizard() {
 
               {/* Day Tabs */}
               <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-                {DAYS.slice(0, constraints.daysPerWeek).map(day => (
+                {activeDays.map(day => (
                   <button
                     key={day}
                     onClick={() => setSelectedDay(day)}

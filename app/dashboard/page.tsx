@@ -22,59 +22,67 @@ export default function DashboardHome() {
     let stats = { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0 };
     let notices = [];
 
-    if (isRole(['admin', 'accountant'])) {
-      // Filter students by academic year
-      let studentQuery = supabase
-        .from('students')
-        .select('*', { count: 'exact', head: true });
-      
-      if (activeAcademicYear) {
-        studentQuery = studentQuery.eq('academic_year', activeAcademicYear.name);
+    try {
+      if (isRole(['admin', 'accountant'])) {
+        // Filter students by academic year
+        let studentQuery = supabase
+          .from('students')
+          .select('*', { count: 'exact', head: true });
+        
+        if (activeAcademicYear) {
+          studentQuery = studentQuery.eq('academic_year', activeAcademicYear.name);
+        }
+
+        const { count: studentCount } = await studentQuery;
+        
+        const { data: attendanceData } = await supabase
+          .from('attendance')
+          .select('status')
+          .eq('date', new Date().toISOString().split('T')[0]);
+        
+        const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
+        const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
+
+        // Filter fee invoices by academic year via student relation
+        let feeQuery = supabase
+          .from('fee_invoices')
+          .select(`
+            amount, 
+            status,
+            student:students!inner(academic_year)
+          `);
+        
+        if (activeAcademicYear) {
+          feeQuery = feeQuery.eq('student.academic_year', activeAcademicYear.name);
+        }
+
+        const { data: feeData } = await feeQuery;
+        
+        const collected = feeData?.filter((f: any) => f.status === 'paid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+        const pending = feeData?.filter((f: any) => f.status === 'pending').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+
+        stats = {
+          totalStudents: studentCount || 0,
+          attendanceToday: attendanceRate,
+          feeCollected: collected,
+          pendingFees: pending
+        };
       }
 
-      const { count: studentCount } = await studentQuery;
+      const { data: noticesData } = await supabase
+        .from('notices')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
       
-      const { data: attendanceData } = await supabase
-        .from('attendance')
-        .select('status')
-        .eq('date', new Date().toISOString().split('T')[0]);
-      
-      const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
-      const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
-
-      // Filter fee invoices by academic year via student relation
-      let feeQuery = supabase
-        .from('fee_invoices')
-        .select(`
-          amount, 
-          status,
-          student:students!inner(academic_year)
-        `);
-      
-      if (activeAcademicYear) {
-        feeQuery = feeQuery.eq('student.academic_year', activeAcademicYear.name);
+      if (noticesData) notices = noticesData;
+    } catch (error: any) {
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        console.warn('Supabase connection failed. Using empty dashboard data.');
+      } else {
+        console.error('Dashboard fetch error:', error);
       }
-
-      const { data: feeData } = await feeQuery;
-      
-      const collected = feeData?.filter((f: any) => f.status === 'paid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
-      const pending = feeData?.filter((f: any) => f.status === 'pending').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
-
-      stats = {
-        totalStudents: studentCount || 0,
-        attendanceToday: attendanceRate,
-        feeCollected: collected,
-        pendingFees: pending
-      };
     }
-
-    const { data: noticesData } = await supabase
-      .from('notices')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
-    
-    if (noticesData) notices = noticesData;
 
     return { stats, notices };
   };

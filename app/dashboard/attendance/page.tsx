@@ -78,7 +78,7 @@ function TeacherAttendance() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedDate]);
+  }, [selectedDate, activeAcademicYear?.name]);
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -472,7 +472,7 @@ function AdminAttendance() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedDate]);
+  }, [selectedDate, activeAcademicYear?.name]);
 
   const selectedStats = history.find(h => h.date === selectedDate) || { present: 0, absent: 0, late: 0, excused: 0 };
   const totalSelected = selectedStats.present + selectedStats.absent + selectedStats.late + selectedStats.excused;

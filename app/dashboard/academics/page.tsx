@@ -1827,7 +1827,7 @@ function ParentAcademics() {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, activeAcademicYear?.name]);
 
   // Mock subjects for overview (could be derived from submissions in a real app)
   const subjects = [

@@ -319,23 +319,31 @@ export async function getPaginatedStaff(page: number = 1, limit: number = 10, se
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  let query = supabase
-    .from('users')
-    .select('*', { count: 'exact' })
-    .in('role', ['teacher', 'staff', 'accountant', 'admin']);
+  try {
+    let query = supabase
+      .from('users')
+      .select('*', { count: 'exact' })
+      .in('role', ['teacher', 'staff', 'accountant', 'admin']);
 
-  if (search) {
-    query = query.ilike('name', `%${search}%`);
+    if (search) {
+      query = query.ilike('name', `%${search}%`);
+    }
+
+    const { data, error, count } = await query.range(from, to);
+    if (error) throw error;
+
+    return {
+      data,
+      count: count || 0,
+      totalPages: Math.ceil((count || 0) / limit)
+    };
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty staff list.');
+      return { data: [], count: 0, totalPages: 0 };
+    }
+    throw error;
   }
-
-  const { data, error, count } = await query.range(from, to);
-  if (error) throw error;
-
-  return {
-    data,
-    count: count || 0,
-    totalPages: Math.ceil((count || 0) / limit)
-  };
 }
 
 export async function getPaginatedInvoices(page: number = 1, limit: number = 10, search: string = '', studentId?: string, status?: string, academicYear?: string) {
@@ -903,45 +911,77 @@ export async function getAtRiskStudents(academicYear?: string) {
 }
 
 export async function getClasses() {
-  const { data, error } = await supabase
-    .from('classes')
-    .select(`
-      *,
-      academic_year:academic_year_id(name),
-      teacher:class_teacher_id(name)
-    `)
-    .order('name');
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('classes')
+      .select(`
+        *,
+        academic_year:academic_year_id(name),
+        teacher:class_teacher_id(name)
+      `)
+      .order('name');
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty classes list.');
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getSubjects() {
-  const { data, error } = await supabase
-    .from('subjects')
-    .select('*')
-    .order('name');
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty subjects list.');
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getAcademicYears() {
-  const { data, error } = await supabase
-    .from('academic_years')
-    .select('*')
-    .order('name');
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('academic_years')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty academic years list.');
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getActiveAcademicYear() {
-  const { data, error } = await supabase
-    .from('academic_years')
-    .select('*')
-    .eq('is_active', true)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 is no rows returned
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('academic_years')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is no rows returned
+    return data;
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning null for active academic year.');
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function setActiveAcademicYear(id: string) {
@@ -1015,10 +1055,37 @@ export async function createStaff(staffData: any) {
 }
 
 export async function getSystemSettings() {
-  const { data, error } = await supabase.from('system_settings').select('*').single();
-  if (error) {
-    if (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message.includes('relation "system_settings" does not exist')) {
-      // Fallback to localStorage or defaults
+  try {
+    const { data, error } = await supabase.from('system_settings').select('*').single();
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message.includes('relation "system_settings" does not exist')) {
+        // Fallback to localStorage or defaults
+        if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem('SYSTEM_SETTINGS');
+          if (saved) return JSON.parse(saved);
+        }
+        return {
+          school_name: 'Greenwood High School',
+          school_address: '123 Education Lane, Learning City',
+          school_phone: '+1 (555) 012-3456',
+          school_email: 'info@greenwoodhigh.edu',
+          grading_scale: 'Standard (A-F)',
+          theme_color: 'indigo',
+          font_family: 'Inter (Default)',
+          compact_design: false,
+          enable_online_registration: true,
+          maintenance_mode: false,
+          automatic_attendance: false,
+          enable_sms: false
+        };
+      }
+      throw error;
+    }
+    return data;
+  } catch (error: any) {
+    // Handle "Failed to fetch" which happens when the Supabase URL is invalid/placeholder
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Falling back to local settings.');
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('SYSTEM_SETTINGS');
         if (saved) return JSON.parse(saved);
@@ -1040,7 +1107,6 @@ export async function getSystemSettings() {
     }
     throw error;
   }
-  return data;
 }
 
 export async function updateSystemSettings(settings: any) {
@@ -1172,17 +1238,25 @@ export async function seedDatabase(demoData: any) {
 }
 
 export async function getNotices() {
-  const { data, error } = await supabase
-    .from('notices')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('notices')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching notices:', error);
-    return [];
+    if (error) {
+      console.error('Error fetching notices:', error);
+      return [];
+    }
+
+    return data;
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty notices list.');
+      return [];
+    }
+    throw error;
   }
-
-  return data;
 }
 
 export async function createNotice(noticeData: any) {
@@ -1244,24 +1318,32 @@ export async function getUsersForChat() {
 }
 
 export async function getSchedules(classId?: string, academicYear?: string) {
-  let query = supabase
-    .from('schedules')
-    .select(`
-      *,
-      teacher:users(name)
-    `);
+  try {
+    let query = supabase
+      .from('schedules')
+      .select(`
+        *,
+        teacher:users(name)
+      `);
 
-  if (classId) {
-    query = query.eq('class_id', classId);
+    if (classId) {
+      query = query.eq('class_id', classId);
+    }
+
+    if (academicYear) {
+      query = query.eq('academic_year', academicYear);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty schedules list.');
+      return [];
+    }
+    throw error;
   }
-
-  if (academicYear) {
-    query = query.eq('academic_year', academicYear);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
 }
 
 export async function saveSchedule(scheduleData: any) {
@@ -1322,13 +1404,21 @@ export async function resetDatabase(keepUsers: boolean = true) {
 
 // Schedule Management
 export async function getTeachers() {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('role', 'teacher');
-  
-  if (error) throw error;
-  return data as User[];
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'teacher');
+    
+    if (error) throw error;
+    return data as User[];
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty teachers list.');
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function saveScheduleDraft(draft: { name: string, constraints: any, mappings: any, schedule: any, academic_year?: string }) {
@@ -1354,18 +1444,26 @@ export async function saveScheduleDraft(draft: { name: string, constraints: any,
 }
 
 export async function getScheduleDrafts(academicYear?: string) {
-  let query = supabase
-    .from('schedule_drafts')
-    .select('*')
-    .order('updated_at', { ascending: false });
+  try {
+    let query = supabase
+      .from('schedule_drafts')
+      .select('*')
+      .order('updated_at', { ascending: false });
 
-  if (academicYear) {
-    query = query.eq('academic_year', academicYear);
+    if (academicYear) {
+      query = query.eq('academic_year', academicYear);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('Supabase connection failed. Returning empty drafts list.');
+      return [];
+    }
+    throw error;
   }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
 }
 
 export async function deleteScheduleDraft(id: string) {

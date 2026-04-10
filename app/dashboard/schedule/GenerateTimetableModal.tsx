@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Wand2, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { TimetablePeriod } from '@/lib/mock-db';
+import { getSubjects, getTeachers, getClasses } from '@/lib/supabase-db';
 
 interface GenerateTimetableModalProps {
   isOpen: boolean;
@@ -15,35 +16,55 @@ export default function GenerateTimetableModal({ isOpen, onClose, onGenerate }: 
   const [isGenerating, setIsGenerating] = useState(false);
   const [periodsPerDay, setPeriodsPerDay] = useState(6);
   const [periodLength, setPeriodLength] = useState(50);
+  const [systemData, setSystemData] = useState<{subjects: any[], teachers: any[], classes: any[]}>({
+    subjects: [],
+    teachers: [],
+    classes: []
+  });
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [subs, tchs, clss] = await Promise.all([
+          getSubjects(),
+          getTeachers(),
+          getClasses()
+        ]);
+        setSystemData({ subjects: subs, teachers: tchs, classes: clss });
+      } catch (error) {
+        console.error('Error loading system data for modal:', error);
+      }
+    }
+    if (isOpen) loadData();
+  }, [isOpen]);
   
   const handleGenerate = () => {
     setIsGenerating(true);
     
     // Simulate generation delay
     setTimeout(() => {
-      // In a real app, this would call an API with a complex algorithm.
-      // For this MVP, we'll just generate a basic mock schedule based on the parameters.
-      
       const newSchedule: TimetablePeriod[] = [];
-      const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
-      const subjects = [
-        { name: 'Mathematics', color: 'bg-blue-500/20 text-blue-500 border-blue-500/20' },
-        { name: 'Science', color: 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' },
-        { name: 'English', color: 'bg-purple-500/20 text-purple-500 border-purple-500/20' },
-        { name: 'History', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-        { name: 'Physical Ed', color: 'bg-destructive/20 text-destructive border-destructive/20' },
-        { name: 'Art', color: 'bg-pink-500/10 text-pink-500 border-pink-500/20' },
-        { name: 'Music', color: 'bg-primary/20 text-primary border-primary/20' },
-        { name: 'Geography', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-        { name: 'Computer Sci', color: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20' },
-      ];
-      const teachers = ['Edna Krabappel', 'Professor Frink', 'Elizabeth Hoover', 'Coach Krupt', 'Dewey Largo', 'Database Admin', 'Librarian'];
+      
+      const grades = systemData.classes.length > 0 
+        ? systemData.classes.map(c => c.name) 
+        : ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
+        
+      const subjects = systemData.subjects.length > 0
+        ? systemData.subjects.map(s => ({ name: s.name, color: 'bg-primary/20 text-primary border-primary/20' }))
+        : [
+            { name: 'Mathematics', color: 'bg-blue-500/20 text-blue-500 border-blue-500/20' },
+            { name: 'Science', color: 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' },
+            { name: 'English', color: 'bg-purple-500/20 text-purple-500 border-purple-500/20' },
+          ];
+
+      const teachers = systemData.teachers.length > 0
+        ? systemData.teachers.map(t => t.name)
+        : ['Teacher A', 'Teacher B', 'Teacher C'];
       
       let idCounter = 1;
       
       for (let day = 1; day <= 5; day++) {
         for (let grade of grades) {
-          // Simple round-robin assignment for demonstration
           let subjectOffset = (day + grades.indexOf(grade)) % subjects.length;
           
           for (let period = 1; period <= periodsPerDay; period++) {
@@ -58,8 +79,8 @@ export default function GenerateTimetableModal({ isOpen, onClose, onGenerate }: 
               room: `Room ${100 + grades.indexOf(grade) + period}`,
               dayOfWeek: day,
               period: period,
-              startTime: '00:00', // Mock time
-              endTime: '00:00',   // Mock time
+              startTime: '00:00',
+              endTime: '00:00',
               color: subject.color
             });
           }

@@ -80,7 +80,7 @@ function AccountantFees() {
       supabase.removeChannel(invoicesChannel);
       supabase.removeChannel(itemsChannel);
     };
-  }, [page, debouncedSearch, activeTab]);
+  }, [page, debouncedSearch, activeTab, activeAcademicYear?.name]);
 
   const [newInvoiceData, setNewInvoiceData] = useState({
     studentId: '',

@@ -20,14 +20,14 @@ export default function SchedulePage() {
     return <div className="p-4">You do not have permission to view this page.</div>;
   }
 
-  // Render Admin View for privileged roles
-  if (isRole(['admin', 'accountant', 'staff'])) {
+  // Render Admin View for privileged roles and teachers
+  if (isRole(['admin', 'accountant', 'staff', 'teacher'])) {
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Master Schedule</h1>
           <p className="text-slate-500 mt-1 font-medium">
-            Manage and resolve conflicts across all grades and periods
+            {isRole(['admin']) ? 'Manage and resolve conflicts across all grades and periods' : 'View school schedules'}
           </p>
         </div>
         <AdminScheduleView />
