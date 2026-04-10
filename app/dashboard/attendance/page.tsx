@@ -24,8 +24,8 @@ export default function AttendancePage() {
   }
 
   if (isRole(['teacher'])) return <TeacherAttendance />;
-  if (isRole('parent')) return <ParentAttendance />;
-  if (isRole(['admin'])) return <AdminAttendance />;
+  if (isRole(['parent', 'student'])) return <StudentAttendanceView />;
+  if (isRole(['admin', 'staff', 'accountant'])) return <AdminAttendance />;
 
   return <div className="p-4">You do not have permission to view this page.</div>;
 }
@@ -304,7 +304,7 @@ function TeacherAttendance() {
   );
 }
 
-function ParentAttendance() {
+function StudentAttendanceView() {
   const { user } = useAuth();
   const [attendance, setAttendance] = useState<any[]>([]);
   const [student, setStudent] = useState<any>(null);
@@ -333,7 +333,7 @@ function ParentAttendance() {
 
     // Real-time subscription
     const channel = supabase
-      .channel(`parent_attendance_${user?.studentId}`)
+      .channel(`student_attendance_${user?.studentId}`)
       .on('postgres_changes', { 
         event: '*', 
         table: 'attendance', 

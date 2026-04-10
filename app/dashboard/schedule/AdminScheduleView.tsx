@@ -21,7 +21,7 @@ import { getSchedules, getClasses, getTeachers, getActiveAcademicYear } from '@/
 import useSWR from 'swr';
 import { MOCK_SCHEDULE } from '@/lib/mock-db';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 const PERIODS = [
   { id: 1, time: '08:00 AM - 08:50 AM' },
   { id: 2, time: '09:00 AM - 09:50 AM' },
@@ -30,6 +30,7 @@ const PERIODS = [
   { id: 4, time: '11:20 AM - 12:10 PM' },
   { id: 5, time: '12:20 PM - 01:10 PM' },
   { id: 6, time: '01:20 PM - 02:10 PM' },
+  { id: 7, time: '02:20 PM - 03:10 PM' },
 ];
 
 type ViewMode = 'overview' | 'grade' | 'teacher' | 'statistics' | 'load';

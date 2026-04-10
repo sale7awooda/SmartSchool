@@ -17,22 +17,22 @@ import { getStudents, getSchedules, getActiveAcademicYear } from '@/lib/supabase
 import useSWR from 'swr';
 
 const DAYS = [
-  { id: 1, name: 'Monday' },
-  { id: 2, name: 'Tuesday' },
-  { id: 3, name: 'Wednesday' },
-  { id: 4, name: 'Thursday' },
-  { id: 5, name: 'Friday' },
+  { id: 1, name: 'Sunday' },
+  { id: 2, name: 'Monday' },
+  { id: 3, name: 'Tuesday' },
+  { id: 4, name: 'Wednesday' },
+  { id: 5, name: 'Thursday' },
 ];
 
 const PERIODS = [
   { id: 1, time: '08:00 AM - 08:50 AM' },
   { id: 2, time: '09:00 AM - 09:50 AM' },
-  { id: 'break', time: '09:50 AM - 10:10 AM', label: 'Morning Break' },
-  { id: 3, time: '10:10 AM - 11:00 AM' },
-  { id: 4, time: '11:10 AM - 12:00 PM' },
-  { id: 'lunch', time: '12:00 PM - 12:50 PM', label: 'Lunch Break' },
-  { id: 5, time: '12:50 PM - 01:40 PM' },
-  { id: 6, time: '01:50 PM - 02:40 PM' },
+  { id: 3, time: '10:00 AM - 10:50 AM' },
+  { id: 'break', time: '10:50 AM - 11:20 AM', label: 'Breakfast Break' },
+  { id: 4, time: '11:20 AM - 12:10 PM' },
+  { id: 5, time: '12:20 PM - 01:10 PM' },
+  { id: 6, time: '01:20 PM - 02:10 PM' },
+  { id: 7, time: '02:20 PM - 03:10 PM' },
 ];
 
 export default function StudentScheduleView() {

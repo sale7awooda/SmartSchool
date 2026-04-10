@@ -15,7 +15,8 @@ import { User as DBUser } from '@/lib/mock-db';
 import useSWR from 'swr';
 
 // Mock Data
-const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS = ALL_DAYS;
 const SYSTEM_TEACHERS = ['Mr. Smith', 'Mrs. Davis', 'Dr. Brown', 'Ms. Wilson', 'Mr. Taylor', 'Ms. Anderson', 'Mr. Thomas', 'Mrs. Jackson', 'Mr. White'];
 const COLORS = [
   'bg-blue-500/20 text-blue-800 border-blue-200', 
@@ -56,12 +57,12 @@ export default function TimetableWizard() {
 
   // Step 1 State: Constraints
   const [constraints, setConstraints] = useState({
-    periodsPerDay: 6,
+    periodsPerDay: 7,
     daysPerWeek: 5,
     periodLength: 50,
     breakLength: 30,
     startTime: '08:00',
-    startOfWeek: 'Monday'
+    startOfWeek: 'Sunday'
   });
 
   const activeDays = useMemo(() => {
