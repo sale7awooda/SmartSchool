@@ -427,7 +427,7 @@ export default function AdminScheduleView() {
                                     </p>
                                   </div>
                                   <p className="text-[10px] font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
-                                    <Users size={10} /> {classData.grade}
+                                    <Users size={10} /> {(classData as any).grade || (classData as any).classId}
                                   </p>
                                 </div>
                               ) : (
