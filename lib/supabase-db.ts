@@ -720,6 +720,77 @@ export async function updateSubmission(submissionId: string, updateData: any) {
   return data;
 }
 
+export async function submitAssessment(submissionData: {
+  assessment_id: string;
+  student_id: string;
+  answers: Record<string, any>;
+  questions: any[];
+}) {
+  const { assessment_id, student_id, answers, questions } = submissionData;
+
+  // 1. Calculate Score
+  let score = 0;
+  let totalMarks = 0;
+
+  questions.forEach(q => {
+    totalMarks += q.marks;
+    const studentAnswer = answers[q.id];
+
+    if (studentAnswer === undefined || studentAnswer === null) return;
+
+    if (q.type === 'multiple_choice' || q.type === 'true_false') {
+      if (String(studentAnswer) === String(q.correct_answer)) {
+        score += q.marks;
+      }
+    } else if (q.type === 'multiple_response') {
+      const correctAnswers = q.correct_answers || [];
+      const studentAnswers = Array.isArray(studentAnswer) ? studentAnswer : [];
+      
+      // Basic check: all correct must be present, and no incorrect
+      const isCorrect = correctAnswers.length === studentAnswers.length && 
+                        correctAnswers.every((a: string) => studentAnswers.includes(a));
+      
+      if (isCorrect) {
+        score += q.marks;
+      }
+    } else if (q.type === 'short_answer') {
+      if (String(studentAnswer).trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) {
+        score += q.marks;
+      }
+    }
+  });
+
+  // 2. Save Submission
+  const { data, error } = await supabase
+    .from('submissions')
+    .insert([{
+      assessment_id,
+      student_id,
+      answers,
+      score,
+      total_marks: totalMarks,
+      status: 'completed',
+      submitted_at: new Date().toISOString()
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getSubmissionByAssessmentAndStudent(assessmentId: string, studentId: string) {
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('assessment_id', assessmentId)
+    .eq('student_id', studentId)
+    .maybeSingle();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function saveAttendance(attendanceData: any[]) {
   const { data, error } = await supabase
     .from('attendance')
@@ -1441,9 +1512,12 @@ export async function getSchedules(classId?: string, academicYear?: string) {
       query = query.eq('class_id', classId);
     }
 
+    // academic_year column does not exist on schedules table
+    /*
     if (academicYear) {
       query = query.eq('academic_year', academicYear);
     }
+    */
 
     const { data, error } = await query;
     if (error) throw error;
@@ -1543,7 +1617,7 @@ export async function saveScheduleDraft(draft: { name: string, constraints: any,
       constraints: draft.constraints,
       mappings: draft.mappings,
       schedule: draft.schedule,
-      academic_year: draft.academic_year,
+      // academic_year: draft.academic_year, // column does not exist
       created_by: user.id,
       updated_at: new Date().toISOString()
     }, { onConflict: 'name' })
@@ -1561,9 +1635,12 @@ export async function getScheduleDrafts(academicYear?: string) {
       .select('*')
       .order('updated_at', { ascending: false });
 
+    // academic_year column does not exist on schedule_drafts table
+    /*
     if (academicYear) {
       query = query.eq('academic_year', academicYear);
     }
+    */
 
     const { data, error } = await query;
     if (error) throw error;
@@ -1587,17 +1664,21 @@ export async function deleteScheduleDraft(id: string) {
 }
 
 export async function publishSchedule(scheduleItems: any[], academicYear: string) {
-  // First, clear existing schedule for the SPECIFIC academic year to avoid conflicts
+  // First, clear existing schedule
+  // academic_year column does not exist on schedules table
   const { error: deleteError } = await supabase
     .from('schedules')
     .delete()
-    .eq('academic_year', academicYear);
+    .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all for now since we can't filter by year
 
   if (deleteError) throw deleteError;
 
   const { data, error } = await supabase
     .from('schedules')
-    .insert(scheduleItems.map(item => ({ ...item, academic_year: academicYear })));
+    .insert(scheduleItems.map(item => {
+      const { academic_year, ...rest } = item;
+      return rest;
+    }));
 
   if (error) throw error;
   return data;

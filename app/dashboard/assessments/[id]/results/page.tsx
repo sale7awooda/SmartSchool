@@ -1,11 +1,11 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { getAssessmentWithQuestions } from '@/lib/supabase-db';
+import { getAssessmentWithQuestions, getStudentByUserId, getSubmissionByAssessmentAndStudent } from '@/lib/supabase-db';
 import { 
   ArrowLeft, 
   Trophy, 
@@ -23,12 +23,27 @@ export default function AssessmentResultsPage({ params }: { params: Promise<{ id
   const { user } = useAuth();
   const router = useRouter();
   
-  const { data: assessment, isLoading, error } = useSWR(
+  const { data: assessment, isLoading: isAssessmentLoading, error: assessmentError } = useSWR(
     id ? `assessment_${id}` : null,
     () => getAssessmentWithQuestions(id)
   );
 
+  const [studentId, setStudentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id && user.role === 'student') {
+      getStudentByUserId(user.id).then(s => setStudentId(s.id));
+    }
+  }, [user]);
+
+  const { data: submission, isLoading: isSubmissionLoading } = useSWR(
+    id && studentId ? `submission_${id}_${studentId}` : null,
+    () => getSubmissionByAssessmentAndStudent(id, studentId!)
+  );
+
   if (!user) return null;
+
+  const isLoading = isAssessmentLoading || (user.role === 'student' && isSubmissionLoading);
 
   if (isLoading) {
     return (
@@ -39,7 +54,7 @@ export default function AssessmentResultsPage({ params }: { params: Promise<{ id
     );
   }
 
-  if (error || !assessment) {
+  if (assessmentError || !assessment) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-10 h-10 text-destructive" />
@@ -52,6 +67,7 @@ export default function AssessmentResultsPage({ params }: { params: Promise<{ id
   }
 
   const isStudent = user.role === 'student';
+  const accuracy = submission ? Math.round((submission.score / submission.total_marks) * 100) : 0;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-4xl mx-auto">
@@ -68,29 +84,35 @@ export default function AssessmentResultsPage({ params }: { params: Promise<{ id
       </div>
 
       {isStudent ? (
-        <div className="bg-card p-8 rounded-[2rem] border border-border shadow-sm text-center space-y-6">
-          <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
-            <Trophy size={40} />
-          </div>
-          <div>
-            <p className="text-muted-foreground font-medium mb-1">Your Score</p>
-            <p className="text-5xl font-black text-primary">85 / {assessment.total_marks}</p>
-          </div>
-          <div className="grid grid-cols-3 gap-4 pt-6">
-            <div className="p-4 bg-muted rounded-2xl">
-              <p className="text-xs text-muted-foreground font-bold uppercase mb-1">Correct</p>
-              <p className="text-xl font-bold text-emerald-500">17</p>
+        submission ? (
+          <div className="bg-card p-8 rounded-[2rem] border border-border shadow-sm text-center space-y-6">
+            <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto">
+              <Trophy size={40} />
             </div>
-            <div className="p-4 bg-muted rounded-2xl">
-              <p className="text-xs text-muted-foreground font-bold uppercase mb-1">Incorrect</p>
-              <p className="text-xl font-bold text-red-500">3</p>
+            <div>
+              <p className="text-muted-foreground font-medium mb-1">Your Score</p>
+              <p className="text-5xl font-black text-primary">{submission.score} / {submission.total_marks}</p>
             </div>
-            <div className="p-4 bg-muted rounded-2xl">
-              <p className="text-xs text-muted-foreground font-bold uppercase mb-1">Accuracy</p>
-              <p className="text-xl font-bold text-primary">85%</p>
+            <div className="grid grid-cols-2 gap-4 pt-6">
+              <div className="p-4 bg-muted rounded-2xl">
+                <p className="text-xs text-muted-foreground font-bold uppercase mb-1">Submitted At</p>
+                <p className="text-xl font-bold text-foreground">
+                  {new Date(submission.submitted_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="p-4 bg-muted rounded-2xl">
+                <p className="text-xs text-muted-foreground font-bold uppercase mb-1">Accuracy</p>
+                <p className="text-xl font-bold text-primary">{accuracy}%</p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-card p-8 rounded-[2rem] border border-border shadow-sm text-center">
+            <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold">No Submission Found</h2>
+            <p className="text-muted-foreground mt-2">You haven&apos;t submitted this assessment yet.</p>
+          </div>
+        )
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">

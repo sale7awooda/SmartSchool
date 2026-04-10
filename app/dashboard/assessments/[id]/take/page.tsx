@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, use, useRef } from 'react';
+import { useState, useEffect, use, useRef, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { getAssessmentWithQuestions } from '@/lib/supabase-db';
+import { getAssessmentWithQuestions, submitAssessment, getStudentByUserId, getSubmissionByAssessmentAndStudent } from '@/lib/supabase-db';
+import { toast } from 'sonner';
 import { 
   Clock, 
   CheckCircle2, 
@@ -26,6 +27,8 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
     () => getAssessmentWithQuestions(id)
   );
   
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [flagged, setFlagged] = useState<Record<string, boolean>>({});
@@ -35,20 +38,50 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
   const initializedRef = useRef(false);
 
   useEffect(() => {
+    if (user?.id) {
+      getStudentByUserId(user.id).then(student => {
+        setStudentId(student.id);
+        // Check if already submitted
+        getSubmissionByAssessmentAndStudent(id, student.id).then(submission => {
+          if (submission) {
+            setHasSubmitted(true);
+          }
+        });
+      }).catch(err => {
+        console.error('Error fetching student info:', err);
+      });
+    }
+  }, [user?.id, id]);
+
+  useEffect(() => {
     if (assessment?.duration && !initializedRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeLeft(assessment.duration * 60);
       initializedRef.current = true;
     }
   }, [assessment]);
 
-  const handleAutoSubmit = () => {
+  const handleAutoSubmit = useCallback(async () => {
+    if (isSubmitting || isFinished) return;
+    
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      if (!studentId) throw new Error('Student ID not found');
+      
+      await submitAssessment({
+        assessment_id: id,
+        student_id: studentId,
+        answers,
+        questions: assessment.questions
+      });
+      
       setIsFinished(true);
-    }, 1500);
-  };
+    } catch (err) {
+      console.error('Error submitting assessment:', err);
+      toast.error('Failed to submit assessment. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [id, studentId, answers, assessment?.questions, isSubmitting, isFinished]);
 
   useEffect(() => {
     if (isFinished) return;
@@ -65,7 +98,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isFinished]);
+  }, [isFinished, handleAutoSubmit]);
 
   if (!user || user.role !== 'student') {
     return null; // Should redirect
@@ -77,8 +110,18 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleAnswerChange = (questionId: string, value: any) => {
-    setAnswers(prev => ({ ...prev, [questionId]: value }));
+  const handleAnswerChange = (questionId: string, value: any, type: string) => {
+    if (type === 'multiple_response') {
+      setAnswers(prev => {
+        const current = prev[questionId] || [];
+        const next = current.includes(value) 
+          ? current.filter((v: any) => v !== value)
+          : [...current, value];
+        return { ...prev, [questionId]: next };
+      });
+    } else {
+      setAnswers(prev => ({ ...prev, [questionId]: value }));
+    }
   };
 
   const toggleFlag = (questionId: string) => {
@@ -108,6 +151,21 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
           </button>
         </div>
       </motion.div>
+    );
+  }
+
+  if (hasSubmitted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+        <h2 className="text-2xl font-bold">Already Submitted</h2>
+        <p className="text-muted-foreground font-medium text-center max-w-md">
+          You have already submitted this assessment. You can view your results in the dashboard.
+        </p>
+        <button onClick={() => router.push('/dashboard/assessments')} className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-xl font-bold">
+          Go back to dashboard
+        </button>
+      </div>
     );
   }
 
@@ -215,24 +273,51 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
 
             <div className="space-y-4">
               {currentQuestion.type === 'multiple_choice' || currentQuestion.type === 'true_false' ? (
-                currentQuestion.options?.map((opt, idx) => (
+                currentQuestion.options?.map((opt: string, idx: number) => (
                   <label 
                     key={idx} 
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${answers[currentQuestion.id] === idx ? 'border-primary bg-primary/10/50' : 'border-border bg-card hover:border-border'}`}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${answers[currentQuestion.id] === idx.toString() ? 'border-primary bg-primary/10/50' : 'border-border bg-card hover:border-border'}`}
                   >
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${answers[currentQuestion.id] === idx ? 'border-primary' : 'border-border'}`}>
-                      {answers[currentQuestion.id] === idx && <div className="w-3 h-3 bg-primary rounded-full" />}
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${answers[currentQuestion.id] === idx.toString() ? 'border-primary' : 'border-border'}`}>
+                      {answers[currentQuestion.id] === idx.toString() && <div className="w-3 h-3 bg-primary rounded-full" />}
                     </div>
-                    <span className={`text-lg ${answers[currentQuestion.id] === idx ? 'text-indigo-900 font-medium' : 'text-foreground'}`}>
+                    <span className={`text-lg ${answers[currentQuestion.id] === idx.toString() ? 'text-indigo-900 font-medium' : 'text-foreground'}`}>
                       {opt}
                     </span>
+                    <input 
+                      type="radio" 
+                      className="hidden" 
+                      name={`q-${currentQuestion.id}`}
+                      checked={answers[currentQuestion.id] === idx.toString()}
+                      onChange={() => handleAnswerChange(currentQuestion.id, idx.toString(), currentQuestion.type)}
+                    />
+                  </label>
+                ))
+              ) : currentQuestion.type === 'multiple_response' ? (
+                currentQuestion.options?.map((opt: string, idx: number) => (
+                  <label 
+                    key={idx} 
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${answers[currentQuestion.id]?.includes(idx.toString()) ? 'border-primary bg-primary/10/50' : 'border-border bg-card hover:border-border'}`}
+                  >
+                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${answers[currentQuestion.id]?.includes(idx.toString()) ? 'border-primary bg-primary' : 'border-border'}`}>
+                      {answers[currentQuestion.id]?.includes(idx.toString()) && <CheckCircle2 size={14} className="text-white" />}
+                    </div>
+                    <span className={`text-lg ${answers[currentQuestion.id]?.includes(idx.toString()) ? 'text-indigo-900 font-medium' : 'text-foreground'}`}>
+                      {opt}
+                    </span>
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={answers[currentQuestion.id]?.includes(idx.toString())}
+                      onChange={() => handleAnswerChange(currentQuestion.id, idx.toString(), currentQuestion.type)}
+                    />
                   </label>
                 ))
               ) : (
                 <textarea 
                   placeholder="Type your answer here..."
                   value={answers[currentQuestion.id] || ''}
-                  onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                  onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value, currentQuestion.type)}
                   className="w-full p-4 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary min-h-[200px] resize-y text-lg"
                 />
               )}

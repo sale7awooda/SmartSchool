@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { getPaginatedAssessments, getActiveAcademicYear } from '@/lib/supabase-db';
+import { getPaginatedAssessments, getActiveAcademicYear, getStudentByUserId, getStudentSubmissions } from '@/lib/supabase-db';
 import { motion } from 'motion/react';
 import { 
   FileText, 
@@ -81,6 +81,18 @@ export default function AssessmentsPage() {
     ([_, p, s, status, a]) => getPaginatedAssessments(p, limit, s, status)
   );
 
+  const [studentId, setStudentId] = useState<string | null>(null);
+  useEffect(() => {
+    if (user?.id && isRole('student')) {
+      getStudentByUserId(user.id).then(s => setStudentId(s.id));
+    }
+  }, [user, isRole]);
+
+  const { data: studentSubmissions } = useSWR(
+    studentId ? `student_submissions_${studentId}` : null,
+    () => getStudentSubmissions(studentId!)
+  );
+
   const assessments = assessmentsResponse?.data || [];
   const totalPages = assessmentsResponse?.totalPages || 1;
   const totalCount = assessmentsResponse?.count || 0;
@@ -94,19 +106,23 @@ export default function AssessmentsPage() {
   const isStudent = isRole('student');
   const isTeacherOrAdmin = can('manage', 'assessments') || can('create', 'assessments');
 
-  const filteredAssessments = assessments.map((assessment: any) => ({
-    id: assessment.id,
-    title: assessment.title,
-    subject: assessment.subject,
-    grade: assessment.grade || 'All Grades',
-    date: assessment.due_date || 'TBD',
-    duration: assessment.duration || 60,
-    status: assessment.status || 'upcoming',
-    totalMarks: assessment.total_marks || 100,
-    questionsCount: assessment.questions_count || 0,
-    type: assessment.type || 'exam',
-    score: assessment.score,
-  }));
+  const filteredAssessments = assessments.map((assessment: any) => {
+    const submission = studentSubmissions?.find((s: any) => s.assessment_id === assessment.id);
+    
+    return {
+      id: assessment.id,
+      title: assessment.title,
+      subject: assessment.subject,
+      grade: assessment.grade || 'All Grades',
+      date: assessment.due_date || 'TBD',
+      duration: assessment.duration || 60,
+      status: submission ? 'completed' : (assessment.status || 'upcoming'),
+      totalMarks: assessment.total_marks || 100,
+      questionsCount: assessment.questions_count || 0,
+      type: assessment.type || 'exam',
+      score: submission?.score,
+    };
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {

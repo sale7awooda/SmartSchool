@@ -88,8 +88,7 @@ export default function AdminScheduleView() {
       .on('postgres_changes', { 
         event: '*', 
         table: 'schedules', 
-        schema: 'public',
-        filter: activeAcademicYear ? `academic_year=eq.${activeAcademicYear.name}` : undefined
+        schema: 'public'
       }, () => {
         loadSchedules();
       })
