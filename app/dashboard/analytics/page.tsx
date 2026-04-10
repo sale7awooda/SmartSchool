@@ -218,24 +218,27 @@ function OverviewTab({ academicStats, attendanceStats, financialStats, atRiskStu
       {/* Main Chart */}
       <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
         <h3 className="text-lg font-bold text-foreground mb-6">School Performance Index</h3>
-        <div className="h-[350px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={academicStats?.trends || []}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-              <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dx={-10} domain={[60, 100]} />
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                cursor={{ fill: '#f8fafc' }}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px' }} />
-              <Bar yAxisId="left" dataKey="math" name="Math Avg" fill="#818cf8" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              <Bar yAxisId="left" dataKey="english" name="English Avg" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              <Line yAxisId="left" type="monotone" dataKey="avg" name="Overall Trend" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
+        <div className="h-[350px] min-h-[350px]">
+          {academicStats?.trends && academicStats.trends.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={academicStats.trends}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dx={-10} domain={[60, 100]} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  cursor={{ fill: '#f8fafc' }}
+                />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar yAxisId="left" dataKey="math" name="Math Avg" fill="#818cf8" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar yAxisId="left" dataKey="english" name="English Avg" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Line yAxisId="left" type="monotone" dataKey="avg" name="Overall Trend" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-muted-foreground">No data available</div>
+          )}
         </div>
-      </div>
     </motion.div>
   );
 }
