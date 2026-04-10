@@ -564,7 +564,7 @@ export async function deleteFeeItem(id: string) {
   if (error) throw error;
 }
 
-export async function getPaginatedAssessments(page: number = 1, limit: number = 10, search: string = '', statusFilter: string = 'all', academicYear?: string) {
+export async function getPaginatedAssessments(page: number = 1, limit: number = 10, search: string = '', statusFilter: string = 'all') {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -572,10 +572,6 @@ export async function getPaginatedAssessments(page: number = 1, limit: number = 
     .from('assessments')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
-
-  if (academicYear) {
-    query = query.eq('academic_year', academicYear);
-  }
 
   if (search) {
     query = query.or(`title.ilike.%${search}%,subject.ilike.%${search}%`);
@@ -638,15 +634,11 @@ export async function getPaginatedBooks(page: number = 1, limit: number = 10, se
     totalPages: Math.ceil((count || 0) / limit)
   };
 }
-export async function getAssessments(academicYear?: string) {
+export async function getAssessments() {
   let query = supabase
     .from('assessments')
     .select('*')
     .order('created_at', { ascending: false });
-
-  if (academicYear) {
-    query = query.eq('academic_year', academicYear);
-  }
 
   const { data, error } = await query;
   
@@ -655,14 +647,36 @@ export async function getAssessments(academicYear?: string) {
 }
 
 export async function createAssessment(assessmentData: any) {
-  const { data, error } = await supabase
+  const { questions, ...mainData } = assessmentData;
+  
+  // 1. Create the assessment
+  const { data: assessment, error: assessmentError } = await supabase
     .from('assessments')
-    .insert([assessmentData])
+    .insert([mainData])
     .select()
     .single();
   
-  if (error) throw error;
-  return data;
+  if (assessmentError) throw assessmentError;
+
+  // 2. Create questions if any
+  if (questions && questions.length > 0) {
+    const questionsWithId = questions.map((q: any) => ({
+      ...q,
+      assessment_id: assessment.id
+    }));
+    
+    const { error: questionsError } = await supabase
+      .from('questions')
+      .insert(questionsWithId);
+      
+    if (questionsError) {
+      // Rollback assessment (manual)
+      await supabase.from('assessments').delete().eq('id', assessment.id);
+      throw questionsError;
+    }
+  }
+  
+  return assessment;
 }
 
 export async function getSubmissions(assessmentId?: string) {
@@ -995,6 +1009,29 @@ export async function getAcademicYears() {
   }
 }
 
+export async function getAssessmentWithQuestions(id: string) {
+  const { data: assessment, error: assessmentError } = await supabase
+    .from('assessments')
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  if (assessmentError) throw assessmentError;
+  
+  const { data: questions, error: questionsError } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('assessment_id', id)
+    .order('created_at', { ascending: true });
+    
+  if (questionsError) throw questionsError;
+  
+  return {
+    ...assessment,
+    questions: questions || []
+  };
+}
+
 export async function getActiveAcademicYear() {
   try {
     const { data, error } = await supabase
@@ -1004,6 +1041,11 @@ export async function getActiveAcademicYear() {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is no rows returned
+    
+    if (!data) {
+      return { name: '2025-2026', is_active: true };
+    }
+    
     return data;
   } catch (error: any) {
     if (error instanceof TypeError && error.message === 'Failed to fetch') {

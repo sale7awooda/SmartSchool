@@ -964,7 +964,6 @@ function TeacherAcademics() {
       date: formData.get("date") as string,
       status: "Published",
       description: formData.get("description") as string,
-      academic_year: activeAcademicYear?.name,
     };
 
     try {

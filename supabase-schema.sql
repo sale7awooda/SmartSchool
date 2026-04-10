@@ -149,7 +149,23 @@ CREATE TABLE IF NOT EXISTS public.assessments (
   grade TEXT NOT NULL,
   teacher_id UUID REFERENCES public.users(id),
   due_date TIMESTAMPTZ NOT NULL,
+  duration INTEGER, -- in minutes
+  total_marks INTEGER,
+  status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
   type TEXT CHECK (type IN ('homework', 'project', 'quiz', 'essay', 'exam')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Questions Table for Online Assessments
+CREATE TABLE IF NOT EXISTS public.questions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  assessment_id UUID REFERENCES public.assessments(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('multiple_choice', 'true_false', 'multiple_response', 'short_answer')),
+  options JSONB, -- Array of strings for MCQs/Multiple Response
+  correct_answer TEXT, -- For MCQ/True-False/Short Answer
+  correct_answers JSONB, -- For Multiple Response (array of strings)
+  marks INTEGER DEFAULT 1,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

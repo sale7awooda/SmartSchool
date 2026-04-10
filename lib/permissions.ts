@@ -9,7 +9,7 @@ type Resource =
   | 'staff' 
   | 'academics' 
   | 'schedule' 
-  | 'exams' 
+  | 'assessments' 
   | 'visitors' 
   | 'communication' 
   | 'transport' 
@@ -29,7 +29,7 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     staff: ['view', 'create', 'edit', 'delete', 'manage'],
     academics: ['view', 'create', 'edit', 'delete', 'manage'],
     schedule: ['view', 'create', 'edit', 'delete', 'manage'],
-    exams: ['view', 'create', 'edit', 'delete', 'manage'],
+    assessments: ['view', 'create', 'edit', 'delete', 'manage'],
     visitors: ['view', 'create', 'edit', 'delete', 'manage'],
     communication: ['view', 'create', 'edit', 'delete', 'manage'],
     transport: ['view', 'create', 'edit', 'delete', 'manage'],
@@ -47,7 +47,7 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     staff: ['view'],
     academics: ['view'],
     schedule: ['view'],
-    exams: [],
+    assessments: [],
     visitors: [],
     communication: ['view', 'create'],
     transport: ['view'],
@@ -65,7 +65,7 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     staff: ['view'],
     academics: ['view', 'edit'], // Edit grades
     schedule: ['view'],
-    exams: ['view', 'create', 'edit', 'delete'], // Manage own exams
+    assessments: ['view', 'create', 'edit', 'delete'], // Manage own assessments
     visitors: ['view'],
     communication: ['view', 'create'],
     transport: [],
@@ -83,7 +83,7 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     staff: ['view'],
     academics: [],
     schedule: ['view'],
-    exams: [],
+    assessments: [],
     visitors: ['view', 'create', 'edit', 'delete', 'manage'],
     communication: ['view'],
     transport: ['view', 'create', 'edit', 'delete', 'manage'], // Assuming driver role falls here
@@ -101,7 +101,7 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     staff: ['view'],
     academics: ['view'], // View own children's grades
     schedule: ['view'], // View own children's schedule
-    exams: ['view'], // View own children's exams
+    assessments: ['view'], // View own children's assessments
     visitors: [],
     communication: ['view', 'create'],
     transport: ['view'],
@@ -119,7 +119,7 @@ const PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
     staff: ['view'], // View teachers
     academics: ['view'], // View own grades
     schedule: ['view'], // View own schedule
-    exams: ['view', 'edit'], // View exams, take exams (edit)
+    assessments: ['view', 'edit'], // View assessments, take assessments (edit)
     visitors: [],
     communication: ['view', 'create'],
     transport: ['view'],

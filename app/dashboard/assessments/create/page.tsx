@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function CreateExamPage() {
+export default function CreateAssessmentPage() {
   const { user } = useAuth();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const router = useRouter();
@@ -140,7 +140,7 @@ export default function CreateExamPage() {
         }))
       });
       toast.success('Assessment created successfully');
-      router.push('/dashboard/exams');
+      router.push('/dashboard/assessments');
     } catch (error) {
       console.error('Error creating assessment:', error);
       toast.error('Failed to create assessment');
@@ -156,17 +156,17 @@ export default function CreateExamPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/exams" className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-xl transition-colors">
+          <Link href="/dashboard/assessments" className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-xl transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Create New Exam</h1>
-            <p className="text-muted-foreground text-sm font-medium">Configure exam details and add questions</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Create New Assessment</h1>
+            <p className="text-muted-foreground text-sm font-medium">Configure assessment details and add questions</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => router.push('/dashboard/exams')}
+            onClick={() => router.push('/dashboard/assessments')}
             className="px-4 py-2 text-muted-foreground font-bold text-sm hover:bg-muted rounded-xl transition-colors"
           >
             Cancel
@@ -181,7 +181,7 @@ export default function CreateExamPage() {
             ) : (
               <Save size={16} />
             )}
-            {isSaving ? 'Saving...' : 'Save Exam'}
+            {isSaving ? 'Saving...' : 'Save Assessment'}
           </button>
         </div>
       </div>
@@ -193,7 +193,7 @@ export default function CreateExamPage() {
           className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors ${currentStep === 1 ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
         >
           <Settings size={18} />
-          1. Exam Settings
+          1. Assessment Settings
         </button>
         <button 
           onClick={() => setCurrentStep(2)}
@@ -209,7 +209,7 @@ export default function CreateExamPage() {
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8 space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-foreground mb-2">Exam Title</label>
+              <label className="block text-sm font-bold text-foreground mb-2">Assessment Title</label>
               <input 
                 type="text" 
                 placeholder="e.g. Mid-Term Mathematics"
