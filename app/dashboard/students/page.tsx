@@ -8,10 +8,11 @@ import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent } from '@/lib/mock-db';
 import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear } from '@/lib/supabase-db';
+import { supabase } from '@/lib/supabase/client';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
   MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown,
-  Plus, X, Loader2, Camera, UserPlus
+  Plus, X, Loader2, Camera, UserPlus, Settings, Trash2, Edit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -34,8 +35,17 @@ export default function StudentsPage() {
   
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('overview');
+  const [mainTab, setMainTab] = useState<'directory' | 'history' | 'promotions'>('directory');
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
-  const [isPromotionOpen, setIsPromotionOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false);
+  const [promotionType, setPromotionType] = useState<'grade' | 'class' | 'manual'>('grade');
+  const [promotionValue, setPromotionValue] = useState('');
+  const [targetGrade, setTargetGrade] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Debounce search query to avoid spamming the server
@@ -50,8 +60,8 @@ export default function StudentsPage() {
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
 
   const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
-    ['students', page, debouncedSearch, activeAcademicYear?.name], 
-    ([_, p, s, a]) => getPaginatedStudents(p, limit, s, a)
+    ['students', page, debouncedSearch, activeAcademicYear?.name, mainTab === 'history'], 
+    ([_, p, s, a, isDeleted]) => getPaginatedStudents(p, limit, s, a, isDeleted)
   );
 
   const students = studentsResponse?.data || [];
@@ -84,8 +94,120 @@ export default function StudentsPage() {
     address: '',
     parentName: '',
     parentPhone: '',
-    photo: null as string | null
+    feeType: 'predefined' as 'predefined' | 'manual',
+    feeStructure: '',
+    additionalInfo: ''
   });
+
+  const handleRestoreStudent = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ is_deleted: false, deleted_reason: null })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast.success("Student restored successfully");
+      mutateStudents();
+    } catch (error) {
+      console.error('Error restoring student:', error);
+      toast.error('Failed to restore student');
+    }
+  };
+
+  const handlePromoteStudents = async (type: 'grade' | 'class' | 'manual', value?: string) => {
+    if (!targetGrade || !value) return;
+    setIsSubmitting(true);
+    try {
+      // 1. Fetch students to promote
+      let query = supabase.from('students').select('id, grade, academic_year').eq('is_deleted', false);
+      
+      if (type === 'grade') {
+        query = query.eq('grade', value);
+      } else if (type === 'class') {
+        // Assuming class name is same as grade for now, or we'd need a class_id
+        query = query.eq('grade', value);
+      } else if (type === 'manual') {
+        // Manual search logic - for now we'll just use the value as student name/id
+        query = query.or(`name.ilike.%${value}%,roll_number.ilike.%${value}%`);
+      }
+
+      const { data: studentsToPromote, error: fetchError } = await query;
+      if (fetchError) throw fetchError;
+
+      if (!studentsToPromote || studentsToPromote.length === 0) {
+        toast.error("No students found to promote");
+        return;
+      }
+
+      // 2. Update students and create enrollment records
+      const nextYear = activeAcademicYear ? 
+        `${parseInt(activeAcademicYear.name.split('-')[1])}-${parseInt(activeAcademicYear.name.split('-')[1]) + 1}` : 
+        '2026-2027';
+
+      for (const student of studentsToPromote) {
+        // Update student
+        const { error: updateError } = await supabase
+          .from('students')
+          .update({ 
+            grade: targetGrade, 
+            academic_year: nextYear 
+          })
+          .eq('id', student.id);
+        
+        if (updateError) throw updateError;
+
+        // Create enrollment record
+        await supabase
+          .from('academic_enrollments')
+          .insert([{
+            student_id: student.id,
+            academic_year: nextYear,
+            grade: targetGrade,
+            status: targetGrade === 'Graduated' ? 'completed' : 'active'
+          }]);
+      }
+
+      toast.success(`Successfully promoted ${studentsToPromote.length} students to ${targetGrade}`);
+      mutateStudents();
+      setIsPromotionModalOpen(false);
+      setPromotionValue('');
+      setTargetGrade('');
+    } catch (error) {
+      console.error('Error promoting students:', error);
+      toast.error('Failed to promote students');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteStudent = async () => {
+    if (!studentToDelete || !deleteReason) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ 
+          is_deleted: true, 
+          deleted_reason: deleteReason 
+        })
+        .eq('id', studentToDelete);
+      
+      if (error) throw error;
+      
+      toast.success("Student deleted successfully");
+      mutateStudents();
+      setIsDeleteModalOpen(false);
+      setStudentToDelete(null);
+      setDeleteReason('');
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      toast.error('Failed to delete student');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -108,6 +230,22 @@ export default function StudentsPage() {
   const searchParams = useSearchParams();
 
   const handleOpenAddStudent = useCallback(async () => {
+    setIsEditing(false);
+    setEditingStudent(null);
+    setFormData({
+      name: '',
+      studentId: '',
+      grade: '',
+      dob: '',
+      gender: 'Male',
+      bloodGroup: 'A+',
+      address: '',
+      parentName: '',
+      parentPhone: '',
+      feeType: 'predefined',
+      feeStructure: '',
+      additionalInfo: ''
+    });
     setIsAddStudentOpen(true);
     
     if (activeAcademicYear) {
@@ -123,6 +261,26 @@ export default function StudentsPage() {
       }
     }
   }, [activeAcademicYear]);
+
+  const handleOpenEditStudent = (student: any) => {
+    setIsEditing(true);
+    setEditingStudent(student);
+    setFormData({
+      name: student.name,
+      studentId: student.roll_number,
+      grade: student.grade,
+      dob: student.dob,
+      gender: student.gender || 'Male',
+      bloodGroup: student.blood_group || 'A+',
+      address: student.address || '',
+      parentName: student.parents?.[0]?.parent?.name || '',
+      parentPhone: student.parents?.[0]?.parent?.phone || '',
+      feeType: student.fee_structure?.includes('{') ? 'manual' : 'predefined',
+      feeStructure: student.fee_structure || '',
+      additionalInfo: student.additional_info || ''
+    });
+    setIsAddStudentOpen(true);
+  };
 
   useEffect(() => {
     if (searchParams.get('add') === 'true' && isAdmin) {
@@ -179,13 +337,6 @@ export default function StudentsPage() {
         {isAdmin && (
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button 
-              onClick={() => setIsPromotionOpen(true)}
-              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-secondary text-secondary-foreground rounded-xl font-bold hover:bg-secondary/80 transition-all active:scale-[0.98] shadow-sm w-full sm:w-auto"
-            >
-              <GraduationCap size={20} />
-              Promote Students
-            </button>
-            <button 
               onClick={handleOpenAddStudent}
               className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 w-full sm:w-auto"
             >
@@ -196,138 +347,496 @@ export default function StudentsPage() {
         )}
       </div>
 
-      <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card dark:bg-slate-900 p-4 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0">
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border">
-              <Filter size={16} />
-              Filters
-            </button>
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide shrink-0">
+        {(["directory", "history", "promotions"] as const)
+          .filter(tab => tab === 'directory' || isAdmin)
+          .map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setMainTab(tab)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold capitalize whitespace-nowrap transition-all ${
+              mainTab === tab
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                : "bg-card text-muted-foreground hover:bg-muted border border-border"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {mainTab === 'directory' && (
+        <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card dark:bg-slate-900 p-4 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border">
+                <Filter size={16} />
+                Filters
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-72">
+              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all placeholder:text-muted-foreground dark:placeholder:text-muted-foreground text-foreground"
+              />
+            </div>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search students..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all placeholder:text-muted-foreground dark:placeholder:text-muted-foreground text-foreground"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
-          <div className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
-                  <tr>
-                    <th className="px-6 py-4 font-bold">Student</th>
-                    <th className="px-6 py-4 font-bold">Roll Number</th>
-                    <th className="px-6 py-4 font-bold">Grade</th>
-                    <th className="px-6 py-4 font-bold">Parent/Guardian</th>
-                    <th className="px-6 py-4 font-bold text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoadingData ? (
-                    [1, 2, 3, 4, 5].map((i: number) => (
-                      <tr key={i} className="border-b border-border last:border-0">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="w-10 h-10 rounded-xl" />
-                            <div className="space-y-2">
-                              <Skeleton className="h-4 w-32" />
-                              <Skeleton className="h-3 w-48" />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
-                        <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-md" /></td>
-                        <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
-                        <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 rounded-lg ml-auto" /></td>
-                      </tr>
-                    ))
-                  ) : filteredStudents.length === 0 ? (
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+            <div className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
-                        No students found.
-                      </td>
+                      <th className="px-6 py-4 font-bold">Student</th>
+                      <th className="px-6 py-4 font-bold">Roll Number</th>
+                      <th className="px-6 py-4 font-bold">Grade</th>
+                      <th className="px-6 py-4 font-bold">Parent/Guardian</th>
+                      <th className="px-6 py-4 font-bold text-right">Action</th>
                     </tr>
-                  ) : (
-                    filteredStudents.map((student: any) => (
-                      <tr 
-                        key={student.id} 
-                        onClick={() => setSelectedPerson(student)}
-                        className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer group"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-lg shadow-inner border border-emerald-500/20">
-                              {student.name.charAt(0)}
+                  </thead>
+                  <tbody>
+                    {isLoadingData ? (
+                      [1, 2, 3, 4, 5].map((i: number) => (
+                        <tr key={i} className="border-b border-border last:border-0">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="w-10 h-10 rounded-xl" />
+                              <div className="space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-48" />
+                              </div>
                             </div>
-                            <div>
-                              <div className="font-bold text-foreground group-hover:text-emerald-500 transition-colors">{student.name}</div>
-                              <div className="text-xs text-muted-foreground">{student.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 font-medium text-foreground">
-                          {student.rollNumber}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-foreground border border-border">
-                            <GraduationCap size={14} />
-                            {student.grade}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-muted-foreground font-medium">
-                          {/* @ts-ignore */}
-                          {student.parentNames || 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button className="p-2 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10">
-                            <ChevronRight size={20} />
-                          </button>
+                          </td>
+                          <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                          <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-md" /></td>
+                          <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                          <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 rounded-lg ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : students.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
+                          No students found.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      students.map((student: any) => (
+                        <tr 
+                          key={student.id} 
+                          onClick={() => setSelectedPerson(student)}
+                          className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer group"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-lg shadow-inner border border-emerald-500/20">
+                                {student.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-bold text-foreground group-hover:text-emerald-500 transition-colors">{student.name}</div>
+                                <div className="text-xs text-muted-foreground">{student.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-medium text-foreground">
+                            {student.roll_number}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-foreground border border-border">
+                              <GraduationCap size={14} />
+                              {student.grade}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-muted-foreground font-medium">
+                            {student.parents?.[0]?.parent?.name || 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {isAdmin && (
+                                <>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenEditStudent(student);
+                                    }}
+                                    className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
+                                  >
+                                    <Edit size={18} />
+                                  </button>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setStudentToDelete(student.id);
+                                      setIsDeleteModalOpen(true);
+                                    }}
+                                    className="p-2 text-muted-foreground hover:text-red-500 transition-colors rounded-lg hover:bg-red-500/10"
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
+                                </>
+                              )}
+                              <button className="p-2 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10">
+                                <ChevronRight size={20} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20 rounded-xl mt-4 shrink-0">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+                </span>
+                <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
+                  Total: <span className="text-foreground font-bold">{totalCount}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mainTab === 'history' && (
+        <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card dark:bg-slate-900 p-4 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0">
+            <h2 className="text-xl font-bold text-foreground">Dropped & Deleted Students</h2>
+            <div className="relative w-full sm:w-72">
+              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Search history..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all placeholder:text-muted-foreground dark:placeholder:text-muted-foreground text-foreground"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+            <div className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+                    <tr>
+                      <th className="px-6 py-4 font-bold">Student</th>
+                      <th className="px-6 py-4 font-bold">Roll Number</th>
+                      <th className="px-6 py-4 font-bold">Grade</th>
+                      <th className="px-6 py-4 font-bold">Reason</th>
+                      <th className="px-6 py-4 font-bold text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoadingData ? (
+                      [1, 2, 3, 4, 5].map((i: number) => (
+                        <tr key={i} className="border-b border-border last:border-0">
+                          <td className="px-6 py-4"><Skeleton className="h-10 w-40 rounded-xl" /></td>
+                          <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                          <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-md" /></td>
+                          <td className="px-6 py-4"><Skeleton className="h-4 w-48" /></td>
+                          <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 rounded-lg ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : students.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
+                          No history records found.
+                        </td>
+                      </tr>
+                    ) : (
+                      students.map((student: any) => (
+                        <tr 
+                          key={student.id} 
+                          className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors group"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-muted text-muted-foreground flex items-center justify-center font-bold text-lg border border-border">
+                                {student.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-bold text-foreground">{student.name}</div>
+                                <div className="text-xs text-muted-foreground">{student.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-medium text-foreground">
+                            {student.roll_number}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-foreground border border-border">
+                              {student.grade}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-muted-foreground font-medium">
+                            {student.deleted_reason || 'No reason provided'}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button 
+                              onClick={() => handleRestoreStudent(student.id)}
+                              className="px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            >
+                              Restore
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Pagination Controls */}
-        {totalPages > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20 rounded-xl mt-4 shrink-0">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+      {mainTab === 'promotions' && (
+        <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
+          <div className="bg-card dark:bg-slate-900 p-6 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm">
+            <h2 className="text-2xl font-bold text-foreground">Student Promotions</h2>
+            <p className="text-muted-foreground mt-1">Promote students to the next grade or academic year.</p>
+            
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                <div 
+                  onClick={() => {
+                    setPromotionType('grade');
+                    setIsPromotionModalOpen(true);
+                  }}
+                  className="p-6 bg-muted/50 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group"
+                >
+                  <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <GraduationCap size={24} />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground">Promote by Grade</h3>
+                  <p className="text-sm text-muted-foreground mt-2">Bulk promote all students in a specific grade to the next level.</p>
+                  <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
+                    Start Promotion <ChevronRight size={16} />
+                  </button>
+                </div>
+                
+                <div 
+                  onClick={() => {
+                    setPromotionType('class');
+                    setIsPromotionModalOpen(true);
+                  }}
+                  className="p-6 bg-muted/50 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group"
+                >
+                  <div className="w-12 h-12 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <UserCircle size={24} />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground">Promote by Class</h3>
+                  <p className="text-sm text-muted-foreground mt-2">Promote students from a specific class section.</p>
+                  <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
+                    Start Promotion <ChevronRight size={16} />
+                  </button>
+                </div>
+                
+                <div 
+                  onClick={() => {
+                    setPromotionType('manual');
+                    setIsPromotionModalOpen(true);
+                  }}
+                  className="p-6 bg-muted/50 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group"
+                >
+                  <div className="w-12 h-12 bg-accent/10 text-accent-foreground rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Search size={24} />
+                  </div>
+                  <h3 className="font-bold text-lg text-foreground">Manual Promotion</h3>
+                  <p className="text-sm text-muted-foreground mt-2">Select individual students to promote manually.</p>
+                  <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
+                    Start Promotion <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+          </div>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {isPromotionModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
-              Previous
-            </button>
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-muted-foreground">
-                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
-              </span>
-              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
-                Total: <span className="text-foreground font-bold">{totalCount}</span>
-              </span>
-            </div>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
-            >
-              Next
-            </button>
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">Promote Students</h2>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">
+                    {promotionType === 'grade' ? 'Promote students by grade level' : 
+                     promotionType === 'class' ? 'Promote students by class section' : 
+                     'Manually select students to promote'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsPromotionModalOpen(false)}
+                  className="p-2 hover:bg-muted rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">
+                      {promotionType === 'grade' ? 'Select Current Grade' : 
+                       promotionType === 'class' ? 'Select Current Class' : 
+                       'Search Student'}
+                    </label>
+                    {promotionType === 'manual' ? (
+                      <div className="relative">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <input 
+                          type="text"
+                          placeholder="Search student name or ID..."
+                          value={promotionValue}
+                          onChange={(e) => setPromotionValue(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
+                        />
+                      </div>
+                    ) : (
+                      <select 
+                        value={promotionValue}
+                        onChange={(e) => setPromotionValue(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
+                      >
+                        <option value="">Select {promotionType === 'grade' ? 'Grade' : 'Class'}</option>
+                        {classesList.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground">Target Grade (Promotion To)</label>
+                    <select 
+                      value={targetGrade}
+                      onChange={(e) => setTargetGrade(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
+                    >
+                      <option value="">Select Target Grade</option>
+                      {classesList.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                      <option value="Graduated">Graduated / Completed</option>
+                    </select>
+                  </div>
+
+                  <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
+                    <AlertCircle size={20} className="text-primary shrink-0 mt-0.5" />
+                    <p className="text-xs text-primary font-medium leading-relaxed">
+                      Promoting students will update their current grade and academic year. This action will also create a new enrollment record for the upcoming session.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    onClick={() => setIsPromotionModalOpen(false)}
+                    className="flex-1 px-6 py-3 border border-border rounded-xl font-bold hover:bg-muted transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => handlePromoteStudents(promotionType, promotionValue)}
+                    disabled={isSubmitting || !promotionValue || !targetGrade}
+                    className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirm Promotion'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </div>
         )}
-      </div>
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border p-8"
+            >
+              <div className="flex items-center gap-4 text-red-500 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight">Delete Student</h2>
+                  <p className="text-sm font-medium text-muted-foreground">This will soft-delete the student record.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">Reason for Deletion</label>
+                  <textarea 
+                    required
+                    placeholder="e.g., Graduated, Dropped out, Transferred..."
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-red-500 outline-none transition-all font-medium min-h-[100px]"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button 
+                    onClick={() => {
+                      setIsDeleteModalOpen(false);
+                      setStudentToDelete(null);
+                      setDeleteReason('');
+                    }}
+                    className="flex-1 px-6 py-3 border border-border rounded-xl font-bold hover:bg-muted transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleDeleteStudent}
+                    disabled={isSubmitting || !deleteReason}
+                    className="flex-1 px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isAddStudentOpen && (
@@ -340,8 +849,12 @@ export default function StudentsPage() {
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground tracking-tight">Register New Student</h2>
-                  <p className="text-sm font-medium text-muted-foreground mt-2">Add a new student to the school database.</p>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">
+                    {isEditing ? 'Update Student Details' : 'Register New Student'}
+                  </h2>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">
+                    {isEditing ? 'Modify existing student information.' : 'Add a new student to the school database.'}
+                  </p>
                 </div>
                 <button 
                   onClick={() => setIsAddStudentOpen(false)}
@@ -361,14 +874,35 @@ export default function StudentsPage() {
                   setIsSubmitting(true);
                   
                   try {
-                    const newStudent = await createStudent({
-        ...formData,
-        academicYear: activeAcademicYear?.name
-      });
-                    
-                    toast.success("Student registered successfully", {
-                      description: `${formData.name} has been added to Grade ${formData.grade}.`
-                    });
+                    if (isEditing && editingStudent) {
+                      // Update existing student
+                      const { error } = await supabase
+                        .from('students')
+                        .update({
+                          name: formData.name,
+                          grade: formData.grade,
+                          roll_number: formData.studentId,
+                          dob: formData.dob,
+                          gender: formData.gender,
+                          blood_group: formData.bloodGroup,
+                          fee_structure: formData.feeStructure,
+                          additional_info: formData.additionalInfo
+                        })
+                        .eq('id', editingStudent.id);
+                      
+                      if (error) throw error;
+                      toast.success("Student updated successfully");
+                    } else {
+                      // Create new student
+                      const newStudent = await createStudent({
+                        ...formData,
+                        academicYear: activeAcademicYear?.name
+                      });
+                      
+                      toast.success("Student registered successfully", {
+                        description: `${formData.name} has been added to Grade ${formData.grade}.`
+                      });
+                    }
                     
                     // Refresh data
                     await mutateStudents();
@@ -385,7 +919,9 @@ export default function StudentsPage() {
                       address: '',
                       parentName: '',
                       parentPhone: '',
-                      photo: null
+                      feeType: 'predefined',
+                      feeStructure: '',
+                      additionalInfo: ''
                     });
                     setFormErrors({});
                   } catch (error) {
@@ -397,41 +933,6 @@ export default function StudentsPage() {
                 }} 
                 className="p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar"
               >
-                <div className="flex flex-col items-center gap-4 py-4 border-b border-border mb-6">
-                  <div 
-                    onClick={() => {
-                      // Simulate image upload
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (e) => {
-                            setFormData(prev => ({ ...prev, photo: e.target?.result as string }));
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      };
-                      input.click();
-                    }}
-                    className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-muted-foreground relative group cursor-pointer border-2 border-dashed border-border hover:border-primary/50 transition-colors overflow-hidden"
-                  >
-                    {formData.photo ? (
-                      <Image src={formData.photo} alt="Preview" fill className="object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <Camera size={32} />
-                    )}
-                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10">
-                      <Plus size={24} className="text-white" />
-                    </div>
-                  </div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                    {formData.photo ? 'Change Photo' : 'Upload Photo'}
-                  </p>
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">Full Name</label>
@@ -539,36 +1040,94 @@ export default function StudentsPage() {
                   <h3 className="font-bold text-foreground mb-4">Parent/Guardian Information</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-2">
+                      <label className="text-sm font-bold text-foreground">Parent Phone (Search/Register)</label>
+                      <input 
+                        required 
+                        type="tel" 
+                        placeholder="+1 234 567 890" 
+                        value={formData.parentPhone}
+                        onChange={async (e) => {
+                          const phone = e.target.value;
+                          setFormData(prev => ({ ...prev, parentPhone: phone }));
+                          if (phone.length >= 10) {
+                            const { data } = await supabase
+                              .from('users')
+                              .select('name')
+                              .eq('phone', phone)
+                              .eq('role', 'parent')
+                              .maybeSingle();
+                            if (data) {
+                              setFormData(prev => ({ ...prev, parentName: data.name }));
+                              toast.info(`Found existing parent: ${data.name}`);
+                            }
+                          }
+                        }}
+                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-sm font-bold text-foreground">Parent Name</label>
                       <input 
                         required 
                         type="text" 
                         placeholder="e.g., Homer Simpson" 
                         value={formData.parentName}
-                        onChange={(e) => {
-                          setFormData(prev => ({ ...prev, parentName: e.target.value }));
-                          if (formErrors.parentName) setFormErrors(prev => ({ ...prev, parentName: '' }));
-                        }}
+                        onChange={(e) => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
                         className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                       />
-                      {formErrors.parentName && <p className="text-xs text-red-500 font-medium">{formErrors.parentName}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-foreground">Contact Number</label>
-                      <input 
-                        required 
-                        type="tel" 
-                        placeholder="+1 234 567 890" 
-                        value={formData.parentPhone}
-                        onChange={(e) => {
-                          setFormData(prev => ({ ...prev, parentPhone: e.target.value }));
-                          if (formErrors.parentPhone) setFormErrors(prev => ({ ...prev, parentPhone: '' }));
-                        }}
-                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
-                      />
-                      {formErrors.parentPhone && <p className="text-xs text-red-500 font-medium">{formErrors.parentPhone}</p>}
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <h3 className="font-bold text-foreground mb-4">Fee Structure</h3>
+                  <div className="space-y-4">
+                    <div className="flex gap-4">
+                      <button 
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, feeType: 'predefined' }))}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${formData.feeType === 'predefined' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border'}`}
+                      >
+                        Predefined
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, feeType: 'manual' }))}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${formData.feeType === 'manual' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border'}`}
+                      >
+                        Manual Entry
+                      </button>
+                    </div>
+                    {formData.feeType === 'predefined' ? (
+                      <select 
+                        value={formData.feeStructure}
+                        onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
+                      >
+                        <option value="">Select Fee Structure</option>
+                        <option value="Standard Grade 1-5">Standard Grade 1-5</option>
+                        <option value="Standard Grade 6-10">Standard Grade 6-10</option>
+                        <option value="Scholarship A">Scholarship A (50% Off)</option>
+                      </select>
+                    ) : (
+                      <textarea 
+                        placeholder="Enter custom fee details..."
+                        value={formData.feeStructure}
+                        onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium min-h-[100px]"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <label className="text-sm font-bold text-foreground">Additional Information</label>
+                  <textarea 
+                    placeholder="Any other details (medical, allergies, etc.)..."
+                    value={formData.additionalInfo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium min-h-[100px] mt-2"
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-6">
@@ -912,71 +1471,6 @@ export default function StudentsPage() {
         )}
       </AnimatePresence>
 
-      {/* Promotion Modal */}
-      <AnimatePresence>
-        {isPromotionOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }} 
-              animate={{ opacity: 1, scale: 1 }} 
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card w-full max-w-md rounded-[2rem] shadow-xl border border-border overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
-                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <GraduationCap className="text-primary" />
-                  Promote Students
-                </h2>
-                <button onClick={() => setIsPromotionOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground">
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
-                <div className="bg-primary/10 text-primary p-4 rounded-xl text-sm font-medium">
-                  This action will promote all eligible students to the next grade level and update their academic year. This process cannot be easily undone.
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Current Academic Year</label>
-                    <input type="text" value="2023-2024" disabled className="w-full px-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium text-muted-foreground" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">New Academic Year</label>
-                    <input type="text" value="2024-2025" disabled className="w-full px-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium text-foreground" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6 border-t border-border bg-muted/30 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsPromotionOpen(false)}
-                  className="flex-1 px-4 py-3 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setIsSubmitting(true);
-                    setTimeout(() => {
-                      setIsSubmitting(false);
-                      setIsPromotionOpen(false);
-                      toast.success('Students successfully promoted to the next academic year.');
-                    }, 1500);
-                  }}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-70 flex items-center justify-center"
-                >
-                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Confirm Promotion'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

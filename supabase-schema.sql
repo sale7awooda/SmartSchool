@@ -59,6 +59,10 @@ CREATE TABLE IF NOT EXISTS public.students (
   bus_route_id UUID,
   stop_id UUID,
   academic_year TEXT NOT NULL, -- e.g., '2023-2024'
+  fee_structure TEXT,
+  additional_info TEXT,
+  is_deleted BOOLEAN DEFAULT FALSE,
+  deleted_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -477,6 +481,7 @@ CREATE TABLE IF NOT EXISTS public.academic_years (
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   is_active BOOLEAN DEFAULT FALSE,
+  is_deleted BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -489,6 +494,7 @@ CREATE TABLE IF NOT EXISTS public.classes (
   capacity INTEGER,
   academic_year_id UUID REFERENCES public.academic_years(id),
   class_teacher_id UUID REFERENCES public.users(id),
+  is_deleted BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -498,6 +504,7 @@ CREATE TABLE IF NOT EXISTS public.subjects (
   name TEXT NOT NULL,
   code TEXT NOT NULL UNIQUE,
   description TEXT,
+  is_deleted BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -1,7 +1,7 @@
 import { supabase } from './supabase/client';
 import { Student, User, Parent } from './mock-db';
 
-export async function getStudents(academicYear?: string) {
+export async function getStudents(academicYear?: string, includeDeleted = false) {
   let query = supabase
     .from('students')
     .select(`
@@ -11,6 +11,10 @@ export async function getStudents(academicYear?: string) {
   
   if (academicYear) {
     query = query.eq('academic_year', academicYear);
+  }
+
+  if (!includeDeleted) {
+    query = query.eq('is_deleted', false);
   }
 
   const { data, error } = await query;
@@ -25,7 +29,7 @@ export async function getStudents(academicYear?: string) {
   })) as Student[];
 }
 
-export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string) {
+export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, isDeleted: boolean = false) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -42,6 +46,8 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
   if (academicYear) {
     query = query.eq('academic_year', academicYear);
   }
+
+  query = query.eq('is_deleted', isDeleted);
 
   if (search) {
     // Search by student name or roll number
@@ -145,13 +151,15 @@ export async function createStudent(studentData: any) {
     .from('students')
     .insert([{
       user_id: user.id,
-      name: studentData.name, // Redundant but consistent with schema
+      name: studentData.name,
       grade: studentData.grade,
       roll_number: studentData.studentId,
       dob: studentData.dob,
       gender: studentData.gender,
       blood_group: studentData.bloodGroup,
-      academic_year: studentData.academicYear || '2025-2026'
+      academic_year: studentData.academicYear || '2025-2026',
+      fee_structure: studentData.feeStructure,
+      additional_info: studentData.additionalInfo
     }])
     .select()
     .single();
@@ -162,12 +170,12 @@ export async function createStudent(studentData: any) {
   if (studentData.parentName && studentData.parentPhone) {
     try {
       // Check if parent already exists by phone
-      let { data: parent, error: parentFetchError } = await supabase
+      let { data: parent } = await supabase
         .from('users')
         .select('*')
         .eq('phone', studentData.parentPhone)
         .eq('role', 'parent')
-        .single();
+        .maybeSingle();
       
       if (!parent) {
         // Create new parent user
@@ -202,6 +210,25 @@ export async function createStudent(studentData: any) {
   }
 
   return { ...user, ...student };
+}
+
+export async function updateStudent(id: string, studentData: any) {
+  const { data, error } = await supabase
+    .from('students')
+    .update(studentData)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteStudent(id: string, reason: string) {
+  const { error } = await supabase
+    .from('students')
+    .update({ is_deleted: true, deleted_reason: reason })
+    .eq('id', id);
+  if (error) throw error;
 }
 
 export async function getBehaviorRecords(studentId: string) {
@@ -919,6 +946,7 @@ export async function getClasses() {
         academic_year:academic_year_id(name),
         teacher:class_teacher_id(name)
       `)
+      .eq('is_deleted', false)
       .order('name');
     if (error) throw error;
     return data;
@@ -936,6 +964,7 @@ export async function getSubjects() {
     const { data, error } = await supabase
       .from('subjects')
       .select('*')
+      .eq('is_deleted', false)
       .order('name');
     if (error) throw error;
     return data;
@@ -953,6 +982,7 @@ export async function getAcademicYears() {
     const { data, error } = await supabase
       .from('academic_years')
       .select('*')
+      .eq('is_deleted', false)
       .order('name');
     if (error) throw error;
     return data;
@@ -1001,6 +1031,9 @@ export async function setActiveAcademicYear(id: string) {
 }
 
 export async function createAcademicYear(year: any) {
+  if (year.is_active) {
+    await supabase.from('academic_years').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+  }
   const { data, error } = await supabase
     .from('academic_years')
     .insert(year)
@@ -1030,18 +1063,54 @@ export async function createSubject(subject: any) {
   return data;
 }
 
+export async function updateAcademicYear(id: string, year: any) {
+  if (year.is_active) {
+    await supabase.from('academic_years').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+  }
+  const { data, error } = await supabase
+    .from('academic_years')
+    .update(year)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateClass(id: string, classData: any) {
+  const { data, error } = await supabase
+    .from('classes')
+    .update(classData)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSubject(id: string, subject: any) {
+  const { data, error } = await supabase
+    .from('subjects')
+    .update(subject)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteAcademicYear(id: string) {
-  const { error } = await supabase.from('academic_years').delete().eq('id', id);
+  const { error } = await supabase.from('academic_years').update({ is_deleted: true }).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteClass(id: string) {
-  const { error } = await supabase.from('classes').delete().eq('id', id);
+  const { error } = await supabase.from('classes').update({ is_deleted: true }).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteSubject(id: string) {
-  const { error } = await supabase.from('subjects').delete().eq('id', id);
+  const { error } = await supabase.from('subjects').update({ is_deleted: true }).eq('id', id);
   if (error) throw error;
 }
 
@@ -1065,10 +1134,10 @@ export async function getSystemSettings() {
           if (saved) return JSON.parse(saved);
         }
         return {
-          school_name: 'Greenwood High School',
+          school_name: 'Smart School',
           school_address: '123 Education Lane, Learning City',
           school_phone: '+1 (555) 012-3456',
-          school_email: 'info@greenwoodhigh.edu',
+          school_email: 'info@smartschool.edu',
           grading_scale: 'Standard (A-F)',
           theme_color: 'indigo',
           font_family: 'Inter (Default)',
@@ -1091,10 +1160,10 @@ export async function getSystemSettings() {
         if (saved) return JSON.parse(saved);
       }
       return {
-        school_name: 'Greenwood High School',
+        school_name: 'Smart School',
         school_address: '123 Education Lane, Learning City',
         school_phone: '+1 (555) 012-3456',
-        school_email: 'info@greenwoodhigh.edu',
+        school_email: 'info@smartschool.edu',
         grading_scale: 'Standard (A-F)',
         theme_color: 'indigo',
         font_family: 'Inter (Default)',

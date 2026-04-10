@@ -20,7 +20,13 @@ import {
   createAcademicYear,
   createClass,
   createSubject,
-  getActiveAcademicYear
+  getActiveAcademicYear,
+  updateAcademicYear,
+  updateClass,
+  updateSubject,
+  deleteAcademicYear,
+  deleteClass,
+  deleteSubject
 } from "@/lib/supabase-db";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -46,6 +52,8 @@ import {
   MessageSquare,
   MoreVertical,
   Paperclip,
+  Trash2,
+  Edit2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
@@ -79,6 +87,9 @@ function AdminAcademics() {
   const [isAddYearOpen, setIsAddYearOpen] = useState(false);
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
+  const [editingYear, setEditingYear] = useState<any>(null);
+  const [editingClass, setEditingClass] = useState<any>(null);
+  const [editingSubject, setEditingSubject] = useState<any>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -99,19 +110,37 @@ function AdminAcademics() {
       name: formData.get("name") as string,
       start_date: formData.get("startDate") as string,
       end_date: formData.get("endDate") as string,
-      status: "Active"
+      is_active: editingYear ? editingYear.is_active : true
     };
 
     try {
-      const newYear = await createAcademicYear(yearData);
-      mutateYears([newYear, ...academicYears]);
+      if (editingYear) {
+        const updatedYear = await updateAcademicYear(editingYear.id, yearData);
+        mutateYears(academicYears.map(y => y.id === editingYear.id ? updatedYear : y));
+        toast.success("Academic year updated successfully");
+      } else {
+        const newYear = await createAcademicYear(yearData);
+        mutateYears([newYear, ...academicYears]);
+        toast.success("Academic year created successfully");
+      }
       setIsAddYearOpen(false);
-      toast.success("Academic year created successfully");
+      setEditingYear(null);
     } catch (error) {
-      console.error("Error creating academic year:", error);
-      toast.error("Failed to create academic year");
+      console.error("Error saving academic year:", error);
+      toast.error("Failed to save academic year");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteYear = async (id: string) => {
+    try {
+      await deleteAcademicYear(id);
+      mutateYears(academicYears.filter(y => y.id !== id));
+      toast.success("Academic year deleted successfully");
+    } catch (error) {
+      console.error("Error deleting academic year:", error);
+      toast.error("Failed to delete academic year");
     }
   };
 
@@ -127,15 +156,33 @@ function AdminAcademics() {
     };
 
     try {
-      const newClass = await createClass(classData);
-      mutateClasses([newClass, ...classes]);
+      if (editingClass) {
+        const updatedClass = await updateClass(editingClass.id, classData);
+        mutateClasses(classes.map(c => c.id === editingClass.id ? updatedClass : c));
+        toast.success("Class updated successfully");
+      } else {
+        const newClass = await createClass(classData);
+        mutateClasses([newClass, ...classes]);
+        toast.success("Class created successfully");
+      }
       setIsAddClassOpen(false);
-      toast.success("Class created successfully");
+      setEditingClass(null);
     } catch (error) {
-      console.error("Error creating class:", error);
-      toast.error("Failed to create class");
+      console.error("Error saving class:", error);
+      toast.error("Failed to save class");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteClass = async (id: string) => {
+    try {
+      await deleteClass(id);
+      mutateClasses(classes.filter(c => c.id !== id));
+      toast.success("Class deleted successfully");
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      toast.error("Failed to delete class");
     }
   };
 
@@ -150,15 +197,33 @@ function AdminAcademics() {
     };
 
     try {
-      const newSubject = await createSubject(subjectData);
-      mutateSubjects([newSubject, ...subjects]);
+      if (editingSubject) {
+        const updatedSubject = await updateSubject(editingSubject.id, subjectData);
+        mutateSubjects(subjects.map(s => s.id === editingSubject.id ? updatedSubject : s));
+        toast.success("Subject updated successfully");
+      } else {
+        const newSubject = await createSubject(subjectData);
+        mutateSubjects([newSubject, ...subjects]);
+        toast.success("Subject created successfully");
+      }
       setIsAddSubjectOpen(false);
-      toast.success("Subject created successfully");
+      setEditingSubject(null);
     } catch (error) {
-      console.error("Error creating subject:", error);
-      toast.error("Failed to create subject");
+      console.error("Error saving subject:", error);
+      toast.error("Failed to save subject");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteSubject = async (id: string) => {
+    try {
+      await deleteSubject(id);
+      mutateSubjects(subjects.filter(s => s.id !== id));
+      toast.success("Subject deleted successfully");
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+      toast.error("Failed to delete subject");
     }
   };
 
@@ -204,13 +269,6 @@ function AdminAcademics() {
             Manage academic years, classes, and subjects.
           </p>
         </div>
-        <button 
-          onClick={() => setIsSettingsOpen(true)}
-          className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
-        >
-          <Settings size={20} />
-          Academic Settings
-        </button>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide shrink-0">
@@ -240,7 +298,7 @@ function AdminAcademics() {
                 Active Year
               </p>
               <p className="text-2xl font-bold text-foreground mt-1">
-                {academicYears.find(y => y.status === 'Active')?.name || "None Active"}
+                {academicYears.find(y => y.is_active)?.name || "None Active"}
               </p>
               <p className="text-xs font-medium text-emerald-500 mt-2 bg-emerald-500/10 w-fit px-2 py-1 rounded-md">
                 Academic Year
@@ -308,9 +366,25 @@ function AdminAcademics() {
                         Year: {cls.academic_year?.name} • Teacher: {cls.teacher?.name || "Unassigned"}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
-                        <Settings size={18} />
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => {
+                          setEditingClass(cls);
+                          setIsAddClassOpen(true);
+                        }}
+                        className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this class?")) {
+                            handleDeleteClass(cls.id);
+                          }
+                        }}
+                        className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -352,11 +426,34 @@ function AdminAcademics() {
                         {year.start_date} to {year.end_date}
                       </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      year.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {year.status}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        year.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {year.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => {
+                            setEditingYear(year);
+                            setIsAddYearOpen(true);
+                          }}
+                          className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (confirm("Are you sure you want to delete this academic year?")) {
+                              handleDeleteYear(year.id);
+                            }
+                          }}
+                          className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}
@@ -396,9 +493,32 @@ function AdminAcademics() {
                         Code: {subject.code || "N/A"}
                       </p>
                     </div>
-                    <p className="text-sm text-muted-foreground max-w-xs truncate">
-                      {subject.description || "No description provided."}
-                    </p>
+                    <div className="flex items-center gap-4">
+                      <p className="text-sm text-muted-foreground max-w-xs truncate">
+                        {subject.description || "No description provided."}
+                      </p>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => {
+                            setEditingSubject(subject);
+                            setIsAddSubjectOpen(true);
+                          }}
+                          className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (confirm("Are you sure you want to delete this subject?")) {
+                              handleDeleteSubject(subject.id);
+                            }
+                          }}
+                          className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}
@@ -417,30 +537,33 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add Academic Year</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new academic year period.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingYear ? 'Edit Academic Year' : 'Add Academic Year'}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{editingYear ? 'Update academic year details.' : 'Create a new academic year period.'}</p>
               </div>
               
               <form onSubmit={handleCreateYear} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Year Name</label>
-                  <input required name="name" type="text" placeholder="e.g., 2024 - 2025" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="name" type="text" defaultValue={editingYear?.name} placeholder="e.g., 2024 - 2025" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Start Date</label>
-                    <input required name="startDate" type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                    <input required name="startDate" type="date" defaultValue={editingYear?.start_date} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">End Date</label>
-                    <input required name="endDate" type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                    <input required name="endDate" type="date" defaultValue={editingYear?.end_date} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-6">
                   <button 
                     type="button"
-                    onClick={() => setIsAddYearOpen(false)}
+                    onClick={() => {
+                      setIsAddYearOpen(false);
+                      setEditingYear(null);
+                    }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
                     Cancel
@@ -450,7 +573,7 @@ function AdminAcademics() {
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Year'}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingYear ? 'Save Changes' : 'Add Year')}
                   </button>
                 </div>
               </form>
@@ -467,28 +590,28 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Class</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new class section.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingClass ? 'Edit Class' : 'Add New Class'}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{editingClass ? 'Update class details.' : 'Create a new class section.'}</p>
               </div>
               
               <form onSubmit={handleCreateClass} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Class Name</label>
-                  <input required name="name" type="text" placeholder="e.g., Grade 4 - Section A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="name" type="text" defaultValue={editingClass?.name} placeholder="e.g., Grade 4 - Section A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Grade</label>
-                    <input required name="grade" type="text" placeholder="e.g., Grade 4" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                    <input required name="grade" type="text" defaultValue={editingClass?.grade} placeholder="e.g., Grade 4" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Section</label>
-                    <input name="section" type="text" placeholder="e.g., A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                    <input name="section" type="text" defaultValue={editingClass?.section} placeholder="e.g., A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Academic Year</label>
-                  <select required name="academicYearId" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                  <select required name="academicYearId" defaultValue={editingClass?.academic_year_id} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
                     {academicYears.map(year => (
                       <option key={year.id} value={year.id}>{year.name}</option>
                     ))}
@@ -498,7 +621,10 @@ function AdminAcademics() {
                 <div className="flex gap-3 pt-6">
                   <button 
                     type="button"
-                    onClick={() => setIsAddClassOpen(false)}
+                    onClick={() => {
+                      setIsAddClassOpen(false);
+                      setEditingClass(null);
+                    }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
                     Cancel
@@ -508,7 +634,7 @@ function AdminAcademics() {
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Class'}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingClass ? 'Save Changes' : 'Add Class')}
                   </button>
                 </div>
               </form>
@@ -525,28 +651,31 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add New Subject</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Create a new subject for the curriculum.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingSubject ? 'Edit Subject' : 'Add New Subject'}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{editingSubject ? 'Update subject details.' : 'Create a new subject for the curriculum.'}</p>
               </div>
               
               <form onSubmit={handleCreateSubject} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Subject Name</label>
-                  <input required name="name" type="text" placeholder="e.g., Mathematics" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="name" type="text" defaultValue={editingSubject?.name} placeholder="e.g., Mathematics" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Subject Code</label>
-                  <input required name="code" type="text" placeholder="e.g., MATH101" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input required name="code" type="text" defaultValue={editingSubject?.code} placeholder="e.g., MATH101" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Description</label>
-                  <textarea name="description" rows={3} placeholder="Brief description of the subject..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <textarea name="description" rows={3} defaultValue={editingSubject?.description} placeholder="Brief description of the subject..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
                 <div className="flex gap-3 pt-6">
                   <button 
                     type="button"
-                    onClick={() => setIsAddSubjectOpen(false)}
+                    onClick={() => {
+                      setIsAddSubjectOpen(false);
+                      setEditingSubject(null);
+                    }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
                     Cancel
@@ -556,7 +685,7 @@ function AdminAcademics() {
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Add Subject'}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingSubject ? 'Save Changes' : 'Add Subject')}
                   </button>
                 </div>
               </form>

@@ -863,6 +863,18 @@ function ParentFees() {
     description: inv.description
   }));
 
+  const { data: studentDetails } = useSWR(
+    user?.studentId ? ['student_details', user.studentId] : null,
+    async ([_, id]) => {
+      const { data } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', id)
+        .single();
+      return data;
+    }
+  );
+
   const pendingTotal = myInvoices.filter((inv: any) => inv.status !== 'paid').reduce((sum: number, inv: any) => sum + inv.amount, 0);
 
   useEffect(() => {
@@ -967,6 +979,20 @@ function ParentFees() {
           <DollarSign size={160} />
         </div>
       </div>
+
+      {studentDetails?.fee_structure && (
+        <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+          <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <FileText size={20} className="text-primary" />
+            Assigned Fee Structure
+          </h3>
+          <div className="p-4 bg-muted/50 rounded-xl border border-border">
+            <p className="text-sm font-medium text-foreground whitespace-pre-wrap">
+              {studentDetails.fee_structure}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-5 flex-1 flex flex-col overflow-hidden">
         <h3 className="text-xl font-bold text-foreground shrink-0">Invoice History</h3>
