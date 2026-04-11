@@ -173,7 +173,7 @@ export default function AnalyticsPage() {
 
 function OverviewTab({ academicStats, attendanceStats, financialStats, atRiskStudents }: any) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 h-full">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
@@ -248,7 +248,7 @@ function OverviewTab({ academicStats, attendanceStats, financialStats, atRiskStu
 
 function AcademicTab({ academicStats }: any) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 h-full">
       <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
         <h3 className="text-lg font-bold text-foreground mb-6">Subject Performance Trends</h3>
         <div className="h-[400px] min-h-[400px]">
@@ -278,7 +278,7 @@ function AcademicTab({ academicStats }: any) {
 
 function AttendanceTab({ attendanceStats }: any) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 h-full">
       <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
         <h3 className="text-lg font-bold text-foreground mb-6">Weekly Attendance Breakdown</h3>
         <div className="h-[400px] min-h-[400px]">
@@ -308,7 +308,7 @@ function AttendanceTab({ attendanceStats }: any) {
 
 function FinancialTab({ financialStats }: any) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 h-full">
       <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
         <h3 className="text-lg font-bold text-foreground mb-6">Revenue vs Expenses</h3>
         <div className="h-[400px] min-h-[400px]">
@@ -345,7 +345,7 @@ function FinancialTab({ financialStats }: any) {
 
 function PredictiveTab({ atRiskStudents }: any) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 h-full">
       <div className="bg-primary rounded-[2rem] p-6 sm:p-8 text-primary-foreground relative overflow-hidden shadow-sm">
         <div className="absolute top-0 right-0 p-6 opacity-10">
           <BrainCircuit size={120} />
