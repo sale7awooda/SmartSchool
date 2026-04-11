@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   experimental: {
+    allowedDevOrigins: ['ais-dev-zjctlxvg3eop7udnnmpgu4-29607727025.europe-west2.run.app'],
   },
   // Allow access to remote image placeholder.
   images: {

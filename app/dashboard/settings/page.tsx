@@ -50,10 +50,7 @@ import {
   CloudUpload,
   AlertTriangle,
   CheckCircle2,
-  X,
-  ShieldAlert,
-  UserCheck,
-  MessageSquare
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { seedDatabase, resetDatabase } from '@/lib/supabase-db';
