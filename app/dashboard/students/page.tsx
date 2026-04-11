@@ -1186,22 +1186,29 @@ export default function StudentsPage() {
                       </button>
                     </div>
                     {formData.feeType === 'predefined' ? (
-                      <select 
-                        value={formData.feeStructure}
-                        onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
-                      >
-                        <option value="">Select Fee Structure</option>
-                        {feeItems.map(item => (
-                          <option key={item.id} value={item.name}>{item.name} (${item.amount})</option>
-                        ))}
-                      </select>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Select Predefined Structure</label>
+                        <select 
+                          value={formData.feeStructure}
+                          onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
+                          className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
+                        >
+                          <option value="">Select Fee Structure</option>
+                          {feeItems.map(item => (
+                            <option key={item.id} value={item.name}>{item.name} (${item.amount})</option>
+                          ))}
+                        </select>
+                      </div>
                     ) : (
-                      <div className="p-4 rounded-2xl border border-border bg-muted/30 space-y-4">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Add Fee Item</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="col-span-2">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Item Name</label>
+                      <div className="p-5 rounded-2xl border border-border bg-muted/30 space-y-5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Add Fee Item</p>
+                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold uppercase">Manual Form</span>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Item Name</label>
                             <input 
                               type="text" 
                               placeholder="e.g. Lab Fee"
@@ -1209,38 +1216,58 @@ export default function StudentsPage() {
                               onChange={(e) => setFormData(prev => ({ 
                                 ...prev, 
                                 manualFeeItem: { ...prev.manualFeeItem, name: e.target.value },
-                                feeStructure: e.target.value // Use name as structure for now or combine
+                                feeStructure: e.target.value
                               }))}
-                              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary transition-all"
+                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                             />
                           </div>
-                          <div>
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Amount ($)</label>
-                            <input 
-                              type="number" 
-                              placeholder="0.00"
-                              value={formData.manualFeeItem.amount}
-                              onChange={(e) => setFormData(prev => ({ 
-                                ...prev, 
-                                manualFeeItem: { ...prev.manualFeeItem, amount: e.target.value } 
-                              }))}
-                              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary transition-all"
-                            />
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Amount ($)</label>
+                              <input 
+                                type="number" 
+                                placeholder="0.00"
+                                value={formData.manualFeeItem.amount}
+                                onChange={(e) => setFormData(prev => ({ 
+                                  ...prev, 
+                                  manualFeeItem: { ...prev.manualFeeItem, amount: e.target.value } 
+                                }))}
+                                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Frequency</label>
+                              <select 
+                                value={formData.manualFeeItem.frequency}
+                                onChange={(e) => setFormData(prev => ({ 
+                                  ...prev, 
+                                  manualFeeItem: { ...prev.manualFeeItem, frequency: e.target.value } 
+                                }))}
+                                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                              >
+                                <option>Per Term</option>
+                                <option>Monthly</option>
+                                <option>Annual</option>
+                                <option>One-time</option>
+                              </select>
+                            </div>
                           </div>
+
                           <div>
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Frequency</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Category</label>
                             <select 
-                              value={formData.manualFeeItem.frequency}
+                              value={formData.manualFeeItem.category}
                               onChange={(e) => setFormData(prev => ({ 
                                 ...prev, 
-                                manualFeeItem: { ...prev.manualFeeItem, frequency: e.target.value } 
+                                manualFeeItem: { ...prev.manualFeeItem, category: e.target.value } 
                               }))}
-                              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary transition-all"
+                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                             >
-                              <option>Per Term</option>
-                              <option>Monthly</option>
-                              <option>Annual</option>
-                              <option>One-time</option>
+                              <option>Academic</option>
+                              <option>Transport</option>
+                              <option>Extracurricular</option>
+                              <option>Facility</option>
                             </select>
                           </div>
                         </div>

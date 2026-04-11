@@ -95,8 +95,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: t('fees'), href: '/dashboard/fees', icon: CreditCard, show: can('view', 'fees') },
       { name: t('hr'), href: '/dashboard/hr', icon: UserCog, show: can('view', 'hr') },
       { name: t('transport'), href: '/dashboard/transport', icon: Bus, show: can('view', 'transport') },
-      { name: t('visitors'), href: '/dashboard/visitors', icon: UserCheck, show: can('view', 'visitors') },
-      { name: t('inventory'), href: '/dashboard/inventory', icon: Package, show: can('view', 'inventory') },
       { name: t('analytics'), href: '/dashboard/analytics', icon: TrendingUp, show: can('view', 'analytics') },
       { name: t('communication'), href: '/dashboard/communication', icon: MessageSquare, show: can('view', 'communication') },
       { name: t('settings'), href: '/dashboard/settings', icon: Settings, show: can('view', 'settings') },

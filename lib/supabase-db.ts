@@ -1,7 +1,7 @@
 import { supabase } from './supabase/client';
 import { Student, User, Parent } from './mock-db';
 
-export async function getStudents(academicYear?: string, includeDeleted = false) {
+export async function getStudents(academicYear?: string, includeDeleted = false, grade?: string) {
   let query = supabase
     .from('students')
     .select(`
@@ -11,6 +11,10 @@ export async function getStudents(academicYear?: string, includeDeleted = false)
   
   if (academicYear) {
     query = query.eq('academic_year', academicYear);
+  }
+
+  if (grade) {
+    query = query.eq('grade', grade);
   }
 
   if (!includeDeleted) {

@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase/client';
 import { getActiveAcademicYear } from '@/lib/supabase-db';
-import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
+import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,6 +90,25 @@ export default function DashboardHome() {
   const { data, isLoading } = useSWR(
     user ? `dashboard-${user.id}-${user.role}-${activeAcademicYear?.name}` : null, 
     fetchDashboardData
+  );
+
+  const { data: teacherStats } = useSWR(
+    user && isRole('teacher') ? `teacher-stats-${user.id}` : null,
+    async () => {
+      const { count: studentCount } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+      
+      const { data: attendanceData } = await supabase
+        .from('attendance')
+        .select('status')
+        .eq('date', new Date().toISOString().split('T')[0]);
+      
+      const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
+      const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
+
+      return { studentCount: studentCount || 0, attendanceRate };
+    }
   );
 
   if (!user) return null;
@@ -243,52 +262,110 @@ function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: an
 
 function TeacherDashboard({ notices }: { notices: any[] }) {
   const { user } = useAuth();
+  const { data: teacherStats } = useSWR(`teacher-stats-${user?.id}`, null); // Using cached data from above
+  
+  const stats = [
+    { label: 'Total Students', value: teacherStats?.studentCount || 0, icon: Users, color: 'bg-blue-500' },
+    { label: 'Attendance Rate', value: `${teacherStats?.attendanceRate || 0}%`, icon: CalendarCheck, color: 'bg-emerald-500' },
+    { label: 'Upcoming Tasks', value: '4', icon: BookOpen, color: 'bg-indigo-500' },
+  ];
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Hello, {user?.name}</h1>
-        <p className="text-muted-foreground mt-2 font-medium">You have 3 classes today.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Hello, {user?.name}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">You have 3 classes today.</p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/dashboard/attendance" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
+            <CalendarCheck size={18} />
+            Take Attendance
+          </Link>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        {stats.map((stat, i) => (
+          <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+            <div className={`w-10 h-10 rounded-xl ${stat.color} text-white flex items-center justify-center mb-4`}>
+              <stat.icon size={20} />
+            </div>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold text-foreground">Today&apos;s Schedule</h3>
-            <Link href="/dashboard/attendance" className="text-sm font-bold text-primary hover:text-primary/80 bg-primary/10 px-4 py-2 rounded-xl transition-colors">Take Attendance</Link>
+            <Link href="/dashboard/schedule" className="text-sm font-bold text-primary hover:underline">View Full Schedule</Link>
           </div>
           
           <div className="space-y-4">
-            {['Grade 10 - Mathematics (09:00 AM, Room 302)', 'Grade 11 - Physics (11:00 AM, Room 405)', 'Grade 9 - Science (01:30 PM, Lab 1)'].map((cls, i) => (
-              <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-border bg-muted/30 hover:bg-muted hover:shadow-sm transition-all gap-4">
+            {[
+              { class: 'Grade 10 - Mathematics', time: '09:00 AM', room: 'Room 302', color: 'bg-blue-500/10 text-blue-500' },
+              { class: 'Grade 11 - Physics', time: '11:00 AM', room: 'Room 405', color: 'bg-emerald-500/10 text-emerald-500' },
+              { class: 'Grade 9 - Science', time: '01:30 PM', room: 'Lab 1', color: 'bg-amber-500/10 text-amber-500' }
+            ].map((cls, i) => (
+              <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-border bg-muted/30 hover:bg-muted transition-all gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shadow-inner">
-                    G{10 + i}
+                  <div className={`w-12 h-12 rounded-2xl ${cls.color} flex items-center justify-center font-bold text-sm`}>
+                    {cls.time.split(':')[0]}
                   </div>
-                  <span className="font-bold text-foreground">{cls}</span>
+                  <div>
+                    <p className="font-bold text-foreground">{cls.class}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{cls.time} • {cls.room}</p>
+                  </div>
                 </div>
-                <button className="w-full sm:w-auto px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-semibold text-foreground hover:bg-muted hover:border-primary/50 transition-all shadow-sm">
+                <Link 
+                  href={`/dashboard/attendance?class=${cls.class}`}
+                  className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted hover:border-primary/50 transition-all text-center"
+                >
                   Mark Attendance
-                </button>
+                </Link>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
-          <div className="space-y-5">
-            {notices.slice(0, 3).map((notice) => (
-              <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
-                <div className={`w-2.5 h-2.5 mt-2 rounded-full ${notice.is_important ? 'bg-red-500' : 'bg-blue-500'} shrink-0 shadow-sm`} />
-                <div>
-                  <p className="font-bold text-foreground text-sm sm:text-base">{notice.title}</p>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">{notice.content.substring(0, 60)}...</p>
+        <div className="space-y-6">
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+            <h3 className="text-xl font-bold text-foreground mb-6">Quick Actions</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <Link href="/dashboard/communication?new=notice" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-all group">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <Bell size={18} />
                 </div>
-              </div>
-            ))}
-            {notices.length === 0 && (
-              <p className="text-sm text-muted-foreground">No recent notices.</p>
-            )}
+                <span className="font-bold text-sm">Post Notice</span>
+              </Link>
+              <Link href="/dashboard/assessments?new=true" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-all group">
+                <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-lg group-hover:bg-indigo group-hover:text-indigo-foreground transition-colors">
+                  <BookOpen size={18} />
+                </div>
+                <span className="font-bold text-sm">Add Assessment</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+            <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
+            <div className="space-y-5">
+              {notices.slice(0, 3).map((notice) => (
+                <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
+                  <div className={`w-2 h-2 mt-2 rounded-full ${notice.is_important ? 'bg-red-500' : 'bg-blue-500'} shrink-0`} />
+                  <div>
+                    <p className="font-bold text-foreground text-sm leading-tight">{notice.title}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">{new Date(notice.created_at).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              ))}
+              {notices.length === 0 && (
+                <p className="text-sm text-muted-foreground">No recent notices.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

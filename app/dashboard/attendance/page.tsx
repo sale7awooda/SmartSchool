@@ -7,9 +7,11 @@ import { usePermissions } from '@/lib/permissions';
 import { Student } from '@/lib/mock-db';
 import { supabase } from '@/lib/supabase/client';
 import { getStudents, getAttendance, saveAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById, getActiveAcademicYear } from '@/lib/supabase-db';
-import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 type AttendanceStatus = 'present' | 'absent' | 'late' | null;
 
@@ -32,6 +34,9 @@ export default function AttendancePage() {
 
 function TeacherAttendance() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const classFilter = searchParams.get('class');
+  
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [activeTab, setActiveTab] = useState<'mark' | 'history'>('mark');
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -46,7 +51,7 @@ function TeacherAttendance() {
     async function loadData() {
       try {
         const [studentsData, attendanceData, historyData] = await Promise.all([
-          getStudents(activeAcademicYear?.name),
+          getStudents(activeAcademicYear?.name, false, classFilter || undefined),
           getAttendance(selectedDate),
           getAttendanceHistory()
         ]);
@@ -190,14 +195,24 @@ function TeacherAttendance() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Mark Attendance</h1>
-          <div className="flex items-center gap-2 mt-2">
-            <Calendar size={16} className="text-muted-foreground" />
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none text-muted-foreground font-medium focus:ring-0 cursor-pointer hover:text-foreground transition-colors"
-            />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-muted-foreground" />
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent border-none text-muted-foreground font-medium focus:ring-0 cursor-pointer hover:text-foreground transition-colors"
+              />
+            </div>
+            {classFilter && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">
+                Class: {classFilter}
+                <Link href="/dashboard/attendance" className="hover:text-primary/80">
+                  <X size={14} />
+                </Link>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
@@ -212,52 +227,70 @@ function TeacherAttendance() {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 pb-24">
-        {students.map((student) => {
-          const status = attendance[student.id];
-          return (
-            <div key={student.id} className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-lg">
-                  {student.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-bold text-foreground">{student.name}</p>
-                  <p className="text-xs font-medium text-muted-foreground">ID: {student.id}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-2 bg-muted/50 p-1.5 rounded-2xl">
-                <button
-                  onClick={() => handleStatusChange(student.id, 'present')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    status === 'present' ? 'bg-card text-emerald-500 shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
-                >
-                  <CheckCircle2 size={18} className={status === 'present' ? 'fill-emerald-500/20' : ''} />
-                  <span className="sm:hidden md:inline">Present</span>
-                </button>
-                <button
-                  onClick={() => handleStatusChange(student.id, 'late')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    status === 'late' ? 'bg-card text-amber-500 shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
-                >
-                  <Clock size={18} className={status === 'late' ? 'fill-amber-500/20' : ''} />
-                  <span className="sm:hidden md:inline">Late</span>
-                </button>
-                <button
-                  onClick={() => handleStatusChange(student.id, 'absent')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    status === 'absent' ? 'bg-card text-destructive shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
-                >
-                  <XCircle size={18} className={status === 'absent' ? 'fill-destructive/20' : ''} />
-                  <span className="sm:hidden md:inline">Absent</span>
-                </button>
-              </div>
+        {students.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-card rounded-[2rem] border border-border border-dashed">
+            <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center text-muted-foreground mb-4">
+              <Users size={32} />
             </div>
-          );
-        })}
+            <h3 className="text-xl font-bold text-foreground">No Students Found</h3>
+            <p className="text-muted-foreground mt-2 text-center max-w-xs">
+              There are no students registered for the current academic year. Please add students first.
+            </p>
+            <Link 
+              href="/dashboard/students?add=true"
+              className="mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
+            >
+              Register New Student
+            </Link>
+          </div>
+        ) : (
+          students.map((student) => {
+            const status = attendance[student.id];
+            return (
+              <div key={student.id} className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-lg">
+                    {student.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-foreground">{student.name}</p>
+                    <p className="text-xs font-medium text-muted-foreground">ID: {student.roll_number || student.id.substring(0, 8)}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 bg-muted/50 p-1.5 rounded-2xl">
+                  <button
+                    onClick={() => handleStatusChange(student.id, 'present')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      status === 'present' ? 'bg-card text-emerald-500 shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <CheckCircle2 size={18} className={status === 'present' ? 'fill-emerald-500/20' : ''} />
+                    <span className="sm:hidden md:inline">Present</span>
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(student.id, 'late')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      status === 'late' ? 'bg-card text-amber-500 shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Clock size={18} className={status === 'late' ? 'fill-amber-500/20' : ''} />
+                    <span className="sm:hidden md:inline">Late</span>
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(student.id, 'absent')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      status === 'absent' ? 'bg-card text-destructive shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <XCircle size={18} className={status === 'absent' ? 'fill-destructive/20' : ''} />
+                    <span className="sm:hidden md:inline">Absent</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <div className="fixed bottom-20 md:bottom-8 left-0 right-0 px-4 md:px-10 max-w-5xl mx-auto pointer-events-none z-30">
