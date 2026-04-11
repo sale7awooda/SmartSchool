@@ -9,6 +9,7 @@ import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent } from '@/lib/mock-db';
 import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getFeeItems, createFeeItem } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/language-context';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
   MapPin, Calendar, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown,
@@ -28,6 +29,7 @@ const isStudent = (person: User | Student | Parent): person is Student => {
 export default function StudentsPage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -325,7 +327,7 @@ export default function StudentsPage() {
   if (!user) return null;
 
   if (!can('view', 'students')) {
-    return <div className="p-4">You do not have permission to view this page.</div>;
+    return <div className="p-4">{t('no_permission')}</div>;
   }
 
   let studentMembers = students;
@@ -362,8 +364,8 @@ export default function StudentsPage() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Students Directory</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Find contact information and detailed profiles for students and parents.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('students_directory')}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">{t('students_directory_desc')}</p>
         </div>
         {isAdmin && (
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -372,7 +374,7 @@ export default function StudentsPage() {
               className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 w-full sm:w-auto"
             >
               <UserPlus size={20} />
-              Add Student
+              {t('add_student')}
             </button>
           </div>
         )}
@@ -391,7 +393,7 @@ export default function StudentsPage() {
                 : "bg-card text-muted-foreground hover:bg-muted border border-border"
             }`}
           >
-            {tab}
+            {t(tab)}
           </button>
         ))}
       </div>
@@ -402,7 +404,7 @@ export default function StudentsPage() {
             <div className="flex gap-2 w-full sm:w-auto">
               <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border">
                 <Filter size={16} />
-                Filters
+                {t('filters')}
               </button>
             </div>
 
@@ -410,7 +412,7 @@ export default function StudentsPage() {
               <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input 
                 type="text" 
-                placeholder="Search students..."
+                placeholder={t('search_students')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all placeholder:text-muted-foreground dark:placeholder:text-muted-foreground text-foreground"
@@ -424,11 +426,11 @@ export default function StudentsPage() {
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                     <tr>
-                      <th className="px-6 py-4 font-bold">Student</th>
-                      <th className="px-6 py-4 font-bold">Roll Number</th>
-                      <th className="px-6 py-4 font-bold">Grade</th>
-                      <th className="px-6 py-4 font-bold">Parent/Guardian</th>
-                      <th className="px-6 py-4 font-bold text-right">Action</th>
+                      <th className="px-6 py-4 font-bold">{t('student')}</th>
+                      <th className="px-6 py-4 font-bold">{t('roll_number')}</th>
+                      <th className="px-6 py-4 font-bold">{t('grade')}</th>
+                      <th className="px-6 py-4 font-bold">{t('parent_guardian')}</th>
+                      <th className="px-6 py-4 font-bold text-right rtl:text-left">{t('actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -447,13 +449,13 @@ export default function StudentsPage() {
                           <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
                           <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-md" /></td>
                           <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
-                          <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 rounded-lg ml-auto" /></td>
+                          <td className="px-6 py-4 text-right rtl:text-left"><Skeleton className="h-8 w-8 rounded-lg ml-auto rtl:ml-0 rtl:mr-auto" /></td>
                         </tr>
                       ))
                     ) : students.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
-                          No students found.
+                          {t('no_students_found')}
                         </td>
                       </tr>
                     ) : (
@@ -486,8 +488,8 @@ export default function StudentsPage() {
                           <td className="px-6 py-4 text-muted-foreground font-medium">
                             {student.parents?.[0]?.parent?.name || 'N/A'}
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                          <td className="px-6 py-4 text-right rtl:text-left">
+                            <div className="flex items-center justify-end gap-2 rtl:justify-start">
                               {isAdmin && (
                                 <>
                                   <button 
@@ -512,7 +514,7 @@ export default function StudentsPage() {
                                 </>
                               )}
                               <button className="p-2 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10">
-                                <ChevronRight size={20} />
+                                <ChevronRight size={20} className="rtl:rotate-180" />
                               </button>
                             </div>
                           </td>
@@ -533,14 +535,14 @@ export default function StudentsPage() {
                 disabled={page === 1}
                 className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
               >
-                Previous
+                {t('previous')}
               </button>
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-muted-foreground">
-                  Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+                  {t('page_of').replace('{page}', page.toString()).replace('{total}', totalPages.toString())}
                 </span>
-                <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
-                  Total: <span className="text-foreground font-bold">{totalCount}</span>
+                <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4 rtl:border-l-0 rtl:border-r rtl:pl-0 rtl:pr-4">
+                  {t('total')}: <span className="text-foreground font-bold">{totalCount}</span>
                 </span>
               </div>
               <button
@@ -548,7 +550,7 @@ export default function StudentsPage() {
                 disabled={page === totalPages}
                 className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
               >
-                Next
+                {t('next')}
               </button>
             </div>
           )}
@@ -558,15 +560,15 @@ export default function StudentsPage() {
       {mainTab === 'history' && (
         <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card dark:bg-slate-900 p-4 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0">
-            <h2 className="text-xl font-bold text-foreground">Dropped & Deleted Students</h2>
+            <h2 className="text-xl font-bold text-foreground">{t('dropped_deleted_students')}</h2>
             <div className="relative w-full sm:w-72">
-              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
               <input 
                 type="text" 
-                placeholder="Search history..."
+                placeholder={t('search_history')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all placeholder:text-muted-foreground dark:placeholder:text-muted-foreground text-foreground"
+                className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all placeholder:text-muted-foreground dark:placeholder:text-muted-foreground text-foreground rtl:pl-4 rtl:pr-12"
               />
             </div>
           </div>
@@ -574,14 +576,14 @@ export default function StudentsPage() {
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
             <div className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-left rtl:text-right">
                   <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                     <tr>
-                      <th className="px-6 py-4 font-bold">Student</th>
-                      <th className="px-6 py-4 font-bold">Roll Number</th>
-                      <th className="px-6 py-4 font-bold">Grade</th>
-                      <th className="px-6 py-4 font-bold">Reason</th>
-                      <th className="px-6 py-4 font-bold text-right">Action</th>
+                      <th className="px-6 py-4 font-bold">{t('student')}</th>
+                      <th className="px-6 py-4 font-bold">{t('roll_number')}</th>
+                      <th className="px-6 py-4 font-bold">{t('grade')}</th>
+                      <th className="px-6 py-4 font-bold">{t('reason')}</th>
+                      <th className="px-6 py-4 font-bold text-right rtl:text-left">{t('actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -592,13 +594,13 @@ export default function StudentsPage() {
                           <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
                           <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-md" /></td>
                           <td className="px-6 py-4"><Skeleton className="h-4 w-48" /></td>
-                          <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 rounded-lg ml-auto" /></td>
+                          <td className="px-6 py-4 text-right rtl:text-left"><Skeleton className="h-8 w-8 rounded-lg ml-auto rtl:ml-0 rtl:mr-auto" /></td>
                         </tr>
                       ))
                     ) : students.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
-                          No history records found.
+                          {t('no_data')}
                         </td>
                       </tr>
                     ) : (
@@ -627,14 +629,14 @@ export default function StudentsPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-muted-foreground font-medium">
-                            {student.deleted_reason || 'No reason provided'}
+                            {student.deleted_reason || t('none')}
                           </td>
-                          <td className="px-6 py-4 text-right">
+                          <td className="px-6 py-4 text-right rtl:text-left">
                             <button 
                               onClick={() => handleRestoreStudent(student.id)}
                               className="px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 rounded-lg transition-colors"
                             >
-                              Restore
+                              {t('restore')}
                             </button>
                           </td>
                         </tr>
@@ -651,8 +653,8 @@ export default function StudentsPage() {
       {mainTab === 'promotions' && (
         <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
           <div className="bg-card dark:bg-slate-900 p-6 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm">
-            <h2 className="text-2xl font-bold text-foreground">Student Promotions</h2>
-            <p className="text-muted-foreground mt-1">Promote students to the next grade or academic year.</p>
+            <h2 className="text-2xl font-bold text-foreground">{t('student_promotions')}</h2>
+            <p className="text-muted-foreground mt-1">{t('student_promotions_desc')}</p>
             
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                 <div 
@@ -665,10 +667,10 @@ export default function StudentsPage() {
                   <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <GraduationCap size={24} />
                   </div>
-                  <h3 className="font-bold text-lg text-foreground">Promote by Grade</h3>
-                  <p className="text-sm text-muted-foreground mt-2">Bulk promote all students in a specific grade to the next level.</p>
+                  <h3 className="font-bold text-lg text-foreground">{t('promote_by_grade')}</h3>
+                  <p className="text-sm text-muted-foreground mt-2">{t('promote_by_grade_desc')}</p>
                   <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
-                    Start Promotion <ChevronRight size={16} />
+                    {t('start_promotion')} <ChevronRight size={16} className="rtl:rotate-180" />
                   </button>
                 </div>
                 
@@ -682,10 +684,10 @@ export default function StudentsPage() {
                   <div className="w-12 h-12 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <UserCircle size={24} />
                   </div>
-                  <h3 className="font-bold text-lg text-foreground">Promote by Class</h3>
-                  <p className="text-sm text-muted-foreground mt-2">Promote students from a specific class section.</p>
+                  <h3 className="font-bold text-lg text-foreground">{t('promote_by_class')}</h3>
+                  <p className="text-sm text-muted-foreground mt-2">{t('promote_by_class_desc')}</p>
                   <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
-                    Start Promotion <ChevronRight size={16} />
+                    {t('start_promotion')} <ChevronRight size={16} className="rtl:rotate-180" />
                   </button>
                 </div>
                 
@@ -699,10 +701,10 @@ export default function StudentsPage() {
                   <div className="w-12 h-12 bg-accent/10 text-accent-foreground rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <Search size={24} />
                   </div>
-                  <h3 className="font-bold text-lg text-foreground">Manual Promotion</h3>
-                  <p className="text-sm text-muted-foreground mt-2">Select individual students to promote manually.</p>
+                  <h3 className="font-bold text-lg text-foreground">{t('manual_promotion')}</h3>
+                  <p className="text-sm text-muted-foreground mt-2">{t('manual_promotion_desc')}</p>
                   <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
-                    Start Promotion <ChevronRight size={16} />
+                    {t('start_promotion')} <ChevronRight size={16} className="rtl:rotate-180" />
                   </button>
                 </div>
               </div>
@@ -721,11 +723,11 @@ export default function StudentsPage() {
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground tracking-tight">Promote Students</h2>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('promote_students')}</h2>
                   <p className="text-sm font-medium text-muted-foreground mt-2">
-                    {promotionType === 'grade' ? 'Promote students by grade level' : 
-                     promotionType === 'class' ? 'Promote students by class section' : 
-                     'Manually select students to promote'}
+                    {promotionType === 'grade' ? t('promote_students_grade_desc') : 
+                     promotionType === 'class' ? t('promote_students_class_desc') : 
+                     t('promote_students_manual_desc')}
                   </p>
                 </div>
                 <button 
@@ -740,19 +742,19 @@ export default function StudentsPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      {promotionType === 'grade' ? 'Select Current Grade' : 
-                       promotionType === 'class' ? 'Select Current Class' : 
-                       'Search Student'}
+                      {promotionType === 'grade' ? t('select_current_grade') : 
+                       promotionType === 'class' ? t('select_current_class') : 
+                       t('search_student')}
                     </label>
                     {promotionType === 'manual' ? (
                       <div className="relative">
-                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                         <input 
                           type="text"
-                          placeholder="Search student name or ID..."
+                          placeholder={t('search_student_placeholder')}
                           value={promotionValue}
                           onChange={(e) => setPromotionValue(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
+                          className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium rtl:pl-4 rtl:pr-10"
                         />
                       </div>
                     ) : (
@@ -761,7 +763,7 @@ export default function StudentsPage() {
                         onChange={(e) => setPromotionValue(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                       >
-                        <option value="">Select {promotionType === 'grade' ? 'Grade' : 'Class'}</option>
+                        <option value="">{t('select')} {promotionType === 'grade' ? t('grade') : t('class')}</option>
                         {classesList.map(c => (
                           <option key={c} value={c}>{c}</option>
                         ))}
@@ -770,24 +772,24 @@ export default function StudentsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Target Grade (Promotion To)</label>
+                    <label className="text-sm font-bold text-foreground">{t('target_grade')}</label>
                     <select 
                       value={targetGrade}
                       onChange={(e) => setTargetGrade(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                     >
-                      <option value="">Select Target Grade</option>
+                      <option value="">{t('select_target_grade')}</option>
                       {classesList.map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
-                      <option value="Graduated">Graduated / Completed</option>
+                      <option value="Graduated">{t('graduated_completed')}</option>
                     </select>
                   </div>
 
                   <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
                     <AlertCircle size={20} className="text-primary shrink-0 mt-0.5" />
                     <p className="text-xs text-primary font-medium leading-relaxed">
-                      Promoting students will update their current grade and academic year. This action will also create a new enrollment record for the upcoming session.
+                      {t('promotion_warning')}
                     </p>
                   </div>
                 </div>
@@ -797,14 +799,14 @@ export default function StudentsPage() {
                     onClick={() => setIsPromotionModalOpen(false)}
                     className="flex-1 px-6 py-3 border border-border rounded-xl font-bold hover:bg-muted transition-all"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     onClick={() => handlePromoteStudents(promotionType, promotionValue)}
                     disabled={isSubmitting || !promotionValue || !targetGrade}
                     className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirm Promotion'}
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : t('confirm')}
                   </button>
                 </div>
               </div>
@@ -827,17 +829,17 @@ export default function StudentsPage() {
                   <AlertCircle size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight">Delete Student</h2>
-                  <p className="text-sm font-medium text-muted-foreground">This will soft-delete the student record.</p>
+                  <h2 className="text-xl font-bold tracking-tight">{t('delete_student')}</h2>
+                  <p className="text-sm font-medium text-muted-foreground">{t('delete_student_desc')}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">Reason for Deletion</label>
+                  <label className="text-sm font-bold text-foreground">{t('reason_for_deletion')}</label>
                   <textarea 
                     required
-                    placeholder="e.g., Graduated, Dropped out, Transferred..."
+                    placeholder={t('delete_reason_placeholder')}
                     value={deleteReason}
                     onChange={(e) => setDeleteReason(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-red-500 outline-none transition-all font-medium min-h-[100px]"
@@ -853,14 +855,14 @@ export default function StudentsPage() {
                     }}
                     className="flex-1 px-6 py-3 border border-border rounded-xl font-bold hover:bg-muted transition-all"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     onClick={handleDeleteStudent}
                     disabled={isSubmitting || !deleteReason}
                     className="flex-1 px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : t('delete')}
                   </button>
                 </div>
               </div>
@@ -881,10 +883,10 @@ export default function StudentsPage() {
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground tracking-tight">
-                    {isEditing ? 'Update Student Details' : 'Register New Student'}
+                    {isEditing ? t('update_student_details') : t('register_new_student')}
                   </h2>
                   <p className="text-sm font-medium text-muted-foreground mt-2">
-                    {isEditing ? 'Modify existing student information.' : 'Add a new student to the school database.'}
+                    {isEditing ? t('modify_student_info') : t('add_new_student_desc')}
                   </p>
                 </div>
                 <button 
@@ -992,7 +994,7 @@ export default function StudentsPage() {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Full Name</label>
+                    <label className="text-sm font-bold text-foreground">{t('full_name')}</label>
                     <input 
                       required 
                       type="text" 
@@ -1007,7 +1009,7 @@ export default function StudentsPage() {
                     {formErrors.name && <p className="text-xs text-red-500 font-medium">{formErrors.name}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Student ID (Auto-generated)</label>
+                    <label className="text-sm font-bold text-foreground">{t('student_id_auto')}</label>
                     <input 
                       required 
                       type="text" 
@@ -1019,7 +1021,7 @@ export default function StudentsPage() {
                     {formErrors.studentId && <p className="text-xs text-red-500 font-medium">{formErrors.studentId}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Grade</label>
+                    <label className="text-sm font-bold text-foreground">{t('grade')}</label>
                     <select 
                       required 
                       value={formData.grade}
@@ -1029,7 +1031,7 @@ export default function StudentsPage() {
                       }}
                       className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.grade ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`}
                     >
-                      <option value="">Select Grade</option>
+                      <option value="">{t('select_grade')}</option>
                       {classesList.map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
@@ -1037,7 +1039,7 @@ export default function StudentsPage() {
                     {formErrors.grade && <p className="text-xs text-red-500 font-medium">{formErrors.grade}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Date of Birth</label>
+                    <label className="text-sm font-bold text-foreground">{t('date_of_birth')}</label>
                     <input 
                       required 
                       type="date" 
@@ -1051,20 +1053,20 @@ export default function StudentsPage() {
                     {formErrors.dob && <p className="text-xs text-red-500 font-medium">{formErrors.dob}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Gender</label>
+                    <label className="text-sm font-bold text-foreground">{t('gender')}</label>
                     <select 
                       required 
                       value={formData.gender}
                       onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
                       className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
                     >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
+                      <option value="Male">{t('male')}</option>
+                      <option value="Female">{t('female')}</option>
+                      <option value="Other">{t('other')}</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">Blood Group</label>
+                    <label className="text-sm font-bold text-foreground">{t('blood_group')}</label>
                     <select 
                       value={formData.bloodGroup}
                       onChange={(e) => setFormData(prev => ({ ...prev, bloodGroup: e.target.value }))}
@@ -1083,10 +1085,10 @@ export default function StudentsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">Residential Address</label>
+                  <label className="text-sm font-bold text-foreground">{t('residential_address')}</label>
                   <textarea 
                     rows={3} 
-                    placeholder="Enter full address..." 
+                    placeholder={t('enter_address_placeholder')} 
                     value={formData.address}
                     onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium resize-none"
@@ -1094,23 +1096,23 @@ export default function StudentsPage() {
                 </div>
 
                 <div className="pt-4 border-t border-border">
-                  <h3 className="font-bold text-foreground mb-4">Parent/Guardian Information</h3>
+                  <h3 className="font-bold text-foreground mb-4">{t('parent_guardian_info')}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-2 relative">
-                      <label className="text-sm font-bold text-foreground">Parent Name (Searchable)</label>
+                      <label className="text-sm font-bold text-foreground">{t('parent_name_search')}</label>
                       <div className="relative">
-                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                         <input 
                           required 
                           type="text" 
-                          placeholder="Search or enter name..." 
+                          placeholder={t('search_parent_placeholder')} 
                           value={formData.parentName}
                           onChange={(e) => {
                             const name = e.target.value;
                             setFormData(prev => ({ ...prev, parentName: name }));
                             setParentSearch(name);
                           }}
-                          className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                          className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium rtl:pl-4 rtl:pr-10 ${formErrors.parentName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                         />
                       </div>
                       {foundParents.length > 0 && parentSearch.length >= 2 && (
@@ -1127,7 +1129,7 @@ export default function StudentsPage() {
                                 }));
                                 setParentSearch('');
                               }}
-                              className="w-full px-4 py-2.5 text-left hover:bg-muted transition-colors flex items-center justify-between"
+                              className="w-full px-4 py-2.5 text-left hover:bg-muted transition-colors flex items-center justify-between rtl:text-right"
                             >
                               <span className="font-bold">{p.name}</span>
                               <span className="text-xs text-muted-foreground">{p.phone}</span>
@@ -1137,23 +1139,23 @@ export default function StudentsPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-foreground">Relation to Student</label>
+                      <label className="text-sm font-bold text-foreground">{t('relation_to_student')}</label>
                       <select 
                         required 
                         value={formData.parentRelation}
                         onChange={(e) => setFormData(prev => ({ ...prev, parentRelation: e.target.value }))}
                         className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
                       >
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Guardian">Guardian</option>
-                        <option value="Brother">Brother</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Other">Other</option>
+                        <option value="Father">{t('father')}</option>
+                        <option value="Mother">{t('mother')}</option>
+                        <option value="Guardian">{t('guardian')}</option>
+                        <option value="Brother">{t('brother')}</option>
+                        <option value="Sister">{t('sister')}</option>
+                        <option value="Other">{t('other')}</option>
                       </select>
                     </div>
                     <div className="space-y-2 sm:col-span-2">
-                      <label className="text-sm font-bold text-foreground">Parent Phone</label>
+                      <label className="text-sm font-bold text-foreground">{t('parent_phone')}</label>
                       <input 
                         required 
                         type="tel" 
@@ -1167,7 +1169,7 @@ export default function StudentsPage() {
                 </div>
 
                 <div className="pt-4 border-t border-border">
-                  <h3 className="font-bold text-foreground mb-4">Fee Structure</h3>
+                  <h3 className="font-bold text-foreground mb-4">{t('fee_structure')}</h3>
                   <div className="space-y-4">
                     <div className="flex gap-4">
                       <button 
@@ -1175,25 +1177,25 @@ export default function StudentsPage() {
                         onClick={() => setFormData(prev => ({ ...prev, feeType: 'predefined' }))}
                         className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${formData.feeType === 'predefined' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border'}`}
                       >
-                        Predefined
+                        {t('predefined')}
                       </button>
                       <button 
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, feeType: 'manual' }))}
                         className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${formData.feeType === 'manual' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border'}`}
                       >
-                        Manual Entry
+                        {t('manual_entry')}
                       </button>
                     </div>
                     {formData.feeType === 'predefined' ? (
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Select Predefined Structure</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('select_predefined_structure')}</label>
                         <select 
                           value={formData.feeStructure}
                           onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
                           className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                         >
-                          <option value="">Select Fee Structure</option>
+                          <option value="">{t('select_fee_structure')}</option>
                           {feeItems.map(item => (
                             <option key={item.id} value={item.name}>{item.name} (${item.amount})</option>
                           ))}
@@ -1202,13 +1204,13 @@ export default function StudentsPage() {
                     ) : (
                       <div className="p-5 rounded-2xl border border-border bg-muted/30 space-y-5">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Add Fee Item</p>
-                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold uppercase">Manual Form</span>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('add_fee_item')}</p>
+                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold uppercase">{t('manual_entry')}</span>
                         </div>
                         
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Item Name</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('item_name')}</label>
                             <input 
                               type="text" 
                               placeholder="e.g. Lab Fee"
@@ -1224,7 +1226,7 @@ export default function StudentsPage() {
                           
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Amount ($)</label>
+                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('amount')} ($)</label>
                               <input 
                                 type="number" 
                                 placeholder="0.00"
@@ -1237,7 +1239,7 @@ export default function StudentsPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Frequency</label>
+                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('frequency')}</label>
                               <select 
                                 value={formData.manualFeeItem.frequency}
                                 onChange={(e) => setFormData(prev => ({ 
@@ -1246,16 +1248,16 @@ export default function StudentsPage() {
                                 }))}
                                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                               >
-                                <option>Per Term</option>
-                                <option>Monthly</option>
-                                <option>Annual</option>
-                                <option>One-time</option>
+                                <option value="Per Term">{t('per_term')}</option>
+                                <option value="Monthly">{t('monthly')}</option>
+                                <option value="Annual">{t('annual')}</option>
+                                <option value="One-time">{t('one_time')}</option>
                               </select>
                             </div>
                           </div>
 
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Category</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('category')}</label>
                             <select 
                               value={formData.manualFeeItem.category}
                               onChange={(e) => setFormData(prev => ({ 
@@ -1264,10 +1266,10 @@ export default function StudentsPage() {
                               }))}
                               className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                             >
-                              <option>Academic</option>
-                              <option>Transport</option>
-                              <option>Extracurricular</option>
-                              <option>Facility</option>
+                              <option value="Academic">{t('academic')}</option>
+                              <option value="Transport">{t('transport')}</option>
+                              <option value="Extracurricular">{t('extracurricular')}</option>
+                              <option value="Facility">{t('facility')}</option>
                             </select>
                           </div>
                         </div>
@@ -1277,9 +1279,9 @@ export default function StudentsPage() {
                 </div>
 
                 <div className="pt-4 border-t border-border">
-                  <label className="text-sm font-bold text-foreground">Additional Information</label>
+                  <label className="text-sm font-bold text-foreground">{t('additional_information')}</label>
                   <textarea 
-                    placeholder="Any other details (medical, allergies, etc.)..."
+                    placeholder={t('additional_info_placeholder')}
                     value={formData.additionalInfo}
                     onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium min-h-[100px] mt-2"
@@ -1292,14 +1294,14 @@ export default function StudentsPage() {
                     onClick={() => setIsAddStudentOpen(false)}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Register Student'}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (isEditing ? t('save') : t('register_student'))}
                   </button>
                 </div>
               </form>
@@ -1354,7 +1356,7 @@ export default function StudentsPage() {
                         : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
                     }`}
                   >
-                    Overview
+                    {t('overview')}
                   </button>
                   
                   <button
@@ -1365,7 +1367,7 @@ export default function StudentsPage() {
                         : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
                     }`}
                   >
-                    Medical
+                    {t('medical')}
                   </button>
                   <button
                     onClick={() => setActiveProfileTab('behavior')}
@@ -1375,7 +1377,7 @@ export default function StudentsPage() {
                         : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
                     }`}
                   >
-                    Behavior
+                    {t('behavior')}
                   </button>
                   <button
                     onClick={() => setActiveProfileTab('timeline')}
@@ -1385,7 +1387,7 @@ export default function StudentsPage() {
                         : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
                     }`}
                   >
-                    Timeline
+                    {t('timeline')}
                   </button>
                 </div>
               )}
@@ -1401,7 +1403,7 @@ export default function StudentsPage() {
                         <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                           <div className="p-3 bg-muted rounded-xl text-muted-foreground"><Mail size={20} /></div>
                           <div>
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</p>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('email_address')}</p>
                             <p className="text-sm font-bold text-foreground mt-0.5 break-all">{selectedPerson.email}</p>
                           </div>
                         </div>
@@ -1411,7 +1413,7 @@ export default function StudentsPage() {
                         <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                           <div className="p-3 bg-muted rounded-xl text-muted-foreground"><Phone size={20} /></div>
                           <div>
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Phone Number</p>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('phone_number')}</p>
                             <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.phone}</p>
                           </div>
                         </div>
@@ -1423,14 +1425,14 @@ export default function StudentsPage() {
                           <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                             <div className="p-3 bg-muted rounded-xl text-muted-foreground"><GraduationCap size={20} /></div>
                             <div>
-                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Grade</p>
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('grade')}</p>
                               <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.grade}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                             <div className="p-3 bg-muted rounded-xl text-muted-foreground"><UserCircle size={20} /></div>
                             <div>
-                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Roll No.</p>
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('roll_no')}</p>
                               <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.rollNumber}</p>
                             </div>
                           </div>
@@ -1438,7 +1440,7 @@ export default function StudentsPage() {
                             <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                               <div className="p-3 bg-muted rounded-xl text-muted-foreground"><Calendar size={20} /></div>
                               <div>
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Date of Birth</p>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('date_of_birth')}</p>
                                 <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.dob}</p>
                               </div>
                             </div>
@@ -1451,7 +1453,7 @@ export default function StudentsPage() {
                       <div className="flex items-start gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                         <div className="p-3 bg-muted rounded-xl text-muted-foreground"><MapPin size={20} /></div>
                         <div>
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Address</p>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('address')}</p>
                           <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.address}</p>
                         </div>
                       </div>
@@ -1460,19 +1462,19 @@ export default function StudentsPage() {
                     {isStudent(selectedPerson) && selectedPerson.medical?.emergencyContact && (
                       <div className="bg-destructive/10 rounded-2xl p-5 border border-destructive/20">
                         <h3 className="text-destructive dark:text-rose-400 font-bold flex items-center gap-2 mb-3">
-                          <AlertCircle size={18} /> Emergency Contact
+                          <AlertCircle size={18} /> {t('emergency_contact')}
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">Name</p>
+                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">{t('name')}</p>
                             <p className="text-sm font-bold text-foreground dark:text-rose-100">{selectedPerson.medical.emergencyContact.name}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">Relation</p>
+                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">{t('relation')}</p>
                             <p className="text-sm font-bold text-foreground dark:text-rose-100">{selectedPerson.medical.emergencyContact.relation}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">Phone</p>
+                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">{t('phone')}</p>
                             <p className="text-sm font-bold text-foreground dark:text-rose-100">{selectedPerson.medical.emergencyContact.phone}</p>
                           </div>
                         </div>
@@ -1497,7 +1499,7 @@ export default function StudentsPage() {
                           <div className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="p-2 bg-primary/10 text-primary rounded-lg"><Heart size={20} /></div>
-                              <h3 className="font-bold text-foreground">Conditions</h3>
+                              <h3 className="font-bold text-foreground">{t('conditions')}</h3>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {selectedPerson.medical.conditions.length > 0 ? (
@@ -1505,7 +1507,7 @@ export default function StudentsPage() {
                                   <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-sm font-bold border border-primary/20">{c}</span>
                                 ))
                               ) : (
-                                <span className="text-muted-foreground text-sm">None listed</span>
+                                <span className="text-muted-foreground text-sm">{t('none_listed')}</span>
                               )}
                             </div>
                           </div>
@@ -1514,7 +1516,7 @@ export default function StudentsPage() {
                         <div className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
                           <div className="flex items-center gap-3 mb-3">
                             <div className="p-2 bg-amber-500/100/10 text-amber-500 rounded-lg"><AlertCircle size={20} /></div>
-                            <h3 className="font-bold text-foreground">Allergies</h3>
+                            <h3 className="font-bold text-foreground">{t('allergies')}</h3>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {selectedPerson.medical.allergies.length > 0 ? (
@@ -1522,13 +1524,13 @@ export default function StudentsPage() {
                                 <span key={i} className="px-3 py-1 bg-amber-500/100/10 text-amber-500 rounded-lg text-sm font-bold border border-amber-500/20 dark:border-amber-500/20">{a}</span>
                               ))
                             ) : (
-                              <span className="text-muted-foreground text-sm">No known allergies</span>
+                              <span className="text-muted-foreground text-sm">{t('no_known_allergies')}</span>
                             )}
                           </div>
                         </div>
                       </>
                     ) : (
-                      <div className="text-center py-10 text-muted-foreground">No medical records available.</div>
+                      <div className="text-center py-10 text-muted-foreground">{t('no_medical_records')}</div>
                     )}
                   </div>
                 )}
@@ -1542,19 +1544,19 @@ export default function StudentsPage() {
                           <ThumbsUp size={20} />
                         </div>
                         <p className="text-3xl font-bold text-emerald-500">{selectedPerson.merits || 0}</p>
-                        <p className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mt-1">Total Merits</p>
+                        <p className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mt-1">{t('total_merits')}</p>
                       </div>
                       <div className="bg-destructive/10 p-5 rounded-2xl border border-destructive/20 text-center">
                         <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-destructive mb-2 shadow-sm">
                           <ThumbsDown size={20} />
                         </div>
                         <p className="text-3xl font-bold text-destructive">{selectedPerson.demerits || 0}</p>
-                        <p className="text-xs font-bold text-destructive/70 uppercase tracking-wider mt-1">Total Demerits</p>
+                        <p className="text-xs font-bold text-destructive/70 uppercase tracking-wider mt-1">{t('total_demerits')}</p>
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      <h3 className="font-bold text-foreground">Recent Records</h3>
+                      <h3 className="font-bold text-foreground">{t('recent_records')}</h3>
                       {behaviorRecords.length > 0 ? (
                         behaviorRecords.map((record: any) => (
                           <div key={record.id} className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border dark:border-slate-800 shadow-sm flex gap-4">
@@ -1569,7 +1571,7 @@ export default function StudentsPage() {
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
                                   record.type === 'merit' ? 'bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
                                 }`}>
-                                  {record.type === 'merit' ? '+' : '-'}{record.points} pts
+                                  {record.type === 'merit' ? '+' : '-'}{record.points} {t('pts')}
                                 </span>
                               </div>
                               <p className="text-sm text-muted-foreground mt-0.5">{record.description}</p>
@@ -1578,7 +1580,7 @@ export default function StudentsPage() {
                           </div>
                         ))
                       ) : (
-                        <div className="text-center py-8 text-muted-foreground text-sm">No behavior records found.</div>
+                        <div className="text-center py-8 text-muted-foreground text-sm">{t('no_behavior_records')}</div>
                       )}
                     </div>
                   </div>
@@ -1588,10 +1590,10 @@ export default function StudentsPage() {
                 {activeProfileTab === 'timeline' && isStudent(selectedPerson) && (
                   <div className="space-y-6">
                     {timelineRecords.length > 0 ? (
-                      <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                      <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800 rtl:pl-0 rtl:pr-8 rtl:before:left-auto rtl:before:right-[15px]">
                         {timelineRecords.map((event: any) => (
                           <div key={event.id} className="relative">
-                            <div className="absolute -left-[39px] w-8 h-8 rounded-full bg-card dark:bg-slate-900 border-2 border-primary/20 dark:border-indigo-900 flex items-center justify-center text-primary shadow-sm z-10">
+                            <div className="absolute -left-[39px] w-8 h-8 rounded-full bg-card dark:bg-slate-900 border-2 border-primary/20 dark:border-indigo-900 flex items-center justify-center text-primary shadow-sm z-10 rtl:-left-auto rtl:-right-[39px]">
                               {event.type === 'award' ? <Star size={14} /> : 
                                event.type === 'alert' ? <AlertCircle size={14} /> :
                                event.type === 'file' ? <Activity size={14} /> :
@@ -1608,7 +1610,7 @@ export default function StudentsPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-10 text-muted-foreground">No timeline events available.</div>
+                      <div className="text-center py-10 text-muted-foreground">{t('no_timeline_events')}</div>
                     )}
                   </div>
                 )}
@@ -1619,7 +1621,7 @@ export default function StudentsPage() {
                   onClick={handleCloseProfile}
                   className="w-full px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-all active:scale-[0.98] shadow-sm"
                 >
-                  Close Profile
+                  {t('close_profile')}
                 </button>
               </div>
             </motion.div>

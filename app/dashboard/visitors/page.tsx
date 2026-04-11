@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { useLanguage } from '@/lib/language-context';
 import { getPaginatedVisitors, createVisitor } from '@/lib/supabase-db';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 export default function VisitorsPage() {
   const { user } = useAuth();
   const { can } = usePermissions();
+  const { t } = useLanguage();
   const [isNewCheckInOpen, setIsNewCheckInOpen] = useState(false);
   const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,7 +42,7 @@ export default function VisitorsPage() {
   if (!user) return null;
 
   if (!can('view', 'visitors')) {
-    return <div className="p-4">You do not have permission to view this page.</div>;
+    return <div className="p-4">{t('no_permission')}</div>;
   }
 
   const handleNewCheckIn = async (e: React.FormEvent) => {
@@ -72,8 +74,7 @@ export default function VisitorsPage() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Visitors</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Manage campus visitors and check-ins.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('visitors')}</h1>
         </div>
       </div>
 
@@ -81,19 +82,15 @@ export default function VisitorsPage() {
         <div className="space-y-6">
           <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden">
             <div className="p-6 sm:p-8 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50">
-              <div>
-                <h2 className="text-xl font-bold text-foreground">Visitor Management</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-1">Track campus visitors and print badges</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <div className="flex items-center gap-3 w-full">
+                <div className="relative flex-1 sm:flex-none">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <input 
                     type="text" 
-                    placeholder="Search visitors..." 
+                    placeholder={t('search')} 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64"
+                    className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-64 rtl:pl-4 rtl:pr-9"
                   />
                 </div>
                 {can('create', 'visitors') && (
@@ -102,21 +99,21 @@ export default function VisitorsPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
                   >
                     <Plus size={16} />
-                    New Check-in
+                    {t('new_check_in')}
                   </button>
                 )}
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse rtl:text-right">
                 <thead>
                   <tr className="bg-card border-b border-border">
-                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Visitor</th>
-                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Purpose & Host</th>
-                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Time</th>
-                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
-                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Actions</th>
+                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('visitor')}</th>
+                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('purpose_host')}</th>
+                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('time')}</th>
+                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('status')}</th>
+                    <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right rtl:text-left">{t('actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -149,7 +146,7 @@ export default function VisitorsPage() {
                     ))
                   ) : visitors.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">No visitors found.</td>
+                      <td colSpan={5} className="p-12 text-center text-muted-foreground font-medium">{t('no_visitors_found')}</td>
                     </tr>
                   ) : visitors.map((visitor: any) => (
                     <tr key={visitor.id} className="hover:bg-muted/50 transition-colors">
@@ -212,14 +209,14 @@ export default function VisitorsPage() {
                   disabled={page === 1}
                   className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
                 >
-                  Previous
+                  {t('previous')}
                 </button>
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-medium text-muted-foreground">
-                    Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+                    {t('page')} <span className="text-foreground font-bold">{page}</span> {t('of')} <span className="text-foreground font-bold">{totalPages}</span>
                   </span>
-                  <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
-                    Total: <span className="text-foreground font-bold">{totalCount}</span>
+                  <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4 rtl:border-l-0 rtl:border-r rtl:pl-0 rtl:pr-4">
+                    {t('total')}: <span className="text-foreground font-bold">{totalCount}</span>
                   </span>
                 </div>
                 <button
@@ -227,7 +224,7 @@ export default function VisitorsPage() {
                   disabled={page === totalPages}
                   className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
                 >
-                  Next
+                  {t('next')}
                 </button>
               </div>
             )}
@@ -243,23 +240,23 @@ export default function VisitorsPage() {
                   className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
                 >
                   <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                    <h2 className="text-2xl font-bold text-foreground tracking-tight">New Visitor Check-in</h2>
-                    <p className="text-sm font-medium text-muted-foreground mt-2">Register a new visitor and print their badge.</p>
+                    <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('new_visitor_checkin')}</h2>
+                    <p className="text-sm font-medium text-muted-foreground mt-2">{t('new_visitor_desc')}</p>
                   </div>
                   
                   <form onSubmit={handleNewCheckIn} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                     <div>
-                      <label className="block text-sm font-bold text-foreground mb-2">Full Name</label>
+                      <label className="block text-sm font-bold text-foreground mb-2">{t('full_name')}</label>
                       <input required name="name" type="text" placeholder="e.g., John Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-foreground mb-2">Purpose of Visit</label>
+                      <label className="block text-sm font-bold text-foreground mb-2">{t('purpose_of_visit')}</label>
                       <input required name="purpose" type="text" placeholder="e.g., Parent-Teacher Meeting" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-foreground mb-2">Host (Staff Member)</label>
+                      <label className="block text-sm font-bold text-foreground mb-2">{t('host_staff_member')}</label>
                       <input required name="host" type="text" placeholder="e.g., Edna Krabappel" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                     </div>
 
@@ -269,14 +266,14 @@ export default function VisitorsPage() {
                         onClick={() => setIsNewCheckInOpen(false)}
                         className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                       >
-                        Cancel
+                        {t('cancel')}
                       </button>
                       <button 
                         type="submit"
                         disabled={isSubmittingCheckIn}
                         className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                       >
-                        {isSubmittingCheckIn ? <Loader2 size={20} className="animate-spin" /> : 'Check In & Print Badge'}
+                        {isSubmittingCheckIn ? <Loader2 size={20} className="animate-spin" /> : t('check_in_print')}
                       </button>
                     </div>
                   </form>

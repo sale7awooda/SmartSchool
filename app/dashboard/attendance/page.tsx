@@ -144,22 +144,22 @@ function TeacherAttendance() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">Attendance History</h1>
-            <p className="text-muted-foreground mt-2 font-medium">Review past attendance records for your classes.</p>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('attendance_history')}</h1>
+            <p className="text-muted-foreground mt-2 font-medium">{t('attendance_history_desc')}</p>
           </div>
           <button 
             onClick={() => setActiveTab('mark')}
             className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2"
           >
-            <ChevronLeft size={18} />
-            Back to Marking
+            <ChevronLeft size={18} className="rtl:rotate-180" />
+            {t('back_to_marking')}
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
           {history.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground font-medium">No attendance history found.</p>
+              <p className="text-muted-foreground font-medium">{t('no_history_found')}</p>
             </div>
           ) : (
             history.map((record, i) => (
@@ -169,17 +169,17 @@ function TeacherAttendance() {
                     <Calendar size={24} />
                   </div>
                   <div>
-                    <p className="font-bold text-foreground text-lg">{new Date(record.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p className="text-sm font-medium text-muted-foreground">{record.present + record.absent + record.late + record.excused} Students Marked</p>
+                    <p className="font-bold text-foreground text-lg">{new Date(record.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{record.present + record.absent + record.late + record.excused} {t('students_marked')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-right hidden sm:block">
-                    <p className="text-sm font-bold text-emerald-500">{record.present} Present</p>
-                    <p className="text-sm font-bold text-destructive">{record.absent} Absent</p>
+                    <p className="text-sm font-bold text-emerald-500">{record.present} {t('present')}</p>
+                    <p className="text-sm font-bold text-destructive">{record.absent} {t('absent')}</p>
                   </div>
                   <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground">
-                    <ChevronRight size={20} />
+                    <ChevronRight size={20} className="rtl:rotate-180" />
                   </button>
                 </div>
               </div>
@@ -194,7 +194,7 @@ function TeacherAttendance() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Mark Attendance</h1>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('mark_attendance')}</h1>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
             <div className="flex items-center gap-2">
               <Calendar size={16} className="text-muted-foreground" />
@@ -207,7 +207,7 @@ function TeacherAttendance() {
             </div>
             {classFilter && (
               <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">
-                Class: {classFilter}
+                {t('class')}: {classFilter}
                 <Link href="/dashboard/attendance" className="hover:text-primary/80">
                   <X size={14} />
                 </Link>
@@ -221,7 +221,7 @@ function TeacherAttendance() {
             className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2"
           >
             <Clock size={18} />
-            History
+            {t('history')}
           </button>
         </div>
       </div>
@@ -232,15 +232,15 @@ function TeacherAttendance() {
             <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center text-muted-foreground mb-4">
               <Users size={32} />
             </div>
-            <h3 className="text-xl font-bold text-foreground">No Students Found</h3>
+            <h3 className="text-xl font-bold text-foreground">{t('no_students_found')}</h3>
             <p className="text-muted-foreground mt-2 text-center max-w-xs">
-              There are no students registered for the current academic year. Please add students first.
+              {t('no_students_attendance_desc')}
             </p>
             <Link 
               href="/dashboard/students?add=true"
               className="mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
             >
-              Register New Student
+              {t('register_student')}
             </Link>
           </div>
         ) : (
@@ -266,7 +266,7 @@ function TeacherAttendance() {
                     }`}
                   >
                     <CheckCircle2 size={18} className={status === 'present' ? 'fill-emerald-500/20' : ''} />
-                    <span className="sm:hidden md:inline">Present</span>
+                    <span className="sm:hidden md:inline">{t('present')}</span>
                   </button>
                   <button
                     onClick={() => handleStatusChange(student.id, 'late')}
@@ -275,7 +275,7 @@ function TeacherAttendance() {
                     }`}
                   >
                     <Clock size={18} className={status === 'late' ? 'fill-amber-500/20' : ''} />
-                    <span className="sm:hidden md:inline">Late</span>
+                    <span className="sm:hidden md:inline">{t('late')}</span>
                   </button>
                   <button
                     onClick={() => handleStatusChange(student.id, 'absent')}
@@ -284,7 +284,7 @@ function TeacherAttendance() {
                     }`}
                   >
                     <XCircle size={18} className={status === 'absent' ? 'fill-destructive/20' : ''} />
-                    <span className="sm:hidden md:inline">Absent</span>
+                    <span className="sm:hidden md:inline">{t('absent')}</span>
                   </button>
                 </div>
               </div>
@@ -301,9 +301,9 @@ function TeacherAttendance() {
         >
           <div className="hidden sm:block px-4">
             <p className="text-sm font-bold text-foreground">
-              {Object.keys(attendance).length} / {students.length} Marked
+              {Object.keys(attendance).length} / {students.length} {t('marked')}
             </p>
-            {!allMarked && <p className="text-xs font-semibold text-amber-500 mt-0.5">Please mark all students</p>}
+            {!allMarked && <p className="text-xs font-semibold text-amber-500 mt-0.5">{t('please_mark_all')}</p>}
           </div>
           
           <button
@@ -322,12 +322,12 @@ function TeacherAttendance() {
             ) : isSaved ? (
               <>
                 <CheckCircle2 size={20} />
-                Saved Successfully
+                {t('saved_successfully')}
               </>
             ) : (
               <>
                 <Save size={20} />
-                Submit Attendance
+                {t('submit_attendance')}
               </>
             )}
           </button>
@@ -339,6 +339,7 @@ function TeacherAttendance() {
 
 function StudentAttendanceView() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const [attendance, setAttendance] = useState<any[]>([]);
   const [student, setStudent] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -403,23 +404,23 @@ function StudentAttendanceView() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
       <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Attendance Record</h1>
-        <p className="text-muted-foreground mt-2 font-medium">Viewing records for {student?.name || 'your student'}</p>
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('attendance_record')}</h1>
+        <p className="text-muted-foreground mt-2 font-medium">{t('viewing_records_for')} {student?.name || t('your_student')}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-8">
         <div className="grid grid-cols-3 gap-3 sm:gap-6">
           <div className="bg-emerald-500/10 p-5 rounded-[1.5rem] border border-emerald-500/20 text-center shadow-sm">
             <p className="text-3xl font-bold text-emerald-500">{presentDays}</p>
-            <p className="text-xs font-bold text-emerald-500/70 mt-2 uppercase tracking-wider">Present</p>
+            <p className="text-xs font-bold text-emerald-500/70 mt-2 uppercase tracking-wider">{t('present')}</p>
           </div>
           <div className="bg-destructive/10 p-5 rounded-[1.5rem] border border-destructive/20 text-center shadow-sm">
             <p className="text-3xl font-bold text-destructive">{absentDays}</p>
-            <p className="text-xs font-bold text-destructive/70 mt-2 uppercase tracking-wider">Absent</p>
+            <p className="text-xs font-bold text-destructive/70 mt-2 uppercase tracking-wider">{t('absent')}</p>
           </div>
           <div className="bg-amber-500/10 p-5 rounded-[1.5rem] border border-amber-500/20 text-center shadow-sm">
             <p className="text-3xl font-bold text-amber-500">{lateDays}</p>
-            <p className="text-xs font-bold text-amber-500/70 mt-2 uppercase tracking-wider">Late</p>
+            <p className="text-xs font-bold text-amber-500/70 mt-2 uppercase tracking-wider">{t('late')}</p>
           </div>
         </div>
 
@@ -427,19 +428,19 @@ function StudentAttendanceView() {
           <div className="p-6 border-b border-border flex items-center justify-between bg-muted/50">
             <h3 className="font-bold text-foreground flex items-center gap-2 text-lg">
               <Calendar size={20} className="text-primary" />
-              Recent Activity
+              {t('recent_activity')}
             </h3>
           </div>
           
           <div className="divide-y divide-border">
             {attendance.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">No attendance records found.</div>
+              <div className="p-8 text-center text-muted-foreground">{t('no_records_found')}</div>
             ) : (
               attendance.slice(0, 10).map((record, i) => (
                 <div key={i} className="p-5 flex items-center justify-between hover:bg-muted transition-colors">
                   <div>
                     <p className="font-bold text-foreground">
-                      {new Date(record.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                      {new Date(record.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                     </p>
                     {record.remarks && <p className="text-sm font-medium text-muted-foreground mt-1">{record.remarks}</p>}
                   </div>
@@ -453,7 +454,7 @@ function StudentAttendanceView() {
                     {record.status === 'absent' && <XCircle size={14} />}
                     {record.status === 'late' && <Clock size={14} />}
                     {record.status === 'excused' && <CheckCircle2 size={14} />}
-                    {record.status}
+                    {t(record.status)}
                   </div>
                 </div>
               ))
@@ -466,6 +467,7 @@ function StudentAttendanceView() {
 }
 
 function AdminAttendance() {
+  const { t, language } = useLanguage();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
@@ -540,7 +542,7 @@ function AdminAttendance() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">School Attendance</h1>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('school_attendance')}</h1>
           <div className="flex items-center gap-2 mt-2">
             <Calendar size={16} className="text-muted-foreground" />
             <input 
@@ -556,7 +558,7 @@ function AdminAttendance() {
           className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2 self-start"
         >
           <Calendar size={18} />
-          View History
+          {t('view_history')}
         </button>
       </div>
 
@@ -564,10 +566,12 @@ function AdminAttendance() {
         <div className="grid grid-cols-1 gap-6">
           <div className="bg-primary rounded-[2rem] p-8 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden flex flex-col justify-center min-h-[200px]">
             <div className="relative z-10">
-              <p className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-wider mb-2">Overall Attendance for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+              <p className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-wider mb-2">
+                {t('overall_attendance_for')} {new Date(selectedDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
               <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4">
                 <h2 className="text-6xl font-bold tracking-tight">{attendancePercentage}%</h2>
-                <p className="text-primary-foreground/90 font-medium text-lg mb-1">{presentCount} / {baseCount} Students</p>
+                <p className="text-primary-foreground/90 font-medium text-lg mb-1">{presentCount} / {baseCount} {t('students')}</p>
               </div>
             </div>
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
@@ -576,10 +580,10 @@ function AdminAttendance() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Late Arrivals', value: selectedStats.late.toString(), color: 'text-amber-500', bg: 'bg-amber-500/10', icon: Clock },
-            { label: 'Absences', value: selectedStats.absent.toString(), color: 'text-destructive', bg: 'bg-destructive/10', icon: XCircle },
-            { label: 'Excused', value: selectedStats.excused.toString(), color: 'text-blue-500', bg: 'bg-blue-500/10', icon: CheckCircle2 },
-            { label: 'Unmarked', value: (studentsCount - totalSelected).toString(), color: 'text-muted-foreground', bg: 'bg-muted', icon: Clock },
+            { label: t('late_arrivals'), value: selectedStats.late.toString(), color: 'text-amber-500', bg: 'bg-amber-500/10', icon: Clock },
+            { label: t('absences'), value: selectedStats.absent.toString(), color: 'text-destructive', bg: 'bg-destructive/10', icon: XCircle },
+            { label: t('excused'), value: selectedStats.excused.toString(), color: 'text-blue-500', bg: 'bg-blue-500/10', icon: CheckCircle2 },
+            { label: t('unmarked'), value: (studentsCount - totalSelected).toString(), color: 'text-muted-foreground', bg: 'bg-muted', icon: Clock },
           ].map((stat, i) => (
             <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex items-center gap-4">
               <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
@@ -595,7 +599,7 @@ function AdminAttendance() {
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
           <div className="p-6 border-b border-border bg-muted/50 flex items-center justify-between">
-            <h3 className="font-bold text-foreground text-lg">Class Breakdown</h3>
+            <h3 className="font-bold text-foreground text-lg">{t('class_breakdown')}</h3>
             <div className="flex gap-2">
               <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground">
                 <Filter size={18} />
@@ -605,25 +609,25 @@ function AdminAttendance() {
           
           <div className="divide-y divide-border">
             {classStats.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">No class data available.</div>
+              <div className="p-8 text-center text-muted-foreground">{t('no_class_data')}</div>
             ) : (
               classStats.map((row, i) => (
                 <div key={i} className="p-5 flex items-center justify-between hover:bg-muted transition-colors">
                   <div>
                     <p className="font-bold text-foreground text-lg">{row.cls}</p>
-                    <p className="text-sm font-medium text-muted-foreground mt-1">{row.total} Students</p>
+                    <p className="text-sm font-medium text-muted-foreground mt-1">{row.total} {t('students')}</p>
                   </div>
                   
                   <div className="text-right">
                     {row.status === 'submitted' ? (
                       <>
                         <p className="font-bold text-foreground text-xl">{Math.round((row.present / row.total) * 100)}%</p>
-                        <p className="text-xs font-bold text-emerald-500 mt-1 uppercase tracking-wider">{row.present}/{row.total} Present</p>
+                        <p className="text-xs font-bold text-emerald-500 mt-1 uppercase tracking-wider">{row.present}/{row.total} {t('present')}</p>
                       </>
                     ) : (
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs font-bold uppercase tracking-wider">
                         <Clock size={14} />
-                        Pending
+                        {t('pending')}
                       </span>
                     )}
                   </div>
@@ -645,8 +649,8 @@ function AdminAttendance() {
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground tracking-tight">Attendance History</h2>
-                  <p className="text-sm font-medium text-muted-foreground mt-2">Daily records for the entire school.</p>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('attendance_history')}</h2>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">{t('attendance_history_all_desc')}</p>
                 </div>
                 <button 
                   onClick={() => setIsHistoryOpen(false)}
@@ -658,13 +662,13 @@ function AdminAttendance() {
 
               <div className="p-6 border-b border-border bg-muted/30 shrink-0">
                 <div className="relative">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-4" />
                   <input 
                     type="text" 
-                    placeholder="Search by date..." 
+                    placeholder={t('search_by_date')} 
                     value={historySearch}
                     onChange={(e) => setHistorySearch(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all"
+                    className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all rtl:pl-4 rtl:pr-11"
                   />
                 </div>
               </div>
@@ -672,7 +676,7 @@ function AdminAttendance() {
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
                 {filteredHistory.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-muted-foreground font-medium">No history records found.</p>
+                    <p className="text-muted-foreground font-medium">{t('no_history_found')}</p>
                   </div>
                 ) : (
                   filteredHistory.map((record, i) => (
@@ -690,12 +694,12 @@ function AdminAttendance() {
                             <Calendar size={24} />
                           </div>
                           <div>
-                            <p className="font-bold text-lg text-foreground">{new Date(record.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">Present: {record.present}</span>
-                              <span className="text-xs font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">Absent: {record.absent}</span>
-                              <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">Late: {record.late}</span>
-                              <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Excused: {record.excused}</span>
+                            <p className="font-bold text-lg text-foreground">{new Date(record.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <div className="flex flex-wrap items-center gap-3 mt-1">
+                              <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">{t('present')}: {record.present}</span>
+                              <span className="text-xs font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">{t('absent')}: {record.absent}</span>
+                              <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">{t('late')}: {record.late}</span>
+                              <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">{t('excused')}: {record.excused}</span>
                             </div>
                           </div>
                         </div>
@@ -704,10 +708,10 @@ function AdminAttendance() {
                             <p className="text-xl font-black text-foreground">
                               {((record.present + record.late) / (record.present + record.absent + record.late + record.excused) * 100 || 0).toFixed(1)}%
                             </p>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Attendance Rate</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t('attendance_rate')}</p>
                           </div>
                           <div className="p-2 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 rounded-lg transition-all">
-                            <ChevronRight size={20} />
+                            <ChevronRight size={20} className="rtl:rotate-180" />
                           </div>
                         </div>
                       </div>
@@ -721,7 +725,7 @@ function AdminAttendance() {
                   onClick={() => setIsHistoryOpen(false)}
                   className="px-6 py-2.5 bg-background border border-border rounded-xl font-bold text-sm hover:bg-accent transition-colors"
                 >
-                  Close
+                  {t('close')}
                 </button>
               </div>
             </motion.div>

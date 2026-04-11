@@ -133,7 +133,7 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
                       </div>
                     )) : (
                       <div className="p-8 text-center text-muted-foreground text-sm">
-                        No new notifications
+                        {t('no_notifications')}
                       </div>
                     )}
                   </div>

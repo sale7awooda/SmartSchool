@@ -7,7 +7,8 @@ import { usePermissions } from '@/lib/permissions';
 import { FeeInvoice } from '@/lib/mock-db';
 import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment, getActiveAcademicYear } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
-import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2 } from 'lucide-react';
+import { useLanguage } from '@/lib/language-context';
+import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
@@ -15,21 +16,23 @@ import { toast } from "sonner";
 export default function FeesPage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
+  const { t } = useLanguage();
   
   if (!user) return null;
 
   if (!can('view', 'fees')) {
-    return <div className="p-4">You do not have permission to view this page.</div>;
+    return <div className="p-4">{t('no_permission')}</div>;
   }
 
   if (isRole(['accountant', 'admin'])) return <AccountantFees />;
   if (isRole('parent')) return <ParentFees />;
 
-  return <div className="p-4">You do not have permission to view this page.</div>;
+  return <div className="p-4">{t('no_permission')}</div>;
 }
 
 function AccountantFees() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const { can } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
@@ -253,8 +256,8 @@ function AccountantFees() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Fee Management</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Track and record student payments.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('fee_management')}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">{t('fee_management_desc')}</p>
         </div>
         {can('create', 'fees') && (
           <button 
@@ -262,22 +265,22 @@ function AccountantFees() {
             className="flex items-center justify-center gap-2 px-5 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
           >
             <Plus size={20} />
-            New Invoice
+            {t('new_invoice')}
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-3 gap-3 sm:gap-6">
         <div className="bg-card p-5 sm:p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all">
-          <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">Collected</p>
+          <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">{t('collected')}</p>
           <p className="text-2xl sm:text-4xl font-bold text-emerald-500 mt-2">${stats.collected}</p>
         </div>
         <div className="bg-card p-5 sm:p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all">
-          <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">Pending</p>
+          <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">{t('pending')}</p>
           <p className="text-2xl sm:text-4xl font-bold text-foreground mt-2">${stats.pending}</p>
         </div>
         <div className="bg-card p-5 sm:p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all">
-          <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">Overdue</p>
+          <p className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">{t('overdue')}</p>
           <p className="text-2xl sm:text-4xl font-bold text-destructive mt-2">${stats.overdue}</p>
         </div>
       </div>
@@ -285,13 +288,13 @@ function AccountantFees() {
       <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden flex-1 flex flex-col">
         <div className="p-6 border-b border-border space-y-5 bg-muted/50 shrink-0">
           <div className="relative">
-            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-4" />
             <input 
               type="text" 
-              placeholder="Search by student name or invoice ID..." 
+              placeholder={t('search_invoice_placeholder')} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground text-foreground shadow-sm"
+              className="w-full pl-12 pr-4 py-3.5 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground text-foreground shadow-sm rtl:pl-4 rtl:pr-12"
             />
           </div>
           
@@ -306,7 +309,7 @@ function AccountantFees() {
                     : 'bg-background border border-border text-muted-foreground hover:bg-accent hover:border-accent-foreground/20'
                 }`}
               >
-                {tab === 'structure' ? 'Fee Structure' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {t(tab)}
               </button>
             ))}
           </div>
@@ -316,12 +319,12 @@ function AccountantFees() {
           {activeTab === 'structure' ? (
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-lg">Standard Fee Items</h3>
+                <h3 className="font-bold text-lg">{t('standard_fee_items')}</h3>
                 <button 
                   onClick={() => setIsAddFeeItemOpen(true)}
                   className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
                 >
-                  <Plus size={14} /> Add Item
+                  <Plus size={14} /> {t('add_item')}
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -329,11 +332,11 @@ function AccountantFees() {
                   <div key={item.id} className="p-4 rounded-2xl border border-border bg-muted/30 flex items-center justify-between group hover:border-primary/30 transition-all">
                     <div>
                       <p className="font-bold text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.category} • {item.frequency}</p>
+                      <p className="text-xs text-muted-foreground">{t(item.category.toLowerCase())} • {t(item.frequency.toLowerCase().replace(' ', '_'))}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right rtl:text-left">
                       <p className="font-black text-lg text-foreground">${item.amount}</p>
-                      <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
+                      <div className="flex gap-2 justify-end rtl:justify-start opacity-0 group-hover:opacity-100 transition-all">
                         <button 
                           onClick={() => {
                             setEditingFeeItem(item);
@@ -347,13 +350,13 @@ function AccountantFees() {
                           }}
                           className="text-[10px] font-bold text-muted-foreground hover:text-primary"
                         >
-                          Edit
+                          {t('edit')}
                         </button>
                         <button 
                           onClick={() => handleDeleteFeeItem(item.id)}
                           className="text-[10px] font-bold text-destructive hover:text-destructive/80"
                         >
-                          Delete
+                          {t('delete')}
                         </button>
                       </div>
                     </div>
@@ -384,7 +387,7 @@ function AccountantFees() {
               ))}
             </div>
           ) : filteredInvoices.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground font-medium">No invoices found.</div>
+            <div className="p-12 text-center text-muted-foreground font-medium">{t('no_invoices_found')}</div>
           ) : (
             filteredInvoices.map((invoice) => (
               <div key={invoice.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:bg-accent transition-colors">
@@ -409,11 +412,11 @@ function AccountantFees() {
                         invoice.status === 'overdue' ? 'bg-destructive/20 text-destructive' :
                         'bg-amber-500/10 text-amber-500'
                       }`}>
-                        {invoice.status}
+                        {t(invoice.status)}
                       </span>
                     </div>
                     <p className="text-sm font-medium text-muted-foreground">{invoice.id} • {invoice.description}</p>
-                    <p className="text-sm font-medium text-muted-foreground mt-1">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                    <p className="text-sm font-medium text-muted-foreground mt-1">{t('due')}: {new Date(invoice.dueDate).toLocaleDateString()}</p>
                   </div>
                 </div>
                 
@@ -425,13 +428,13 @@ function AccountantFees() {
                         onClick={() => setSelectedInvoice(invoice)}
                         className="px-5 py-2.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl text-sm font-bold transition-colors"
                       >
-                        Record Payment
+                        {t('record_payment')}
                       </button>
                     )}
                     <button 
-                      onClick={() => toast.success("Downloading invoice...", { description: `Invoice ${invoice.id} is being prepared.` })}
+                      onClick={() => toast.success(t('downloading_invoice'), { description: `${t('invoice')} ${invoice.id} ${t('is_being_prepared')}` })}
                       className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" 
-                      title="Download Invoice"
+                      title={t('download_invoice')}
                     >
                       <Download size={18} />
                     </button>
@@ -448,24 +451,24 @@ function AccountantFees() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors flex items-center gap-1"
             >
-              Previous
+              <ChevronLeft size={16} className="rtl:rotate-180" /> {t('previous')}
             </button>
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-muted-foreground">
-                Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+                {t('page')} <span className="text-foreground font-bold">{page}</span> {t('of')} <span className="text-foreground font-bold">{totalPages}</span>
               </span>
-              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
-                Total: <span className="text-foreground font-bold">{totalCount}</span>
+              <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4 rtl:border-l-0 rtl:border-r rtl:pl-0 rtl:pr-4">
+                {t('total')}: <span className="text-foreground font-bold">{totalCount}</span>
               </span>
             </div>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+              className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors flex items-center gap-1"
             >
-              Next
+              {t('next')} <ChevronRight size={16} className="rtl:rotate-180" />
             </button>
           </div>
         )}
@@ -481,19 +484,19 @@ function AccountantFees() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingFeeItem ? 'Edit Fee Item' : 'Add Fee Item'}</h2>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingFeeItem ? t('edit_fee_item') : t('add_fee_item')}</h2>
                 <p className="text-sm font-medium text-muted-foreground mt-2">
-                  {editingFeeItem ? 'Update the details of this standard fee.' : 'Define a new standard fee for the school.'}
+                  {editingFeeItem ? t('update_fee_item_desc') : t('add_fee_item_desc')}
                 </p>
               </div>
               
               <form onSubmit={handleAddFeeItem} className="p-6 sm:p-8 space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Item Name</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('item_name')}</label>
                   <input 
                     required 
                     type="text" 
-                    placeholder="e.g. Lab Fee" 
+                    placeholder={t('item_name_placeholder')} 
                     value={newFeeItem.name}
                     onChange={(e) => setNewFeeItem(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
@@ -502,7 +505,7 @@ function AccountantFees() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Amount ($)</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('amount')} ($)</label>
                     <input 
                       required 
                       type="number" 
@@ -514,31 +517,31 @@ function AccountantFees() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Frequency</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('frequency')}</label>
                     <select 
                       value={newFeeItem.frequency}
                       onChange={(e) => setNewFeeItem(prev => ({ ...prev, frequency: e.target.value }))}
                       className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
                     >
-                      <option>Per Term</option>
-                      <option>Monthly</option>
-                      <option>Annual</option>
-                      <option>One-time</option>
+                      <option value="Per Term">{t('per_term')}</option>
+                      <option value="Monthly">{t('monthly')}</option>
+                      <option value="Annual">{t('annual')}</option>
+                      <option value="One-time">{t('one_time')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Category</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('category')}</label>
                   <select 
                     value={newFeeItem.category}
                     onChange={(e) => setNewFeeItem(prev => ({ ...prev, category: e.target.value }))}
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
                   >
-                    <option>Academic</option>
-                    <option>Transport</option>
-                    <option>Extracurricular</option>
-                    <option>Facility</option>
+                    <option value="Academic">{t('academic')}</option>
+                    <option value="Transport">{t('transport')}</option>
+                    <option value="Extracurricular">{t('extracurricular')}</option>
+                    <option value="Facility">{t('facility')}</option>
                   </select>
                 </div>
 
@@ -552,14 +555,14 @@ function AccountantFees() {
                     }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isSubmittingFeeItem}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmittingFeeItem ? <Loader2 size={20} className="animate-spin" /> : editingFeeItem ? 'Update Item' : 'Add Item'}
+                    {isSubmittingFeeItem ? <Loader2 size={20} className="animate-spin" /> : editingFeeItem ? t('update_item') : t('add_item')}
                   </button>
                 </div>
               </form>
@@ -577,9 +580,9 @@ function AccountantFees() {
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground tracking-tight">Student Fee Profile</h2>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('student_fee_profile')}</h2>
                   <p className="text-sm font-medium text-muted-foreground mt-2">
-                    Viewing all invoices for {students.find(s => s.id === selectedStudentForProfile)?.name || selectedStudentForProfile}
+                    {t('viewing_invoices_for')} {students.find(s => s.id === selectedStudentForProfile)?.name || selectedStudentForProfile}
                   </p>
                 </div>
                 <button 
@@ -593,11 +596,11 @@ function AccountantFees() {
               <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Total Outstanding</p>
+                    <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">{t('total_outstanding')}</p>
                     <p className="text-3xl font-black text-foreground">${studentTotalDue}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                    <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">Total Paid</p>
+                    <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">{t('total_paid')}</p>
                     <p className="text-3xl font-black text-foreground">
                       ${studentInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.amount, 0)}
                     </p>
@@ -605,20 +608,20 @@ function AccountantFees() {
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="font-bold text-foreground">Invoice History</h3>
+                  <h3 className="font-bold text-foreground">{t('invoice_history')}</h3>
                   {studentInvoices.map(inv => (
                     <div key={inv.id} className="p-4 rounded-xl border border-border flex items-center justify-between hover:bg-muted/30 transition-colors">
                       <div>
                         <p className="font-bold text-sm">{inv.description}</p>
                         <p className="text-xs text-muted-foreground">{inv.id} • {new Date(inv.dueDate).toLocaleDateString()}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right rtl:text-left">
                         <p className="font-bold text-foreground">${inv.amount}</p>
                         <span className={`text-[10px] font-bold uppercase ${
                           inv.status === 'paid' ? 'text-emerald-500' : 
                           inv.status === 'overdue' ? 'text-destructive' : 'text-amber-500'
                         }`}>
-                          {inv.status}
+                          {t(inv.status)}
                         </span>
                       </div>
                     </div>
@@ -631,7 +634,7 @@ function AccountantFees() {
                   onClick={() => setSelectedStudentForProfile(null)}
                   className="px-6 py-2.5 bg-background border border-border rounded-xl font-bold text-sm hover:bg-accent transition-colors"
                 >
-                  Close
+                  {t('close')}
                 </button>
               </div>
             </motion.div>
@@ -647,35 +650,35 @@ function AccountantFees() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Record Payment</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Recording payment for {selectedInvoice.studentName}</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('record_payment')}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{t('recording_payment_for')} {selectedInvoice.studentName}</p>
               </div>
               
               <form onSubmit={handleRecordPayment} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 mb-6 flex items-center justify-between">
-                  <span className="font-bold text-foreground">Amount to Pay</span>
+                  <span className="font-bold text-foreground">{t('amount_to_pay')}</span>
                   <span className="font-black text-primary text-2xl">${selectedInvoice.amount}</span>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Payment Method</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('payment_method')}</label>
                   <select 
                     value={paymentForm.paymentMethod}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
                   >
-                    <option>Cash</option>
-                    <option>Bank Transfer</option>
-                    <option>Cheque</option>
-                    <option>Card</option>
+                    <option value="Cash">{t('cash')}</option>
+                    <option value="Bank Transfer">{t('bank_transfer')}</option>
+                    <option value="Cheque">{t('cheque')}</option>
+                    <option value="Card">{t('card')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Reference Number</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('reference_number')}</label>
                   <input 
                     type="text" 
-                    placeholder="e.g., TXN123456" 
+                    placeholder={t('reference_number_placeholder')} 
                     value={paymentForm.referenceNumber}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, referenceNumber: e.target.value }))}
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
@@ -688,14 +691,14 @@ function AccountantFees() {
                     onClick={() => setSelectedInvoice(null)}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isRecordingPayment}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isRecordingPayment ? <Loader2 size={20} className="animate-spin" /> : 'Record Payment'}
+                    {isRecordingPayment ? <Loader2 size={20} className="animate-spin" /> : t('record_payment')}
                   </button>
                 </div>
 
@@ -707,7 +710,7 @@ function AccountantFees() {
                     className="w-full py-3 text-destructive hover:bg-destructive/10 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
                   >
                     {isVoidingInvoice ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    Void Invoice
+                    {t('void_invoice')}
                   </button>
                 </div>
               </form>
@@ -799,7 +802,7 @@ function AccountantFees() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Due Date</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('due_date')}</label>
                     <input 
                       required 
                       type="date" 
@@ -816,14 +819,14 @@ function AccountantFees() {
                     onClick={() => setIsNewInvoiceOpen(false)}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isCreatingInvoice}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isCreatingInvoice ? <Loader2 size={20} className="animate-spin" /> : 'Create Invoice'}
+                    {isCreatingInvoice ? <Loader2 size={20} className="animate-spin" /> : t('create_invoice')}
                   </button>
                 </div>
               </form>
@@ -837,6 +840,7 @@ function AccountantFees() {
 
 function ParentFees() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [isPayNowOpen, setIsPayNowOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [selectedInvoiceToPay, setSelectedInvoiceToPay] = useState<FeeInvoice | null>(null);
@@ -928,14 +932,14 @@ function ParentFees() {
       }
       
       mutate(['parent_invoices', page, user?.studentId]);
-      toast.success("Payment successful", {
-        description: "Your payment has been processed and a receipt has been generated.",
+      toast.success(t('payment_successful'), {
+        description: t('payment_processed_desc'),
       });
       setIsPayNowOpen(false);
       setSelectedInvoiceToPay(null);
     } catch (error) {
       console.error('Error processing payment:', error);
-      toast.error("Failed to process payment");
+      toast.error(t('failed_to_process_payment'));
     } finally {
       setIsProcessingPayment(false);
     }
@@ -949,19 +953,19 @@ function ParentFees() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
       <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Fees & Payments</h1>
-        <p className="text-muted-foreground mt-2 font-medium">Manage payments for {user?.studentId}</p>
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('fees_payments')}</h1>
+        <p className="text-muted-foreground mt-2 font-medium">{t('manage_payments_for')} {user?.studentId}</p>
       </div>
 
       <div className="bg-gradient-to-br from-primary to-primary/80 rounded-[2rem] p-8 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
           <div>
-            <p className="text-primary-foreground/80 text-sm font-bold uppercase tracking-wider mb-2">Total Amount Due</p>
+            <p className="text-primary-foreground/80 text-sm font-bold uppercase tracking-wider mb-2">{t('total_amount_due')}</p>
             <h2 className="text-5xl font-bold tracking-tight">${pendingTotal}</h2>
             {pendingTotal > 0 && (
               <p className="text-amber-400 text-sm font-medium mt-3 flex items-center gap-2 bg-amber-400/10 w-fit px-3 py-1.5 rounded-lg border border-amber-400/20">
                 <AlertCircle size={16} />
-                Outstanding balance requires attention
+                {t('outstanding_balance_warning')}
               </p>
             )}
           </div>
@@ -971,11 +975,11 @@ function ParentFees() {
               className="px-8 py-4 bg-background text-foreground rounded-xl font-bold hover:bg-accent transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg"
             >
               <CreditCard size={20} />
-              Pay Now
+              {t('pay_now')}
             </button>
           )}
         </div>
-        <div className="absolute -right-10 -bottom-10 opacity-10">
+        <div className="absolute -right-10 -bottom-10 opacity-10 rtl:right-auto rtl:-left-10">
           <DollarSign size={160} />
         </div>
       </div>
@@ -984,7 +988,7 @@ function ParentFees() {
         <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
           <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <FileText size={20} className="text-primary" />
-            Assigned Fee Structure
+            {t('assigned_fee_structure')}
           </h3>
           <div className="p-4 bg-muted/50 rounded-xl border border-border">
             <p className="text-sm font-medium text-foreground whitespace-pre-wrap">
@@ -995,7 +999,7 @@ function ParentFees() {
       )}
 
       <div className="space-y-5 flex-1 flex flex-col overflow-hidden">
-        <h3 className="text-xl font-bold text-foreground shrink-0">Invoice History</h3>
+        <h3 className="text-xl font-bold text-foreground shrink-0">{t('invoice_history')}</h3>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-5">
           {isLoading ? (
@@ -1021,7 +1025,7 @@ function ParentFees() {
               ))}
             </div>
           ) : myInvoices.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground font-medium">No invoices found.</div>
+            <div className="p-12 text-center text-muted-foreground font-medium">{t('no_invoices_found')}</div>
           ) : myInvoices.map((invoice: any) => (
           <div key={invoice.id} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:shadow-md transition-all">
             <div className="flex items-start gap-5">
@@ -1038,9 +1042,9 @@ function ParentFees() {
                 <div className="flex items-center gap-3 mb-2">
                   <p className="font-bold text-foreground text-xl">{invoice.description}</p>
                 </div>
-                <p className="text-sm font-medium text-muted-foreground">Invoice: {invoice.id}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('invoice')}: {invoice.id}</p>
                 <p className="text-sm font-medium text-muted-foreground mt-1">
-                  {invoice.status === 'paid' ? `Paid on ${new Date(invoice.updated_at).toLocaleDateString()}` : `Due by ${new Date(invoice.dueDate).toLocaleDateString()}`}
+                  {invoice.status === 'paid' ? `${t('paid_on')} ${new Date(invoice.updated_at).toLocaleDateString()}` : `${t('due_by')} ${new Date(invoice.dueDate).toLocaleDateString()}`}
                 </p>
               </div>
             </div>
@@ -1050,9 +1054,9 @@ function ParentFees() {
               <div className="flex gap-2">
                 {invoice.status === 'paid' && (
                   <button 
-                    onClick={() => toast.success("Downloading receipt...", { description: `Receipt for ${invoice.id} is being prepared.` })}
+                    onClick={() => toast.success(t('downloading_receipt'), { description: `${t('receipt_for')} ${invoice.id} ${t('is_being_prepared')}` })}
                     className="p-3 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors" 
-                    title="Download Receipt"
+                    title={t('download_receipt')}
                   >
                     <Download size={20} />
                   </button>
@@ -1062,7 +1066,7 @@ function ParentFees() {
                     onClick={() => openPaymentModal(invoice)}
                     className="px-6 py-2.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl text-sm font-bold transition-colors"
                   >
-                    Pay
+                    {t('pay')}
                   </button>
                 )}
               </div>
@@ -1077,24 +1081,24 @@ function ParentFees() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors flex items-center gap-1"
           >
-            Previous
+            <ChevronLeft size={16} className="rtl:rotate-180" /> {t('previous')}
           </button>
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-muted-foreground">
-              Page <span className="text-foreground font-bold">{page}</span> of <span className="text-foreground font-bold">{totalPages}</span>
+              {t('page')} <span className="text-foreground font-bold">{page}</span> {t('of')} <span className="text-foreground font-bold">{totalPages}</span>
             </span>
-            <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
-              Total: <span className="text-foreground font-bold">{totalCount}</span>
+            <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4 rtl:border-l-0 rtl:border-r rtl:pl-0 rtl:pr-4">
+              {t('total')}: <span className="text-foreground font-bold">{totalCount}</span>
             </span>
           </div>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+            className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors flex items-center gap-1"
           >
-            Next
+            {t('next')} <ChevronRight size={16} className="rtl:rotate-180" />
           </button>
         </div>
       )}
@@ -1110,40 +1114,40 @@ function ParentFees() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Secure Checkout</h2>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('secure_checkout')}</h2>
                 <p className="text-sm font-medium text-muted-foreground mt-2">
-                  {selectedInvoiceToPay ? `Paying for ${selectedInvoiceToPay.description}` : 'Paying total outstanding balance'}
+                  {selectedInvoiceToPay ? `${t('paying_for')} ${selectedInvoiceToPay.description}` : t('paying_total_outstanding')}
                 </p>
               </div>
               
               <form onSubmit={handlePay} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 mb-6 flex items-center justify-between">
-                  <span className="font-bold text-foreground">Total to Pay</span>
+                  <span className="font-bold text-foreground">{t('total_to_pay')}</span>
                   <span className="font-black text-primary text-2xl">
                     ${selectedInvoiceToPay ? selectedInvoiceToPay.amount : pendingTotal}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Cardholder Name</label>
-                  <input required type="text" placeholder="John Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('cardholder_name')}</label>
+                  <input required type="text" placeholder={t('cardholder_name_placeholder')} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Card Number</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('card_number')}</label>
                   <div className="relative">
-                    <CreditCard size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <input required type="text" placeholder="0000 0000 0000 0000" maxLength={19} className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground tracking-widest" />
+                    <CreditCard size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-4" />
+                    <input required type="text" placeholder="0000 0000 0000 0000" maxLength={19} className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground tracking-widest rtl:pl-4 rtl:pr-12" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Expiry Date</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('expiry_date')}</label>
                     <input required type="text" placeholder="MM/YY" maxLength={5} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground text-center" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">CVC</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('cvc')}</label>
                     <input required type="text" placeholder="123" maxLength={4} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground text-center" />
                   </div>
                 </div>
@@ -1157,14 +1161,14 @@ function ParentFees() {
                     }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isProcessingPayment}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isProcessingPayment ? <Loader2 size={20} className="animate-spin" /> : 'Pay Securely'}
+                    {isProcessingPayment ? <Loader2 size={20} className="animate-spin" /> : t('pay_securely')}
                   </button>
                 </div>
               </form>

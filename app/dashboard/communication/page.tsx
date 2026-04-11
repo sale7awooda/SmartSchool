@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { Notice, MOCK_USERS, MOCK_PARENTS, MOCK_CHATS, MOCK_MESSAGES } from '@/lib/mock-db';
-import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2, Send, Search, Smartphone, Mail } from 'lucide-react';
+import { useLanguage } from '@/lib/language-context';
+import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2, Send, Search, Smartphone, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
@@ -13,6 +14,7 @@ import { getNotices, createNotice, getMessages, sendMessage, getUsersForChat } f
 export default function CommunicationPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'notices' | 'messages' | 'broadcasts'>('notices');
   
   // Notices State
@@ -87,7 +89,7 @@ export default function CommunicationPage() {
   if (!user) return null;
 
   if (!can('view', 'communication')) {
-    return <div className="p-4">You do not have permission to view this page.</div>;
+    return <div className="p-4">{t('no_permission')}</div>;
   }
 
   const canCreateNotice = can('create', 'communication');
@@ -116,9 +118,9 @@ export default function CommunicationPage() {
       });
       setIsCreating(false);
       setNewNotice({ title: '', content: '', targetAudience: 'all', isImportant: false });
-      toast.success('Notice posted successfully');
+      toast.success(t('notice_posted_success'));
     } catch (error) {
-      toast.error('Failed to post notice');
+      toast.error(t('failed_to_post_notice'));
     } finally {
       setIsSubmitting(false);
     }
@@ -138,7 +140,7 @@ export default function CommunicationPage() {
         content: text
       });
     } catch (error) {
-      toast.error('Failed to send message');
+      toast.error(t('failed_to_send_message'));
     }
   };
 
@@ -157,9 +159,9 @@ export default function CommunicationPage() {
       }]);
       setBroadcastMessage('');
       setEmailSubject('');
-      toast.success(`Urgent ${broadcastType.toUpperCase()} broadcast sent successfully to all selected recipients.`);
+      toast.success(`${t('urgent')} ${broadcastType.toUpperCase()} ${t('broadcast_sent_success')}`);
     } catch (error) {
-      toast.error('Failed to send broadcast');
+      toast.error(t('failed_to_send_broadcast'));
     } finally {
       setIsSubmitting(false);
     }
@@ -169,8 +171,8 @@ export default function CommunicationPage() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Communication</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Connect with the school community.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('communication')}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">{t('communication_desc')}</p>
         </div>
         
         <div className="flex bg-muted p-1 rounded-xl">
@@ -178,20 +180,20 @@ export default function CommunicationPage() {
             onClick={() => setActiveTab('notices')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'notices' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            Notice Board
+            {t('notice_board')}
           </button>
           <button 
             onClick={() => setActiveTab('messages')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'messages' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            Direct Messages
+            {t('direct_messages')}
           </button>
           {isAdmin() && (
             <button 
               onClick={() => setActiveTab('broadcasts')}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'broadcasts' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              Broadcasts
+              {t('broadcasts')}
             </button>
           )}
         </div>
@@ -207,7 +209,7 @@ export default function CommunicationPage() {
                 className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20"
               >
                 <Plus size={18} />
-                New Notice
+                {t('new_notice')}
               </button>
             )}
           </div>
@@ -222,7 +224,7 @@ export default function CommunicationPage() {
               {notice.is_important && (
                 <div className="bg-amber-500/10 px-6 py-3 border-b border-amber-500/20 flex items-center gap-2 text-amber-500 text-xs font-bold uppercase tracking-wider">
                   <AlertCircle size={16} />
-                  Important Announcement
+                  {t('important_announcement')}
                 </div>
               )}
               
@@ -237,11 +239,11 @@ export default function CommunicationPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar size={16} className="text-muted-foreground" />
-                    {new Date(notice.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(notice.created_at).toLocaleDateString(t('locale'), { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
-                  <div className="flex items-center gap-2 ml-auto">
+                  <div className="flex items-center gap-2 ml-auto rtl:ml-0 rtl:mr-auto">
                     <MessageSquare size={16} className="text-muted-foreground" />
-                    Audience: <span className="text-primary bg-primary/10 px-2 py-1 rounded-md">{notice.target_audience}</span>
+                    {t('audience')}: <span className="text-primary bg-primary/10 px-2 py-1 rounded-md">{t(notice.target_audience)}</span>
                   </div>
                 </div>
               </div>
@@ -254,14 +256,14 @@ export default function CommunicationPage() {
       {activeTab === 'messages' && (
         <div className="flex-1 bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden flex h-full min-h-[500px]">
           {/* Chat List */}
-          <div className="w-1/3 border-r border-border flex flex-col bg-muted/30">
+          <div className="w-1/3 border-r border-border flex flex-col bg-muted/30 rtl:border-r-0 rtl:border-l">
             <div className="p-4 border-b border-border">
               <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                 <input 
                   type="text" 
-                  placeholder="Search messages..." 
-                  className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
+                  placeholder={t('search_messages')} 
+                  className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground rtl:pl-4 rtl:pr-10"
                 />
               </div>
             </div>
@@ -270,13 +272,13 @@ export default function CommunicationPage() {
                 <button 
                   key={chatUser.id}
                   onClick={() => setActiveChatUser(chatUser)}
-                  className={`w-full text-left p-5 border-b border-border transition-colors flex items-start gap-4 ${activeChatUser?.id === chatUser.id ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
+                  className={`w-full text-left p-5 border-b border-border transition-colors flex items-start gap-4 rtl:text-right ${activeChatUser?.id === chatUser.id ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-baseline mb-1.5">
                       <h3 className="font-bold text-foreground text-base truncate">{chatUser.name}</h3>
                     </div>
-                    <p className="text-xs font-bold text-primary">{chatUser.role}</p>
+                    <p className="text-xs font-bold text-primary">{t(chatUser.role)}</p>
                   </div>
                 </button>
               ))}
@@ -293,7 +295,7 @@ export default function CommunicationPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-foreground">{activeChatUser.name}</h3>
-                    <p className="text-xs font-medium text-muted-foreground">{activeChatUser.role}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t(activeChatUser.role)}</p>
                   </div>
                 </div>
                 
@@ -304,13 +306,13 @@ export default function CommunicationPage() {
                       <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                         <div className={`max-w-[85%] px-5 py-3.5 rounded-2xl ${
                           isMe 
-                            ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                            : 'bg-muted text-foreground rounded-bl-sm'
+                            ? 'bg-primary text-primary-foreground rounded-br-sm rtl:rounded-br-2xl rtl:rounded-bl-sm' 
+                            : 'bg-muted text-foreground rounded-bl-sm rtl:rounded-bl-2xl rtl:rounded-br-sm'
                         }`}>
                           <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
                         </div>
                         <span className="text-[10px] font-bold text-muted-foreground mt-1.5 px-1">
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(msg.created_at).toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     );
@@ -323,13 +325,13 @@ export default function CommunicationPage() {
                       type="text" 
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder="Type your message..." 
+                      placeholder={t('type_message_placeholder')} 
                       className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                     />
                     <button 
                       type="submit"
                       disabled={!messageInput.trim()}
-                      className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20"
+                      className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 rtl:rotate-180"
                     >
                       <Send size={20} />
                     </button>
@@ -339,7 +341,7 @@ export default function CommunicationPage() {
             ) : (
               <div className="flex-1 flex items-center justify-center flex-col text-muted-foreground">
                 <MessageSquare size={48} className="mb-4 opacity-20" />
-                <p>Select a user to start chatting</p>
+                <p>{t('select_user_to_chat')}</p>
               </div>
             )}
           </div>
@@ -353,13 +355,13 @@ export default function CommunicationPage() {
             <div className="w-16 h-16 bg-destructive/10 text-destructive rounded-2xl flex items-center justify-center mx-auto mb-4">
               <AlertCircle size={32} />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Urgent Broadcast</h2>
-            <p className="text-muted-foreground mt-2 font-medium">Send immediate notifications to parents and staff.</p>
+            <h2 className="text-2xl font-bold text-foreground">{t('urgent_broadcast')}</h2>
+            <p className="text-muted-foreground mt-2 font-medium">{t('urgent_broadcast_desc')}</p>
           </div>
 
           <form onSubmit={handleSendBroadcast} className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-foreground mb-3">Delivery Method</label>
+              <label className="block text-sm font-bold text-foreground mb-3">{t('delivery_method')}</label>
               <div className="grid grid-cols-3 gap-4">
                 <button
                   type="button"
@@ -369,7 +371,7 @@ export default function CommunicationPage() {
                   }`}
                 >
                   <MessageSquare size={24} />
-                  <span className="font-bold text-sm">WhatsApp</span>
+                  <span className="font-bold text-sm">{t('whatsapp')}</span>
                 </button>
                 <button
                   type="button"
@@ -379,7 +381,7 @@ export default function CommunicationPage() {
                   }`}
                 >
                   <Bell size={24} />
-                  <span className="font-bold text-sm">App Push</span>
+                  <span className="font-bold text-sm">{t('app_push')}</span>
                 </button>
                 <button
                   type="button"
@@ -389,7 +391,7 @@ export default function CommunicationPage() {
                   }`}
                 >
                   <Mail size={24} />
-                  <span className="font-bold text-sm">Email Alert</span>
+                  <span className="font-bold text-sm">{t('email_alert')}</span>
                 </button>
               </div>
             </div>
@@ -398,24 +400,24 @@ export default function CommunicationPage() {
             <div className="p-4 bg-muted/50 rounded-xl border border-border">
               {broadcastType === 'whatsapp' && (
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Message Template</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('message_template')}</label>
                   <select 
                     value={whatsappTemplate}
                     onChange={(e) => setWhatsappTemplate(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-card focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all font-medium text-foreground"
                   >
-                    <option value="urgent_alert">Urgent Alert (Pre-approved)</option>
-                    <option value="school_closure">School Closure (Pre-approved)</option>
-                    <option value="event_reminder">Event Reminder</option>
-                    <option value="custom">Custom Message (May be delayed)</option>
+                    <option value="urgent_alert">{t('urgent_alert_template')}</option>
+                    <option value="school_closure">{t('school_closure_template')}</option>
+                    <option value="event_reminder">{t('event_reminder_template')}</option>
+                    <option value="custom">{t('custom_message_template')}</option>
                   </select>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">WhatsApp requires pre-approved templates for immediate delivery outside the 24-hour window.</p>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('whatsapp_template_notice')}</p>
                 </div>
               )}
 
               {broadcastType === 'push' && (
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Notification Priority</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('notification_priority')}</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -426,7 +428,7 @@ export default function CommunicationPage() {
                         onChange={(e) => setPushPriority(e.target.value)}
                         className="w-4 h-4 text-primary focus:ring-primary border-border" 
                       />
-                      <span className="text-sm font-medium text-foreground">High (Bypasses Do Not Disturb)</span>
+                      <span className="text-sm font-medium text-foreground">{t('high_priority_desc')}</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -437,7 +439,7 @@ export default function CommunicationPage() {
                         onChange={(e) => setPushPriority(e.target.value)}
                         className="w-4 h-4 text-primary focus:ring-primary border-border" 
                       />
-                      <span className="text-sm font-medium text-foreground">Normal</span>
+                      <span className="text-sm font-medium text-foreground">{t('normal')}</span>
                     </label>
                   </div>
                 </div>
@@ -445,13 +447,13 @@ export default function CommunicationPage() {
 
               {broadcastType === 'email' && (
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Email Subject</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('email_subject')}</label>
                   <input 
                     type="text" 
                     required
                     value={emailSubject}
                     onChange={(e) => setEmailSubject(e.target.value)}
-                    placeholder="e.g., URGENT: School Closure Tomorrow" 
+                    placeholder={t('email_subject_placeholder')} 
                     className="w-full px-4 py-3 rounded-xl border border-border bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground" 
                   />
                 </div>
@@ -459,35 +461,35 @@ export default function CommunicationPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-foreground mb-2">Target Audience</label>
+              <label className="block text-sm font-bold text-foreground mb-2">{t('target_audience')}</label>
               <select 
                 value={broadcastAudience}
                 onChange={(e) => setBroadcastAudience(e.target.value)}
                 className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground"
               >
-                <option value="all">Entire School (Parents & Staff)</option>
-                <option value="parents">All Parents</option>
-                <option value="staff">All Staff</option>
-                <option value="grade4">Grade 4 Parents Only</option>
+                <option value="all">{t('entire_school')}</option>
+                <option value="parents">{t('all_parents')}</option>
+                <option value="staff">{t('all_staff')}</option>
+                <option value="grade4">{t('grade_4_parents')}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-foreground mb-2">Message Content</label>
+              <label className="block text-sm font-bold text-foreground mb-2">{t('message_content')}</label>
               <textarea 
                 required
                 value={broadcastMessage}
                 onChange={(e) => setBroadcastMessage(e.target.value)}
                 rows={4}
-                placeholder="Type your urgent message here..." 
+                placeholder={t('urgent_message_placeholder')} 
                 className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" 
               />
               <div className="flex justify-between items-center mt-2">
                 <p className="text-xs font-bold text-muted-foreground">
-                  {broadcastType === 'whatsapp' ? 'Keep it concise for WhatsApp.' : 'Message length limit.'}
+                  {broadcastType === 'whatsapp' ? t('whatsapp_concise') : t('message_length_limit')}
                 </p>
                 <p className={`text-xs font-bold ${broadcastMessage.length > (broadcastType === 'whatsapp' ? 1024 : 500) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {broadcastMessage.length} / {broadcastType === 'whatsapp' ? '1024' : '500'} chars
+                  {broadcastMessage.length} / {broadcastType === 'whatsapp' ? '1024' : '500'} {t('chars')}
                 </p>
               </div>
             </div>
@@ -500,7 +502,7 @@ export default function CommunicationPage() {
               {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (
                 <>
                   <AlertCircle size={20} />
-                  Send Broadcast Now
+                  {t('send_broadcast_now')}
                 </>
               )}
             </button>
@@ -519,47 +521,47 @@ export default function CommunicationPage() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-border"
             >
               <div className="p-8 border-b border-border shrink-0 bg-muted/30">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Post New Notice</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">Broadcast a message to the school community.</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('post_new_notice')}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{t('post_new_notice_desc')}</p>
               </div>
               
               <div className="overflow-y-auto p-8">
                 <form id="notice-form" onSubmit={handleCreateNotice} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Title</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('title')}</label>
                     <input 
                       type="text" 
                       required
                       value={newNotice.title}
                       onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
-                      placeholder="e.g. Sports Day Rescheduled" 
+                      placeholder={t('notice_title_placeholder')} 
                       className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Message Content</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('message_content')}</label>
                     <textarea 
                       required
                       value={newNotice.content}
                       onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
                       rows={5}
-                      placeholder="Write your announcement here..." 
+                      placeholder={t('notice_content_placeholder')} 
                       className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" 
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-sm font-bold text-foreground mb-2">Target Audience</label>
+                      <label className="block text-sm font-bold text-foreground mb-2">{t('target_audience')}</label>
                       <select 
                         value={newNotice.targetAudience}
                         onChange={(e) => setNewNotice({ ...newNotice, targetAudience: e.target.value })}
                         className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground"
                       >
-                        <option value="all">Everyone</option>
-                        <option value="parents">Parents Only</option>
-                        <option value="staff">Staff Only</option>
+                        <option value="all">{t('everyone')}</option>
+                        <option value="parents">{t('parents_only')}</option>
+                        <option value="staff">{t('staff_only')}</option>
                       </select>
                     </div>
                     
@@ -574,7 +576,7 @@ export default function CommunicationPage() {
                           />
                           <CheckCircle2 size={16} className="absolute text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" />
                         </div>
-                        <span className="text-sm font-bold text-foreground transition-colors">Mark as Important</span>
+                        <span className="text-sm font-bold text-foreground transition-colors">{t('mark_as_important')}</span>
                       </label>
                     </div>
                   </div>
@@ -587,7 +589,7 @@ export default function CommunicationPage() {
                   onClick={() => setIsCreating(false)}
                   className="flex-1 px-4 py-4 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted/50 transition-all active:scale-[0.98]"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button 
                   type="submit"
@@ -595,7 +597,7 @@ export default function CommunicationPage() {
                   disabled={isSubmitting}
                   className="flex-1 px-4 py-4 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : 'Post Notice'}
+                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : t('post_notice')}
                 </button>
               </div>
             </motion.div>

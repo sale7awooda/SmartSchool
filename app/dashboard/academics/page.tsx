@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { Student } from "@/lib/mock-db";
+import { useLanguage } from "@/lib/language-context";
 import { 
   getAssessments, 
   createAssessment, 
@@ -61,11 +62,12 @@ import { toast } from "sonner";
 export default function AcademicsPage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
+  const { t } = useLanguage();
 
   if (!user) return null;
 
   if (!can('view', 'academics')) {
-    return <div className="p-4">You do not have permission to view this page.</div>;
+    return <div className="p-4">{t('no_permission')}</div>;
   }
 
   if (isRole("teacher")) return <TeacherAcademics />;
@@ -80,6 +82,7 @@ export default function AcademicsPage() {
 
 // --- Admin View ---
 function AdminAcademics() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<
     "overview" | "years" | "classes" | "subjects"
   >("overview");
@@ -263,10 +266,10 @@ function AdminAcademics() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            Academics Management
+            {t('academics')}
           </h1>
           <p className="text-muted-foreground mt-2 font-medium">
-            Manage academic years, classes, and subjects.
+            {t('academics_desc')}
           </p>
         </div>
       </div>
@@ -282,7 +285,7 @@ function AdminAcademics() {
                 : "bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border"
             }`}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {t(tab === 'years' ? 'academic_years' : tab)}
           </button>
         ))}
       </div>
@@ -295,13 +298,13 @@ function AdminAcademics() {
                 <Calendar size={24} />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                Active Year
+                {t('active')} {t('date')}
               </p>
               <p className="text-2xl font-bold text-foreground mt-1">
-                {academicYears.find(y => y.is_active)?.name || "None Active"}
+                {academicYears.find(y => y.is_active)?.name || t('none')}
               </p>
               <p className="text-xs font-medium text-emerald-500 mt-2 bg-emerald-500/10 w-fit px-2 py-1 rounded-md">
-                Academic Year
+                {t('academics')}
               </p>
             </div>
             <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
@@ -309,11 +312,11 @@ function AdminAcademics() {
                 <BookOpen size={24} />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                Total Classes
+                {t('total')} {t('classes')}
               </p>
               <p className="text-2xl font-bold text-foreground mt-1">{classes.length}</p>
               <p className="text-xs font-medium text-muted-foreground mt-2">
-                Across all grades
+                {t('across_all_grades')}
               </p>
             </div>
             <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
@@ -321,11 +324,11 @@ function AdminAcademics() {
                 <Award size={24} />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                Total Subjects
+                {t('total')} {t('subjects')}
               </p>
               <p className="text-2xl font-bold text-foreground mt-1">{subjects.length}</p>
               <p className="text-xs font-medium text-muted-foreground mt-2">
-                Active curriculum
+                {t('active_curriculum')}
               </p>
             </div>
           </div>
@@ -335,19 +338,19 @@ function AdminAcademics() {
           <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/50">
               <h3 className="font-bold text-foreground text-lg">
-                Classes & Sections
+                {t('classes_sections')}
               </h3>
               <button 
                 onClick={() => setIsAddClassOpen(true)}
                 className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1"
               >
-                <Plus size={16} /> Add Class
+                <Plus size={16} /> {t('add_class')}
               </button>
             </div>
             <div className="divide-y divide-border">
               {classes.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground font-medium">
-                  No classes found. Add your first class to get started.
+                  {t('no_data')}
                 </div>
               ) : (
                 classes.map((cls, i) => (
@@ -360,10 +363,10 @@ function AdminAcademics() {
                         {cls.name}
                       </h4>
                       <p className="text-sm font-medium text-muted-foreground mt-1">
-                        {cls.grade} • Section {cls.section || "N/A"}
+                        {cls.grade} • {t('section')} {cls.section || t('none')}
                       </p>
                       <p className="text-xs font-medium text-muted-foreground mt-1">
-                        Year: {cls.academic_year?.name} • Teacher: {cls.teacher?.name || "Unassigned"}
+                        {t('year')}: {cls.academic_year?.name} • {t('teacher')}: {cls.teacher?.name || t('none')}
                       </p>
                     </div>
                     <div className="flex gap-1">
@@ -378,7 +381,7 @@ function AdminAcademics() {
                       </button>
                       <button 
                         onClick={() => {
-                          if (confirm("Are you sure you want to delete this class?")) {
+                          if (confirm(t('confirm_delete'))) {
                             handleDeleteClass(cls.id);
                           }
                         }}
@@ -398,19 +401,19 @@ function AdminAcademics() {
           <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/50">
               <h3 className="font-bold text-foreground text-lg">
-                Academic Years
+                {t('academic_years')}
               </h3>
               <button 
                 onClick={() => setIsAddYearOpen(true)}
                 className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1"
               >
-                <Plus size={16} /> Add Year
+                <Plus size={16} /> {t('add_year')}
               </button>
             </div>
             <div className="divide-y divide-border">
               {academicYears.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground font-medium">
-                  No academic years found.
+                  {t('no_data')}
                 </div>
               ) : (
                 academicYears.map((year) => (
@@ -423,14 +426,14 @@ function AdminAcademics() {
                         {year.name}
                       </h4>
                       <p className="text-sm font-medium text-muted-foreground mt-1">
-                        {year.start_date} to {year.end_date}
+                        {year.start_date} {t('to')} {year.end_date}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                         year.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
                       }`}>
-                        {year.is_active ? 'Active' : 'Inactive'}
+                        {year.is_active ? t('active') : t('inactive')}
                       </span>
                       <div className="flex gap-1">
                         <button 
@@ -444,7 +447,7 @@ function AdminAcademics() {
                         </button>
                         <button 
                           onClick={() => {
-                            if (confirm("Are you sure you want to delete this academic year?")) {
+                            if (confirm(t('confirm_delete'))) {
                               handleDeleteYear(year.id);
                             }
                           }}
@@ -465,19 +468,19 @@ function AdminAcademics() {
           <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/50">
               <h3 className="font-bold text-foreground text-lg">
-                Curriculum Subjects
+                {t('curriculum_subjects')}
               </h3>
               <button 
                 onClick={() => setIsAddSubjectOpen(true)}
                 className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1"
               >
-                <Plus size={16} /> Add Subject
+                <Plus size={16} /> {t('add_subject')}
               </button>
             </div>
             <div className="divide-y divide-border">
               {subjects.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground font-medium">
-                  No subjects found.
+                  {t('no_data')}
                 </div>
               ) : (
                 subjects.map((subject) => (
@@ -490,12 +493,12 @@ function AdminAcademics() {
                         {subject.name}
                       </h4>
                       <p className="text-sm font-medium text-muted-foreground mt-1">
-                        Code: {subject.code || "N/A"}
+                        {t('subject_code')}: {subject.code || t('none')}
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
                       <p className="text-sm text-muted-foreground max-w-xs truncate">
-                        {subject.description || "No description provided."}
+                        {subject.description || t('no_data')}
                       </p>
                       <div className="flex gap-1">
                         <button 
@@ -509,7 +512,7 @@ function AdminAcademics() {
                         </button>
                         <button 
                           onClick={() => {
-                            if (confirm("Are you sure you want to delete this subject?")) {
+                            if (confirm(t('confirm_delete'))) {
                               handleDeleteSubject(subject.id);
                             }
                           }}
@@ -537,22 +540,22 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingYear ? 'Edit Academic Year' : 'Add Academic Year'}</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">{editingYear ? 'Update academic year details.' : 'Create a new academic year period.'}</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingYear ? t('edit_year') : t('add_year')}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{editingYear ? t('update_academic_year_desc') : t('create_academic_year_desc')}</p>
               </div>
               
               <form onSubmit={handleCreateYear} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Year Name</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('year_name')}</label>
                   <input required name="name" type="text" defaultValue={editingYear?.name} placeholder="e.g., 2024 - 2025" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Start Date</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('start_date')}</label>
                     <input required name="startDate" type="date" defaultValue={editingYear?.start_date} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">End Date</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('end_date')}</label>
                     <input required name="endDate" type="date" defaultValue={editingYear?.end_date} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                 </div>
@@ -566,14 +569,14 @@ function AdminAcademics() {
                     }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingYear ? 'Save Changes' : 'Add Year')}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingYear ? t('save_changes') : t('add_year'))}
                   </button>
                 </div>
               </form>
@@ -590,27 +593,27 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingClass ? 'Edit Class' : 'Add New Class'}</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">{editingClass ? 'Update class details.' : 'Create a new class section.'}</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingClass ? t('edit_class') : t('add_class')}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{editingClass ? t('update_class_desc') : t('create_class_desc')}</p>
               </div>
               
               <form onSubmit={handleCreateClass} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Class Name</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('class_name')}</label>
                   <input required name="name" type="text" defaultValue={editingClass?.name} placeholder="e.g., Grade 4 - Section A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Grade</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('grade')}</label>
                     <input required name="grade" type="text" defaultValue={editingClass?.grade} placeholder="e.g., Grade 4" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Section</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('section')}</label>
                     <input name="section" type="text" defaultValue={editingClass?.section} placeholder="e.g., A" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Academic Year</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('academic_year')}</label>
                   <select required name="academicYearId" defaultValue={editingClass?.academic_year_id} className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
                     {academicYears.map(year => (
                       <option key={year.id} value={year.id}>{year.name}</option>
@@ -627,14 +630,14 @@ function AdminAcademics() {
                     }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingClass ? 'Save Changes' : 'Add Class')}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingClass ? t('save_changes') : t('add_class'))}
                   </button>
                 </div>
               </form>
@@ -651,21 +654,21 @@ function AdminAcademics() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingSubject ? 'Edit Subject' : 'Add New Subject'}</h2>
-                <p className="text-sm font-medium text-muted-foreground mt-2">{editingSubject ? 'Update subject details.' : 'Create a new subject for the curriculum.'}</p>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingSubject ? t('edit_subject') : t('add_subject')}</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">{editingSubject ? t('update_subject_desc') : t('create_subject_desc')}</p>
               </div>
               
               <form onSubmit={handleCreateSubject} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Subject Name</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('subject_name')}</label>
                   <input required name="name" type="text" defaultValue={editingSubject?.name} placeholder="e.g., Mathematics" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Subject Code</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('subject_code')}</label>
                   <input required name="code" type="text" defaultValue={editingSubject?.code} placeholder="e.g., MATH101" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Description</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('description')}</label>
                   <textarea name="description" rows={3} defaultValue={editingSubject?.description} placeholder="Brief description of the subject..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
@@ -678,14 +681,14 @@ function AdminAcademics() {
                     }}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button 
                     type="submit"
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingSubject ? 'Save Changes' : 'Add Subject')}
+                    {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingSubject ? t('save_changes') : t('add_subject'))}
                   </button>
                 </div>
               </form>
@@ -1012,10 +1015,10 @@ function TeacherAcademics() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            Academics
+            {t('academics')}
           </h1>
           <p className="text-muted-foreground mt-2 font-medium">
-            Manage assessments and grade students.
+            {t('academics_desc')}
           </p>
         </div>
         <div className="flex bg-muted p-1 rounded-xl w-fit shrink-0 overflow-x-auto max-w-full scrollbar-hide">
@@ -1027,7 +1030,7 @@ function TeacherAcademics() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Assessments
+            {t('assessments')}
           </button>
           <button
             onClick={() => setActiveTab("gradebook")}
@@ -1037,7 +1040,7 @@ function TeacherAcademics() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Gradebook
+            {t('gradebook')}
           </button>
           <button
             onClick={() => setActiveTab("submissions")}
@@ -1047,7 +1050,7 @@ function TeacherAcademics() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Submissions
+            {t('submissions')}
           </button>
         </div>
       </div>
@@ -1057,7 +1060,7 @@ function TeacherAcademics() {
           <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-foreground">
-              All Assessments
+              {t('all_assessments')}
             </h2>
             <button
               onClick={() => setShowNewAssessment(!showNewAssessment)}
@@ -1068,7 +1071,7 @@ function TeacherAcademics() {
               ) : (
                 <Plus size={18} />
               )}
-              {showNewAssessment ? "Back to List" : "New Assessment"}
+              {showNewAssessment ? t('back_to_list') : t('new_assessment')}
             </button>
           </div>
 
@@ -1085,7 +1088,7 @@ function TeacherAcademics() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-bold text-foreground">
-                      Assessment Title
+                      {t('assessment_title')}
                     </label>
                     <input
                       required
@@ -1097,7 +1100,7 @@ function TeacherAcademics() {
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-bold text-foreground">
-                      Description / Instructions
+                      {t('description')} / {t('instructions')}
                     </label>
                     <textarea
                       name="description"
@@ -1108,22 +1111,22 @@ function TeacherAcademics() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      Type
+                      {t('type')}
                     </label>
                     <select
                       required
                       name="type"
                       className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-foreground"
                     >
-                      <option value="Homework">Homework</option>
-                      <option value="Assignment">Assignment</option>
-                      <option value="Online Exam">Online Exam</option>
-                      <option value="Offline Exam">Offline Exam</option>
+                      <option value="Homework">{t('homework')}</option>
+                      <option value="Assignment">{t('assignment')}</option>
+                      <option value="Online Exam">{t('online_exam')}</option>
+                      <option value="Offline Exam">{t('offline_exam')}</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      Class
+                      {t('class')}
                     </label>
                     <select
                       required
@@ -1139,7 +1142,7 @@ function TeacherAcademics() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      Subject
+                      {t('subject')}
                     </label>
                     <select
                       required
@@ -1155,7 +1158,7 @@ function TeacherAcademics() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      Max Score
+                      {t('max_score')}
                     </label>
                     <input
                       required
@@ -1168,7 +1171,7 @@ function TeacherAcademics() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      Due Date / Exam Date
+                      {t('due_date')} / {t('exam_date')}
                     </label>
                     <input
                       required
@@ -1184,13 +1187,13 @@ function TeacherAcademics() {
                     onClick={() => setShowNewAssessment(false)}
                     className="px-6 py-3 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-all"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-sm"
                   >
-                    Create Assessment
+                    {t('new_assessment')}
                   </button>
                 </div>
               </motion.form>
@@ -1252,7 +1255,7 @@ function TeacherAcademics() {
                             }}
                             className="text-muted-foreground font-bold text-sm hover:text-primary px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors"
                           >
-                            View Submissions
+                            {t('view_submissions')}
                           </button>
                         )}
                         <button
@@ -1264,7 +1267,7 @@ function TeacherAcademics() {
                           }}
                           className="text-primary font-bold text-sm hover:text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary transition-colors"
                         >
-                          Grade Now &rarr;
+                          {t('grade_now')} &rarr;
                         </button>
                       </div>
                     </div>
@@ -1287,7 +1290,7 @@ function TeacherAcademics() {
                     <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
                       1
                     </span>
-                    Select Class
+                    {t('select_class')}
                   </h3>
                   <div className="space-y-2">
                     {classes.map((cls) => (
@@ -1316,7 +1319,7 @@ function TeacherAcademics() {
                     <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
                       2
                     </span>
-                    Select Subject
+                    {t('select_subject')}
                   </h3>
                   <div className="space-y-2">
                     {subjects.map((sub) => (
@@ -1345,7 +1348,7 @@ function TeacherAcademics() {
                     <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
                       3
                     </span>
-                    Select Assessment to Grade
+                    {t('select_assessment_to_grade')}
                   </h3>
 
                   {!selectedSubject ? (
@@ -1450,19 +1453,19 @@ function TeacherAcademics() {
                     <thead>
                       <tr className="bg-muted/30 border-b border-border">
                         <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider w-16 text-center">
-                          Roll
+                          {t('roll')}
                         </th>
                         <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider">
-                          Student Name
+                          {t('student_name')}
                         </th>
                         <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider w-32">
-                          Score (/{selectedAssessment.max_score})
+                          {t('score')} (/{selectedAssessment.max_score})
                         </th>
                         <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider">
-                          Feedback
+                          {t('feedback')}
                         </th>
                         <th className="p-4 font-bold text-muted-foreground text-xs uppercase tracking-wider w-24 text-center">
-                          Status
+                          {t('status')}
                         </th>
                       </tr>
                     </thead>
@@ -1562,10 +1565,10 @@ function TeacherAcademics() {
                 >
                   <div className="hidden sm:block px-4">
                     <p className="text-sm font-bold text-foreground">
-                      Grading: {selectedAssessment.title}
+                      {t('grading')}: {selectedAssessment.title}
                     </p>
                     <p className="text-xs font-medium text-muted-foreground mt-0.5">
-                      Remember to save before leaving
+                      {t('remember_to_save')}
                     </p>
                   </div>
 
@@ -1579,7 +1582,7 @@ function TeacherAcademics() {
                     ) : (
                       <>
                         <Save size={20} />
-                        Save Grades
+                        {t('save_grades')}
                       </>
                     )}
                   </button>
@@ -2057,10 +2060,10 @@ function ParentAcademics() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            Academic Report
+            {t('academic_report')}
           </h1>
           <p className="text-muted-foreground mt-2 font-medium">
-            Viewing performance for {studentData?.name || user?.name} ({studentData?.roll_number || user?.studentId})
+            {t('viewing_performance_for')} {studentData?.name || user?.name} ({studentData?.roll_number || user?.studentId})
           </p>
         </div>
         <div className="flex bg-muted p-1 rounded-xl w-fit overflow-x-auto max-w-full scrollbar-hide">
@@ -2072,7 +2075,7 @@ function ParentAcademics() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Overview
+            {t('overview')}
           </button>
           <button
             onClick={() => setActiveTab("assignments")}
@@ -2082,7 +2085,7 @@ function ParentAcademics() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            My Assignments
+            {t('my_assignments')}
           </button>
           <button
             onClick={() => setActiveTab("assessments")}
@@ -2092,7 +2095,7 @@ function ParentAcademics() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Past Results
+            {t('past_results')}
           </button>
         </div>
       </div>
@@ -2105,7 +2108,7 @@ function ParentAcademics() {
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div>
                 <p className="text-primary-foreground/70 text-sm font-bold uppercase tracking-wider mb-2">
-                  Current GPA
+                  {t('current_gpa')}
                 </p>
                 <div className="flex items-end gap-3">
                   <h2 className="text-6xl font-bold tracking-tight">3.8</h2>
@@ -2115,20 +2118,20 @@ function ParentAcademics() {
                 </div>
                 <p className="text-emerald-400 text-sm font-bold mt-3 flex items-center gap-1.5 bg-emerald-400/10 w-fit px-3 py-1.5 rounded-lg border border-emerald-400/20">
                   <TrendingUp size={16} />
-                  Top 10% of Class
+                  {t('top_class')}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center">
                   <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-wider">
-                    Total Credits
+                    {t('total_credits')}
                   </p>
                   <p className="text-2xl font-bold mt-1">24</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center">
                   <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-wider">
-                    Absences
+                    {t('absences')}
                   </p>
                   <p className="text-2xl font-bold mt-1">2</p>
                 </div>
@@ -2144,10 +2147,10 @@ function ParentAcademics() {
             <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
               <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
                 <BookOpen size={20} className="text-primary" />
-                Subject Breakdown
+                {t('subject_breakdown')}
               </h3>
               <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                Term 1
+                {t('term_1')}
               </span>
             </div>
 
@@ -2213,7 +2216,7 @@ function ParentAcademics() {
               <div className="flex items-center justify-between px-2">
                 <h3 className="font-bold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-rose-500"></div>
-                  To Do
+                  {t('todo')}
                 </h3>
                 <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
                   {availableAssessments.length}
@@ -2254,7 +2257,7 @@ function ParentAcademics() {
               <div className="flex items-center justify-between px-2">
                 <h3 className="font-bold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                  In Progress
+                  {t('in_progress')}
                 </h3>
                 <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
                   {studentSubmissions.filter(s => s.status === 'Draft').length}
@@ -2295,7 +2298,7 @@ function ParentAcademics() {
               <div className="flex items-center justify-between px-2">
                 <h3 className="font-bold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                  Completed
+                  {t('completed')}
                 </h3>
                 <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg">
                   {studentSubmissions.filter(s => s.status === 'Submitted' || s.status === 'Graded').length}

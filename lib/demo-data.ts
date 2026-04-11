@@ -193,8 +193,9 @@ export const MOCK_STATS = {
 };
 
 export const MOCK_ACADEMIC_YEARS = [
-  { id: 'ay1', name: '2023-2024', status: 'Active' },
-  { id: 'ay2', name: '2024-2025', status: 'Upcoming' },
+  { id: 'ay1', name: '2024-2025', status: 'Inactive' },
+  { id: 'ay2', name: '2025-2026', status: 'Active' },
+  { id: 'ay3', name: '2026-2027', status: 'Upcoming' },
 ];
 
 export const MOCK_CLASSES = [

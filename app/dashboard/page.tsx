@@ -9,11 +9,13 @@ import { getActiveAcademicYear } from '@/lib/supabase-db';
 import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
+import { useLanguage } from '@/lib/language-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardHome() {
   const { user } = useAuth();
   const { isRole } = usePermissions();
+  const { t } = useLanguage();
 
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
 
@@ -161,26 +163,27 @@ export default function DashboardHome() {
 
 function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: any[] }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   
   const stats = [
-    { label: 'Total Students', value: realStats.totalStudents.toLocaleString(), icon: Users, color: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
-    { label: 'Attendance Today', value: `${realStats.attendanceToday}%`, icon: CalendarCheck, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
-    { label: 'Fees Collected', value: `$${realStats.feeCollected.toLocaleString()}`, icon: CreditCard, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/20' },
-    { label: 'Pending Dues', value: `$${realStats.pendingFees.toLocaleString()}`, icon: TrendingUp, color: 'bg-amber-500', shadow: 'shadow-amber-500/20' },
+    { label: t('total_students'), value: realStats.totalStudents.toLocaleString(), icon: Users, color: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
+    { label: t('attendance_today'), value: `${realStats.attendanceToday}%`, icon: CalendarCheck, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
+    { label: t('fees_collected'), value: `$${realStats.feeCollected.toLocaleString()}`, icon: CreditCard, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/20' },
+    { label: t('pending_dues'), value: `$${realStats.pendingFees.toLocaleString()}`, icon: TrendingUp, color: 'bg-amber-500', shadow: 'shadow-amber-500/20' },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Welcome back, {user?.name}</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Here is what&apos;s happening with your school today.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('welcome_back')}, {user?.name}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">{t('school_status_desc')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-card border border-border rounded-xl shadow-sm">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Academic Year</p>
-            <p className="text-sm font-bold text-foreground">{activeAcademicYear?.name || 'Loading...'}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('academics')}</p>
+            <p className="text-sm font-bold text-foreground">{activeAcademicYear?.name || t('loading')}</p>
           </div>
         </div>
       </div>
@@ -203,7 +206,7 @@ function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: an
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Recent Activity</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6">{t('recent_activity')}</h3>
           <div className="space-y-4">
             {[
               { action: 'New student enrolled', time: '10 mins ago' },
@@ -219,39 +222,39 @@ function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: an
         </div>
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Quick Actions</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6">{t('quick_actions')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link 
               href="/dashboard/students?add=true" 
               className="flex items-center justify-center gap-2 p-4 bg-primary/10 text-primary hover:bg-primary/20 rounded-2xl font-bold transition-all active:scale-[0.98]"
             >
               <Users size={20} />
-              Register Student
+              {t('register_student')}
             </Link>
             <Link 
               href="/dashboard/fees" 
               className="flex items-center justify-center gap-2 p-4 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-2xl font-bold transition-all active:scale-[0.98]"
             >
               <CreditCard size={20} />
-              Manage Fees
+              {t('manage_fees')}
             </Link>
           </div>
         </div>
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Urgent Alerts</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6">{t('urgent_alerts')}</h3>
           <div className="space-y-5">
             {notices.filter(n => n.is_important).slice(0, 3).map((notice) => (
               <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
                 <div className="w-2.5 h-2.5 mt-2 rounded-full bg-amber-500 shrink-0 shadow-sm shadow-amber-500/50" />
                 <div>
                   <p className="font-bold text-foreground text-sm sm:text-base">{notice.title}</p>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">Posted {new Date(notice.created_at).toLocaleDateString()} by {notice.author_name}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">{t('posted')} {new Date(notice.created_at).toLocaleDateString()} {t('by')} {notice.author_name}</p>
                 </div>
               </div>
             ))}
             {notices.filter(n => n.is_important).length === 0 && (
-              <p className="text-sm text-muted-foreground">No urgent alerts.</p>
+              <p className="text-sm text-muted-foreground">{t('no_urgent_alerts')}</p>
             )}
           </div>
         </div>
@@ -262,25 +265,26 @@ function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: an
 
 function TeacherDashboard({ notices }: { notices: any[] }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { data: teacherStats } = useSWR(`teacher-stats-${user?.id}`, null); // Using cached data from above
   
   const stats = [
-    { label: 'Total Students', value: teacherStats?.studentCount || 0, icon: Users, color: 'bg-blue-500' },
-    { label: 'Attendance Rate', value: `${teacherStats?.attendanceRate || 0}%`, icon: CalendarCheck, color: 'bg-emerald-500' },
-    { label: 'Upcoming Tasks', value: '4', icon: BookOpen, color: 'bg-indigo-500' },
+    { label: t('total_students'), value: teacherStats?.studentCount || 0, icon: Users, color: 'bg-blue-500' },
+    { label: t('attendance_rate'), value: `${teacherStats?.attendanceRate || 0}%`, icon: CalendarCheck, color: 'bg-emerald-500' },
+    { label: t('upcoming_tasks'), value: '4', icon: BookOpen, color: 'bg-indigo-500' },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Hello, {user?.name}</h1>
-          <p className="text-muted-foreground mt-2 font-medium">You have 3 classes today.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('hello')}, {user?.name}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">{t('classes_today').replace('{count}', '3')}</p>
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard/attendance" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
             <CalendarCheck size={18} />
-            Take Attendance
+            {t('take_attendance')}
           </Link>
         </div>
       </div>
@@ -300,8 +304,8 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-foreground">Today&apos;s Schedule</h3>
-            <Link href="/dashboard/schedule" className="text-sm font-bold text-primary hover:underline">View Full Schedule</Link>
+            <h3 className="text-xl font-bold text-foreground">{t('todays_schedule')}</h3>
+            <Link href="/dashboard/schedule" className="text-sm font-bold text-primary hover:underline">{t('view_full_schedule')}</Link>
           </div>
           
           <div className="space-y-4">
@@ -324,7 +328,7 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
                   href={`/dashboard/attendance?class=${cls.class}`}
                   className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted hover:border-primary/50 transition-all text-center"
                 >
-                  Mark Attendance
+                  {t('mark_attendance')}
                 </Link>
               </div>
             ))}
@@ -333,25 +337,25 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
 
         <div className="space-y-6">
           <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-            <h3 className="text-xl font-bold text-foreground mb-6">Quick Actions</h3>
+            <h3 className="text-xl font-bold text-foreground mb-6">{t('quick_actions')}</h3>
             <div className="grid grid-cols-1 gap-3">
               <Link href="/dashboard/communication?new=notice" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-all group">
                 <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   <Bell size={18} />
                 </div>
-                <span className="font-bold text-sm">Post Notice</span>
+                <span className="font-bold text-sm">{t('post_notice')}</span>
               </Link>
               <Link href="/dashboard/assessments?new=true" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-all group">
                 <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-lg group-hover:bg-indigo group-hover:text-indigo-foreground transition-colors">
                   <BookOpen size={18} />
                 </div>
-                <span className="font-bold text-sm">Add Assessment</span>
+                <span className="font-bold text-sm">{t('add_assessment')}</span>
               </Link>
             </div>
           </div>
 
           <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-            <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
+            <h3 className="text-xl font-bold text-foreground mb-6">{t('recent_notices')}</h3>
             <div className="space-y-5">
               {notices.slice(0, 3).map((notice) => (
                 <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
@@ -363,7 +367,7 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
                 </div>
               ))}
               {notices.length === 0 && (
-                <p className="text-sm text-muted-foreground">No recent notices.</p>
+                <p className="text-sm text-muted-foreground">{t('no_recent_notices')}</p>
               )}
             </div>
           </div>
@@ -375,35 +379,36 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
 
 function AccountantDashboard({ stats: realStats, notices }: { stats: any, notices: any[] }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
       <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Hello, {user?.name}</h1>
-        <p className="text-muted-foreground mt-2 font-medium">Financial overview for today.</p>
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('hello')}, {user?.name}</h1>
+        <p className="text-muted-foreground mt-2 font-medium">{t('financial_overview')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:gap-6">
         <div className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm">
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Collected Today</p>
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('collected_today')}</p>
           <p className="text-4xl font-bold text-emerald-500 mt-2">${realStats.feeCollected.toLocaleString()}</p>
         </div>
         <div className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm">
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending Fees</p>
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('pending_fees')}</p>
           <p className="text-4xl font-bold text-amber-500 mt-2">${realStats.pendingFees.toLocaleString()}</p>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Quick Actions</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6">{t('quick_actions')}</h3>
           <Link href="/dashboard/fees" className="flex items-center justify-center gap-2 w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold transition-all active:scale-[0.98] shadow-md shadow-primary/20">
             <CreditCard size={24} />
-            Record New Payment
+            {t('record_payment')}
           </Link>
         </div>
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6">{t('recent_notices')}</h3>
           <div className="space-y-5">
             {notices.slice(0, 3).map((notice) => (
               <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
@@ -415,7 +420,7 @@ function AccountantDashboard({ stats: realStats, notices }: { stats: any, notice
               </div>
             ))}
             {notices.length === 0 && (
-              <p className="text-sm text-muted-foreground">No recent notices.</p>
+              <p className="text-sm text-muted-foreground">{t('no_recent_notices')}</p>
             )}
           </div>
         </div>
@@ -426,6 +431,7 @@ function AccountantDashboard({ stats: realStats, notices }: { stats: any, notice
 
 function ParentDashboard({ notices }: { notices: any[] }) {
   const { user, switchStudent } = useAuth();
+  const { t } = useLanguage();
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -479,13 +485,13 @@ function ParentDashboard({ notices }: { notices: any[] }) {
       </div>
     );
   }
-  if (!activeStudent) return <div className="p-8 text-center">No student data found. Please link a student to your account.</div>;
+  if (!activeStudent) return <div className="p-8 text-center">{t('no_data')}</div>;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
       <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Hello, {user?.name}</h1>
-        <p className="text-muted-foreground mt-2 font-medium">Here is the latest update for your child.</p>
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('hello')}, {user?.name}</h1>
+        <p className="text-muted-foreground mt-2 font-medium">{t('latest_update_child')}</p>
       </div>
 
       {students.length > 1 && (
@@ -506,7 +512,7 @@ function ParentDashboard({ notices }: { notices: any[] }) {
         {/* Student Card */}
         <div className="md:col-span-3 bg-gradient-to-br from-primary to-primary/80 rounded-[2rem] p-8 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-primary-foreground/80 text-sm font-semibold tracking-wider uppercase mb-2">Student Profile</p>
+            <p className="text-primary-foreground/80 text-sm font-semibold tracking-wider uppercase mb-2">{t('student_profile')}</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{activeStudent.name}</h2>
             <p className="text-primary-foreground/90 mt-2 font-medium text-lg">{activeStudent.grade} • ID: {activeStudent.roll_number || activeStudent.id.substring(0, 8)}</p>
           </div>
@@ -521,32 +527,32 @@ function ParentDashboard({ notices }: { notices: any[] }) {
           <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 shadow-inner">
             <CalendarCheck size={32} />
           </div>
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Attendance</p>
-          <p className="text-2xl font-bold text-foreground mt-1">Present</p>
-          <p className="text-sm font-medium text-emerald-500 mt-1 bg-emerald-500/10 px-3 py-1 rounded-full">98% this month</p>
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('attendance')}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{t('present')}</p>
+          <p className="text-sm font-medium text-emerald-500 mt-1 bg-emerald-500/10 px-3 py-1 rounded-full">98% {t('this_month')}</p>
         </div>
         
         <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col items-center text-center hover:shadow-md transition-all">
           <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4 shadow-inner">
             <CreditCard size={32} />
           </div>
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Next Fee Due</p>
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('next_fee_due')}</p>
           <p className="text-2xl font-bold text-foreground mt-1">$450</p>
-          <p className="text-sm font-medium text-muted-foreground mt-1 bg-muted px-3 py-1 rounded-full">Due in 5 days</p>
+          <p className="text-sm font-medium text-muted-foreground mt-1 bg-muted px-3 py-1 rounded-full">{t('due_in')} 5 {t('days')}</p>
         </div>
 
         <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col items-center text-center hover:shadow-md transition-all">
           <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-4 shadow-inner">
             <BookOpen size={32} />
           </div>
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Upcoming</p>
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('upcoming')}</p>
           <p className="text-2xl font-bold text-foreground mt-1">3</p>
-          <p className="text-sm font-medium text-blue-500 mt-1 bg-blue-500/10 px-3 py-1 rounded-full">Assignments due</p>
+          <p className="text-sm font-medium text-blue-500 mt-1 bg-blue-500/10 px-3 py-1 rounded-full">{t('assignments_due')}</p>
         </div>
 
         {/* Assignments & Grades */}
         <div className="md:col-span-2 bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Upcoming Assignments</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6">{t('upcoming_assignments')}</h3>
           <div className="space-y-4">
             {[
               { title: 'Math: Fractions Worksheet', due: 'Tomorrow', type: 'Worksheet' },
@@ -558,14 +564,14 @@ function ParentDashboard({ notices }: { notices: any[] }) {
                   <p className="font-bold text-foreground">{a.title}</p>
                   <p className="text-xs font-medium text-muted-foreground">{a.type}</p>
                 </div>
-                <span className="text-sm font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full">Due: {a.due}</span>
+                <span className="text-sm font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full">{t('due')}: {a.due}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
-          <h3 className="text-xl font-bold text-foreground mb-6">Recent Notices</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6">{t('recent_notices')}</h3>
           <div className="space-y-5">
             {notices.slice(0, 3).map((notice) => (
               <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
@@ -577,7 +583,7 @@ function ParentDashboard({ notices }: { notices: any[] }) {
               </div>
             ))}
             {notices.length === 0 && (
-              <p className="text-sm text-muted-foreground">No recent notices.</p>
+              <p className="text-sm text-muted-foreground">{t('no_recent_notices')}</p>
             )}
           </div>
         </div>
