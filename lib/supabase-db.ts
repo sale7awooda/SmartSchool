@@ -200,7 +200,7 @@ export async function createStudent(studentData: any) {
           .insert([{
             parent_id: parent.id,
             student_id: student.id,
-            relationship: studentData.parentRelation || 'Parent'
+            relationship: 'Parent'
           }]);
       }
     } catch (err) {
