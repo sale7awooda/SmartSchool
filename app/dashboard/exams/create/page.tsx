@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { getSubjects, getClasses, createAssessment, getActiveAcademicYear } from '@/lib/supabase-db';
@@ -20,6 +21,7 @@ import Link from 'next/link';
 
 export default function CreateExamPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -28,8 +30,8 @@ export default function CreateExamPage() {
   const { data: subjectsData } = useSWR('subjects', getSubjects);
   const { data: classesData } = useSWR('classes', getClasses);
 
-  const subjectsList = subjectsData?.map(s => s.name) || ['Loading...'];
-  const gradesList = classesData?.map(c => c.name) || ['Loading...'];
+  const subjectsList = subjectsData?.map(s => s.name) || [t('loading')];
+  const gradesList = classesData?.map(c => c.name) || [t('loading')];
 
   // Exam Details
   const [examDetails, setExamDetails] = useState({
@@ -114,7 +116,7 @@ export default function CreateExamPage() {
 
   const handleSave = async () => {
     if (!activeAcademicYear) {
-      toast.error('Active academic year not found');
+      toast.error(t('active_year_not_found'));
       return;
     }
     setIsSaving(true);
@@ -139,11 +141,11 @@ export default function CreateExamPage() {
           correct_answers: q.type === 'multiple_response' ? q.correct_answers : null
         }))
       });
-      toast.success('Assessment created successfully');
+      toast.success(t('assessment_created_success'));
       router.push('/dashboard/exams');
     } catch (error) {
       console.error('Error creating assessment:', error);
-      toast.error('Failed to create assessment');
+      toast.error(t('failed_to_create_assessment'));
     } finally {
       setIsSaving(false);
     }
@@ -157,11 +159,11 @@ export default function CreateExamPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/exams" className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-xl transition-colors">
-            <ArrowLeft size={20} />
+            <ArrowLeft size={20} className="rtl:rotate-180" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Create New Exam</h1>
-            <p className="text-muted-foreground text-sm font-medium">Configure exam details and add questions</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{t('create_new_exam')}</h1>
+            <p className="text-muted-foreground text-sm font-medium">{t('exam_create_desc')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -169,7 +171,7 @@ export default function CreateExamPage() {
             onClick={() => router.push('/dashboard/exams')}
             className="px-4 py-2 text-muted-foreground font-bold text-sm hover:bg-muted rounded-xl transition-colors"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button 
             onClick={handleSave}
@@ -181,7 +183,7 @@ export default function CreateExamPage() {
             ) : (
               <Save size={16} />
             )}
-            {isSaving ? 'Saving...' : 'Save Exam'}
+            {isSaving ? t('saving') : t('save_exam')}
           </button>
         </div>
       </div>
@@ -193,14 +195,14 @@ export default function CreateExamPage() {
           className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors ${currentStep === 1 ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
         >
           <Settings size={18} />
-          1. Exam Settings
+          {t('exam_settings_step')}
         </button>
         <button 
           onClick={() => setCurrentStep(2)}
           className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors ${currentStep === 2 ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
         >
           <ListChecks size={18} />
-          2. Questions ({questions.length})
+          {t('questions_step')} ({questions.length})
         </button>
       </div>
 
@@ -209,10 +211,10 @@ export default function CreateExamPage() {
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8 space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-foreground mb-2">Exam Title</label>
+              <label className="block text-sm font-bold text-foreground mb-2">{t('exam_title_label')}</label>
               <input 
                 type="text" 
-                placeholder="e.g. Mid-Term Mathematics"
+                placeholder={t('exam_title_placeholder')}
                 value={examDetails.title}
                 onChange={(e) => setExamDetails({...examDetails, title: e.target.value})}
                 className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
@@ -221,7 +223,7 @@ export default function CreateExamPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">Subject</label>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('subject')}</label>
                 <select 
                   value={examDetails.subject}
                   onChange={(e) => setExamDetails({...examDetails, subject: e.target.value})}
@@ -231,7 +233,7 @@ export default function CreateExamPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">Target Grade</label>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('target_grade_label')}</label>
                 <select 
                   value={examDetails.grade}
                   onChange={(e) => setExamDetails({...examDetails, grade: e.target.value})}
@@ -244,21 +246,21 @@ export default function CreateExamPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">Assessment Type</label>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('assessment_type_label')}</label>
                 <select 
                   value={examDetails.type}
                   onChange={(e) => setExamDetails({...examDetails, type: e.target.value as any})}
                   className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                 >
-                  <option value="exam">Exam</option>
-                  <option value="quiz">Quiz</option>
-                  <option value="homework">Homework</option>
-                  <option value="project">Project</option>
-                  <option value="essay">Essay</option>
+                  <option value="exam">{t('exam')}</option>
+                  <option value="quiz">{t('quiz')}</option>
+                  <option value="homework">{t('homework')}</option>
+                  <option value="project">{t('project')}</option>
+                  <option value="essay">{t('essay')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">Date</label>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('date')}</label>
                 <input 
                   type="date" 
                   value={examDetails.date}
@@ -270,7 +272,7 @@ export default function CreateExamPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">Duration (Minutes)</label>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('duration_minutes_label')}</label>
                 <input 
                   type="number" 
                   min="10"
@@ -280,17 +282,17 @@ export default function CreateExamPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">Total Marks</label>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('total_marks')}</label>
                 <div className="w-full p-3 bg-muted border border-border rounded-xl text-muted-foreground font-medium">
-                  {totalMarksCalculated} (Auto-calculated)
+                  {totalMarksCalculated} {t('auto_calculated')}
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-foreground mb-2">Description</label>
+              <label className="block text-sm font-bold text-foreground mb-2">{t('description_label')}</label>
               <textarea 
-                placeholder="Enter assessment instructions or description..."
+                placeholder={t('exam_desc_placeholder')}
                 value={examDetails.description}
                 onChange={(e) => setExamDetails({...examDetails, description: e.target.value})}
                 className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary min-h-[100px]"
@@ -303,7 +305,7 @@ export default function CreateExamPage() {
               onClick={() => setCurrentStep(2)}
               className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors"
             >
-              Continue to Questions
+              {t('continue_to_questions')}
             </button>
           </div>
         </motion.div>
@@ -315,14 +317,14 @@ export default function CreateExamPage() {
           <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3 text-primary">
               <CheckCircle2 size={20} className="text-primary" />
-              <span className="font-bold">Total Marks: {totalMarksCalculated}</span>
+              <span className="font-bold">{t('total_marks')}: {totalMarksCalculated}</span>
             </div>
             <button 
               onClick={handleAddQuestion}
               className="px-4 py-2 bg-card text-primary rounded-xl font-bold text-sm hover:bg-primary/10 transition-colors shadow-sm flex items-center gap-2 border border-primary/20"
             >
               <Plus size={16} />
-              Add Question
+              {t('add_question')}
             </button>
           </div>
 
@@ -341,14 +343,14 @@ export default function CreateExamPage() {
                   <div className="w-8 h-8 bg-muted text-muted-foreground rounded-lg flex items-center justify-center font-bold text-sm">
                     {index + 1}
                   </div>
-                  <h3 className="font-bold text-foreground">Question Details</h3>
+                  <h3 className="font-bold text-foreground">{t('question_details')}</h3>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Question Text</label>
+                    <label className="block text-sm font-bold text-foreground mb-2">{t('question_text_label')}</label>
                     <textarea 
-                      placeholder="Enter your question here..."
+                      placeholder={t('question_text_placeholder')}
                       value={q.text}
                       onChange={(e) => handleQuestionChange(q.id, 'text', e.target.value)}
                       className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary min-h-[100px] resize-y"
@@ -357,20 +359,20 @@ export default function CreateExamPage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-foreground mb-2">Question Type</label>
+                      <label className="block text-sm font-bold text-foreground mb-2">{t('question_type_label')}</label>
                       <select 
                         value={q.type}
                         onChange={(e) => handleQuestionChange(q.id, 'type', e.target.value)}
                         className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                       >
-                        <option value="multiple_choice">Multiple Choice</option>
-                        <option value="true_false">True / False</option>
-                        <option value="multiple_response">Multiple Response (Checkboxes)</option>
-                        <option value="short_answer">Short Answer (Exact Match)</option>
+                        <option value="multiple_choice">{t('multiple_choice')}</option>
+                        <option value="true_false">{t('true_false')}</option>
+                        <option value="multiple_response">{t('multiple_response')}</option>
+                        <option value="short_answer">{t('short_answer')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-foreground mb-2">Marks</label>
+                      <label className="block text-sm font-bold text-foreground mb-2">{t('marks_label')}</label>
                       <input 
                         type="number" 
                         min="1"
@@ -383,7 +385,7 @@ export default function CreateExamPage() {
 
                   {q.type === 'multiple_choice' && (
                     <div className="pt-4 border-t border-border">
-                      <label className="block text-sm font-bold text-foreground mb-3">Options & Correct Answer</label>
+                      <label className="block text-sm font-bold text-foreground mb-3">{t('options_correct_answer')}</label>
                       <div className="space-y-3">
                         {q.options.map((opt, optIdx) => (
                           <div key={optIdx} className="flex items-center gap-3">
@@ -396,7 +398,7 @@ export default function CreateExamPage() {
                             />
                             <input 
                               type="text" 
-                              placeholder={`Option ${optIdx + 1}`}
+                              placeholder={`${t('option_label')} ${optIdx + 1}`}
                               value={opt}
                               onChange={(e) => handleOptionChange(q.id, optIdx, e.target.value)}
                               className={`flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary ${q.correct_answer === optIdx.toString() ? 'bg-primary/10/50 border-primary/20' : 'bg-muted border-border'}`}
@@ -409,7 +411,7 @@ export default function CreateExamPage() {
 
                   {q.type === 'multiple_response' && (
                     <div className="pt-4 border-t border-border">
-                      <label className="block text-sm font-bold text-foreground mb-3">Options & Correct Answers</label>
+                      <label className="block text-sm font-bold text-foreground mb-3">{t('options_correct_answer')}</label>
                       <div className="space-y-3">
                         {q.options.map((opt, optIdx) => (
                           <div key={optIdx} className="flex items-center gap-3">
@@ -426,7 +428,7 @@ export default function CreateExamPage() {
                             />
                             <input 
                               type="text" 
-                              placeholder={`Option ${optIdx + 1}`}
+                              placeholder={`${t('option_label')} ${optIdx + 1}`}
                               value={opt}
                               onChange={(e) => handleOptionChange(q.id, optIdx, e.target.value)}
                               className={`flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary ${q.correct_answers.includes(optIdx.toString()) ? 'bg-primary/10/50 border-primary/20' : 'bg-muted border-border'}`}
@@ -439,7 +441,7 @@ export default function CreateExamPage() {
 
                   {q.type === 'true_false' && (
                     <div className="pt-4 border-t border-border">
-                      <label className="block text-sm font-bold text-foreground mb-3">Correct Answer</label>
+                      <label className="block text-sm font-bold text-foreground mb-3">{t('correct_answer_label')}</label>
                       <div className="flex gap-4">
                         <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border cursor-pointer transition-colors ${q.correct_answer === 'true' ? 'bg-primary/10 border-primary text-primary font-bold' : 'bg-muted border-border text-muted-foreground hover:bg-muted'}`}>
                           <input 
@@ -449,7 +451,7 @@ export default function CreateExamPage() {
                             onChange={() => handleQuestionChange(q.id, 'correct_answer', 'true')}
                             className="hidden"
                           />
-                          True
+                          {t('true_label')}
                         </label>
                         <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border cursor-pointer transition-colors ${q.correct_answer === 'false' ? 'bg-primary/10 border-primary text-primary font-bold' : 'bg-muted border-border text-muted-foreground hover:bg-muted'}`}>
                           <input 
@@ -459,7 +461,7 @@ export default function CreateExamPage() {
                             onChange={() => handleQuestionChange(q.id, 'correct_answer', 'false')}
                             className="hidden"
                           />
-                          False
+                          {t('false_label')}
                         </label>
                       </div>
                     </div>
@@ -467,15 +469,15 @@ export default function CreateExamPage() {
 
                   {q.type === 'short_answer' && (
                     <div className="pt-4 border-t border-border">
-                      <label className="block text-sm font-bold text-foreground mb-2">Correct Answer (Exact Match)</label>
+                      <label className="block text-sm font-bold text-foreground mb-2">{t('correct_answer_label')}</label>
                       <input 
                         type="text" 
-                        placeholder="Enter the exact correct answer..."
+                        placeholder={t('short_answer_placeholder')}
                         value={q.correct_answer}
                         onChange={(e) => handleQuestionChange(q.id, 'correct_answer', e.target.value)}
                         className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                       />
-                      <p className="text-xs text-muted-foreground mt-2">Note: Student response must match this exactly (case-insensitive check can be implemented in the grading logic).</p>
+                      <p className="text-xs text-muted-foreground mt-2">{t('short_answer_note')}</p>
                     </div>
                   )}
                 </div>
@@ -489,7 +491,7 @@ export default function CreateExamPage() {
               className="px-6 py-3 bg-muted text-foreground rounded-xl font-bold hover:bg-slate-200 transition-colors flex items-center gap-2"
             >
               <Plus size={18} />
-              Add Another Question
+              {t('add_another_question')}
             </button>
           </div>
         </motion.div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -53,6 +54,7 @@ const MOCK_EXAM = {
 
 export default function TakeExamPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -106,7 +108,7 @@ export default function TakeExamPage() {
   };
 
   const handleSubmit = () => {
-    if (window.confirm('Are you sure you want to submit your exam? You cannot change your answers after submitting.')) {
+    if (window.confirm(t('submit_exam_confirm'))) {
       handleAutoSubmit();
     }
   };
@@ -117,14 +119,14 @@ export default function TakeExamPage() {
         <div className="w-24 h-24 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 size={48} />
         </div>
-        <h1 className="text-3xl font-bold text-foreground">Exam Submitted Successfully!</h1>
-        <p className="text-muted-foreground text-lg">Your answers have been recorded. You can view your results once the teacher publishes them.</p>
+        <h1 className="text-3xl font-bold text-foreground">{t('exam_submitted_success')}</h1>
+        <p className="text-muted-foreground text-lg">{t('exam_submitted_desc')}</p>
         <div className="pt-8">
           <button 
             onClick={() => router.push('/dashboard/exams')}
             className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-sm"
           >
-            Return to Dashboard
+            {t('return_to_dashboard')}
           </button>
         </div>
       </motion.div>
@@ -144,13 +146,13 @@ export default function TakeExamPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card sm:p-4 sm:rounded-2xl sm:border sm:border-border sm:shadow-sm">
           <div>
             <h1 className="text-xl font-bold text-foreground">{MOCK_EXAM.title}</h1>
-            <p className="text-sm font-medium text-muted-foreground">{MOCK_EXAM.subject} • {MOCK_EXAM.totalMarks} Marks</p>
+            <p className="text-sm font-medium text-muted-foreground">{MOCK_EXAM.subject} • {MOCK_EXAM.totalMarks} {t('marks')}</p>
           </div>
           
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-muted-foreground">
               <CheckCircle2 size={18} className="text-emerald-500" />
-              <span className="font-bold text-sm">{answeredCount} / {MOCK_EXAM.questions.length} Answered</span>
+              <span className="font-bold text-sm">{answeredCount} / {MOCK_EXAM.questions.length} {t('answered')}</span>
             </div>
             <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold ${timeLeft < 300 ? 'bg-destructive/10 text-destructive animate-pulse' : 'bg-muted text-foreground'}`}>
               <Clock size={18} />
@@ -161,7 +163,7 @@ export default function TakeExamPage() {
               disabled={isSubmitting}
               className="px-6 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Exam'}
+              {isSubmitting ? t('submitting') : t('submit_exam')}
             </button>
           </div>
         </div>
@@ -191,17 +193,17 @@ export default function TakeExamPage() {
                   {currentQuestionIndex + 1}
                 </span>
                 <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                  Question {currentQuestionIndex + 1} of {MOCK_EXAM.questions.length}
+                  {t('question_label')} {currentQuestionIndex + 1} {t('of_label')} {MOCK_EXAM.questions.length}
                 </span>
               </div>
               <div className="flex items-center gap-4">
                 <span className="px-3 py-1 bg-muted text-muted-foreground rounded-lg text-sm font-bold">
-                  {currentQuestion.marks} Marks
+                  {currentQuestion.marks} {t('marks')}
                 </span>
                 <button 
                   onClick={() => toggleFlag(currentQuestion.id)}
                   className={`p-2 rounded-lg transition-colors ${flagged[currentQuestion.id] ? 'bg-amber-100 text-amber-500' : 'text-muted-foreground hover:bg-muted'}`}
-                  title="Flag for review"
+                  title={t('flag_for_review')}
                 >
                   <Flag size={20} className={flagged[currentQuestion.id] ? 'fill-current' : ''} />
                 </button>
@@ -229,7 +231,7 @@ export default function TakeExamPage() {
                 ))
               ) : (
                 <textarea 
-                  placeholder="Type your answer here..."
+                  placeholder={t('type_answer_placeholder')}
                   value={answers[currentQuestion.id] || ''}
                   onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                   className="w-full p-4 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary min-h-[200px] resize-y text-lg"
@@ -245,16 +247,16 @@ export default function TakeExamPage() {
               disabled={isFirstQuestion}
               className="px-6 py-3 bg-card border border-border text-foreground rounded-xl font-bold hover:bg-muted transition-colors flex items-center gap-2 disabled:opacity-50"
             >
-              <ChevronLeft size={20} />
-              Previous
+              <ChevronLeft size={20} className="rtl:rotate-180" />
+              {t('previous')}
             </button>
             <button 
               onClick={() => setCurrentQuestionIndex(prev => Math.min(MOCK_EXAM.questions.length - 1, prev + 1))}
               disabled={isLastQuestion}
               className="px-6 py-3 bg-card border border-border text-foreground rounded-xl font-bold hover:bg-muted transition-colors flex items-center gap-2 disabled:opacity-50"
             >
-              Next
-              <ChevronRight size={20} />
+              {t('next')}
+              <ChevronRight size={20} className="rtl:rotate-180" />
             </button>
           </div>
         </div>
@@ -262,7 +264,7 @@ export default function TakeExamPage() {
         {/* Sidebar Navigation */}
         <div className="hidden lg:block">
           <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sticky top-24">
-            <h3 className="font-bold text-foreground mb-4">Question Navigator</h3>
+            <h3 className="font-bold text-foreground mb-4">{t('question_navigator')}</h3>
             <div className="grid grid-cols-4 gap-2">
               {MOCK_EXAM.questions.map((q, idx) => {
                 const isAnswered = answers[q.id] !== undefined && answers[q.id] !== '';
@@ -291,15 +293,15 @@ export default function TakeExamPage() {
             <div className="mt-6 space-y-3 pt-6 border-t border-border">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="w-4 h-4 rounded-md bg-emerald-500/20" />
-                <span>Answered</span>
+                <span>{t('answered')}</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="w-4 h-4 rounded-md bg-muted" />
-                <span>Unanswered</span>
+                <span>{t('unanswered')}</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="w-4 h-4 rounded-full bg-amber-500/100 border-2 border-white" />
-                <span>Flagged for review</span>
+                <span>{t('flag_for_review')}</span>
               </div>
             </div>
           </div>

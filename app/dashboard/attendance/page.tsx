@@ -18,22 +18,24 @@ type AttendanceStatus = 'present' | 'absent' | 'late' | null;
 export default function AttendancePage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
+  const { t } = useLanguage();
   
   if (!user) return null;
 
   if (!can('view', 'attendance')) {
-    return <div className="p-4">You do not have permission to view this page.</div>;
+    return <div className="p-4">{t('no_permission')}</div>;
   }
 
   if (isRole(['teacher'])) return <TeacherAttendance />;
   if (isRole(['parent', 'student'])) return <StudentAttendanceView />;
   if (isRole(['admin', 'staff', 'accountant'])) return <AdminAttendance />;
 
-  return <div className="p-4">You do not have permission to view this page.</div>;
+  return <div className="p-4">{t('no_permission')}</div>;
 }
 
 function TeacherAttendance() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const searchParams = useSearchParams();
   const classFilter = searchParams.get('class');
   
@@ -83,7 +85,7 @@ function TeacherAttendance() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedDate, activeAcademicYear?.name]);
+  }, [selectedDate, activeAcademicYear?.name, classFilter]);
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -105,12 +107,12 @@ function TeacherAttendance() {
 
       await saveAttendance(attendancePayload);
       setIsSaved(true);
-      toast.success("Attendance saved successfully", {
-        description: `Recorded attendance for ${attendancePayload.length} students.`,
+      toast.success(t('attendance_saved_success'), {
+        description: t('attendance_saved_desc').replace('{count}', attendancePayload.length.toString()),
       });
     } catch (error) {
       console.error('Error saving attendance:', error);
-      toast.error("Failed to save attendance");
+      toast.error(t('failed_to_save_attendance'));
     } finally {
       setIsSaving(false);
     }
@@ -254,7 +256,7 @@ function TeacherAttendance() {
                   </div>
                   <div>
                     <p className="font-bold text-foreground">{student.name}</p>
-                    <p className="text-xs font-medium text-muted-foreground">ID: {student.roll_number || student.id.substring(0, 8)}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('student_id_label')}: {student.roll_number || student.id.substring(0, 8)}</p>
                   </div>
                 </div>
 

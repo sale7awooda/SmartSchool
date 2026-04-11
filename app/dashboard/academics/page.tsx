@@ -1611,10 +1611,10 @@ function TeacherAcademics() {
               </button>
               <div>
                 <h2 className="font-bold text-foreground text-lg">
-                  Submissions: {viewingSubmissionsFor.title}
+                  {t('submissions_for').replace('{title}', viewingSubmissionsFor.title)}
                 </h2>
                 <p className="text-sm font-medium text-muted-foreground">
-                  {viewingSubmissionsFor.class} • Due{" "}
+                  {viewingSubmissionsFor.class} • {t('due')}{" "}
                   {viewingSubmissionsFor.date}
                 </p>
               </div>
@@ -1629,7 +1629,7 @@ function TeacherAcademics() {
                 }}
                 className="px-4 py-2 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary/20 transition-colors text-sm"
               >
-                Go to Gradebook
+                {t('go_to_gradebook')}
               </button>
             </div>
           </div>
@@ -1638,7 +1638,7 @@ function TeacherAcademics() {
             {/* Submitted Column */}
             <div className="bg-muted/30 rounded-[1.5rem] border border-border p-4 space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-foreground">Submitted</h3>
+                <h3 className="font-bold text-foreground">{t('submitted')}</h3>
                 <span className="bg-card text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg border border-border">
                   2
                 </span>
@@ -1656,7 +1656,7 @@ function TeacherAcademics() {
                           Bart Simpson
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Submitted today, 09:41 AM
+                          {t('submitted_today')}, 09:41 AM
                         </p>
                       </div>
                     </div>
@@ -1671,7 +1671,7 @@ function TeacherAcademics() {
                     onClick={() => handleReviewSubmission({ name: "Bart Simpson", file: "solar_system_report_final.pdf" })}
                     className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors"
                   >
-                    Review Submission
+                    {t('review_submission')}
                   </button>
                 </div>
 
@@ -1686,7 +1686,7 @@ function TeacherAcademics() {
                           Lisa Simpson
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Submitted yesterday, 04:20 PM
+                          {t('submitted_yesterday')}, 04:20 PM
                         </p>
                       </div>
                     </div>
@@ -1701,7 +1701,7 @@ function TeacherAcademics() {
                     onClick={() => handleReviewSubmission({ name: "Lisa Simpson", file: "lisa_science_project.docx" })}
                     className="w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors"
                   >
-                    Review Submission
+                    {t('review_submission')}
                   </button>
                 </div>
               </div>
@@ -1710,7 +1710,7 @@ function TeacherAcademics() {
             {/* Graded Column */}
             <div className="bg-muted/30 rounded-[1.5rem] border border-border p-4 space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-foreground">Graded</h3>
+                <h3 className="font-bold text-foreground">{t('graded')}</h3>
                 <span className="bg-card text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg border border-border">
                   1
                 </span>
@@ -1728,7 +1728,7 @@ function TeacherAcademics() {
                           Milhouse Van Houten
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Graded on Oct 24
+                          {t('graded_on').replace('{date}', 'Oct 24')}
                         </p>
                       </div>
                     </div>
@@ -1743,7 +1743,7 @@ function TeacherAcademics() {
             {/* Pending Column */}
             <div className="bg-muted/30 rounded-[1.5rem] border border-border p-4 space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-foreground">Pending</h3>
+                <h3 className="font-bold text-foreground">{t('pending')}</h3>
                 <span className="bg-card text-muted-foreground text-xs font-bold px-2 py-1 rounded-lg border border-border">
                   3
                 </span>
@@ -1785,11 +1785,11 @@ function TeacherAcademics() {
               <div className="p-6 sm:p-8 border-b border-border bg-muted/30 flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground tracking-tight">
-                    Review Submission
+                    {t('review_submission')}
                   </h2>
                   <p className="text-sm font-medium text-muted-foreground mt-2 flex items-center gap-4">
-                    <span>Student: {selectedSubmissionToReview.studentName}</span>
-                    <span>Assessment: {selectedSubmissionToReview.assessmentTitle}</span>
+                    <span>{t('student_label')}: {selectedSubmissionToReview.studentName}</span>
+                    <span>{t('assessment_label')}: {selectedSubmissionToReview.assessmentTitle}</span>
                   </p>
                 </div>
                 <button
@@ -1803,11 +1803,11 @@ function TeacherAcademics() {
               <form onSubmit={submitReview} className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                    Student Work
+                    {t('student_work')}
                   </h3>
                   <div className="bg-muted/50 p-4 rounded-2xl border border-border">
                     <p className="text-sm text-foreground leading-relaxed">
-                      {selectedSubmissionToReview.content || "No text content provided."}
+                      {selectedSubmissionToReview.content || t('no_content_provided')}
                     </p>
                   </div>
                   {selectedSubmissionToReview.files && (
@@ -1825,7 +1825,7 @@ function TeacherAcademics() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      Grade / Score (Max: {selectedSubmissionToReview.maxScore || 100})
+                      {t('grade_score_max').replace('{max}', (selectedSubmissionToReview.maxScore || 100).toString())}
                     </label>
                     <input
                       required
@@ -1833,28 +1833,28 @@ function TeacherAcademics() {
                       min="0"
                       max={selectedSubmissionToReview.maxScore || 100}
                       className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground font-bold"
-                      placeholder="Enter score..."
+                      placeholder={t('enter_score')}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">
-                      Status
+                      {t('status')}
                     </label>
                     <select className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-foreground font-bold">
-                      <option value="Graded">Graded</option>
-                      <option value="Needs Revision">Needs Revision</option>
+                      <option value="Graded">{t('graded')}</option>
+                      <option value="Needs Revision">{t('needs_revision')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-foreground">
-                    Feedback for Student
+                    {t('feedback_for_student')}
                   </label>
                   <textarea
                     rows={4}
                     className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none text-foreground"
-                    placeholder="Provide constructive feedback..."
+                    placeholder={t('provide_feedback_placeholder')}
                   ></textarea>
                 </div>
 
@@ -1864,7 +1864,7 @@ function TeacherAcademics() {
                     onClick={() => setIsReviewModalOpen(false)}
                     className="px-6 py-3 rounded-xl font-bold text-muted-foreground hover:bg-muted transition-all"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     type="submit"
@@ -1872,7 +1872,7 @@ function TeacherAcademics() {
                     className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                   >
                     {isSaving ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
-                    Submit Grade
+                    {t('submit_grade')}
                   </button>
                 </div>
               </form>
@@ -1951,14 +1951,14 @@ function ParentAcademics() {
         }
       } catch (error) {
         console.error("Error fetching parent academics data:", error);
-        toast.error("Failed to load academic data");
+        toast.error(t('failed_to_load_data'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [user, activeAcademicYear?.name]);
+  }, [user, activeAcademicYear?.name, t]);
 
   // Mock subjects for overview (could be derived from submissions in a real app)
   const subjects = [
@@ -1992,7 +1992,7 @@ function ParentAcademics() {
     }
 
     if (!studentId) {
-      toast.error("Could not identify student");
+      toast.error(t('could_not_identify_student'));
       return;
     }
 
@@ -2010,7 +2010,7 @@ function ParentAcademics() {
         submitted_at: new Date().toISOString()
       });
 
-      toast.success("Assignment submitted successfully!");
+      toast.success(t('assignment_submitted_success'));
       
       // Refresh data
       const submissions = await getStudentSubmissions(studentId);
@@ -2020,7 +2020,7 @@ function ParentAcademics() {
       setSelectedAssignment(null);
     } catch (error) {
       console.error("Error submitting assignment:", error);
-      toast.error("Failed to submit assignment");
+      toast.error(t('failed_to_submit_assignment'));
     } finally {
       setIsUploading(false);
     }
@@ -2286,7 +2286,7 @@ function ParentAcademics() {
                       {submission.assessment?.type}
                     </span>
                     <span className="text-xs font-bold text-amber-500">
-                      45% Complete
+                      {t('complete_percentage').replace('{percentage}', '45')}
                     </span>
                   </div>
                 </div>
@@ -2315,11 +2315,11 @@ function ParentAcademics() {
                   </h4>
                   <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
                     <CheckCircle2 size={14} className="text-emerald-500" />{" "}
-                    Submitted {new Date(submission.submitted_at).toLocaleDateString()}
+                    {t('submitted')} {new Date(submission.submitted_at).toLocaleDateString()}
                   </p>
                   <div className="flex items-center justify-between pt-3 border-t border-border/50">
                     <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
-                      {submission.status === 'Graded' ? `Graded: ${submission.score}/${submission.assessment?.max_score}` : 'Pending Grading'}
+                      {submission.status === 'Graded' ? `${t('graded')}: ${submission.score}/${submission.assessment?.max_score}` : t('pending_grading')}
                     </span>
                   </div>
                 </div>
@@ -2355,10 +2355,10 @@ function ParentAcademics() {
                   <p className="text-sm font-medium text-muted-foreground mt-2 flex items-center gap-4">
                     <span>{selectedAssignment.subject}</span>
                     <span className="flex items-center gap-1">
-                      <Calendar size={14} /> Due {selectedAssignment.date}
+                      <Calendar size={14} /> {t('due')} {selectedAssignment.date}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Award size={14} /> {selectedAssignment.max_score} pts
+                      <Award size={14} /> {selectedAssignment.max_score} {t('pts')}
                     </span>
                   </p>
                 </div>
@@ -2373,17 +2373,17 @@ function ParentAcademics() {
               <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-8">
                 <div>
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-3">
-                    Instructions
+                    {t('instructions')}
                   </h3>
                   <p className="text-muted-foreground leading-relaxed">
                     {selectedAssignment.description ||
-                      "No additional instructions provided."}
+                      t('no_instructions_provided')}
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                    Your Work
+                    {t('your_work')}
                   </h3>
 
                   {/* Upload Area */}
@@ -2403,11 +2403,11 @@ function ParentAcademics() {
                     </div>
                     <p className="font-bold text-foreground text-lg mb-1">
                       {isUploading
-                        ? "Uploading..."
-                        : "Click to upload or drag and drop"}
+                        ? t('uploading')
+                        : t('click_to_upload')}
                     </p>
                     <p className="text-sm font-medium text-muted-foreground">
-                      PDF, DOCX, PPTX, or Images (max. 10MB)
+                      {t('upload_limits')}
                     </p>
                   </div>
 
@@ -2422,7 +2422,7 @@ function ParentAcademics() {
                       </div>
                       <div className="flex-1">
                         <textarea
-                          placeholder="Add a private comment to your teacher..."
+                          placeholder={t('private_comment_placeholder')}
                           className="w-full bg-transparent border-none focus:ring-0 resize-none text-sm placeholder:text-muted-foreground text-foreground"
                           rows={2}
                         ></textarea>
@@ -2437,7 +2437,7 @@ function ParentAcademics() {
                   onClick={() => setSelectedAssignment(null)}
                   className="px-6 py-3 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-colors"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   disabled={isUploading}
@@ -2448,7 +2448,7 @@ function ParentAcademics() {
                   ) : (
                     <CheckCircle2 size={18} />
                   )}
-                  Mark as Done
+                  {t('mark_as_done')}
                 </button>
               </div>
             </motion.div>
@@ -2510,7 +2510,7 @@ function ParentAcademics() {
                     {submission.feedback && (
                       <div className="bg-muted/30 p-3 rounded-xl border border-border mb-4">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                          Teacher Feedback
+                          {t('teacher_feedback')}
                         </p>
                         <p className="text-sm text-foreground italic">
                           &quot;{submission.feedback}&quot;
@@ -2522,7 +2522,7 @@ function ParentAcademics() {
                   <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-auto">
                     <div>
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Score
+                        {t('score_label')}
                       </p>
                       <p className="text-lg font-bold text-foreground">
                         {submission.score || 0}{" "}
