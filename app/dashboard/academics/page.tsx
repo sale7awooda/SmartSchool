@@ -836,6 +836,7 @@ const getAssessmentColor = (type: AssessmentType) => {
 // --- Teacher View ---
 function TeacherAcademics() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [activeTab, setActiveTab] = useState<
     "assessments" | "gradebook" | "submissions"
@@ -1886,6 +1887,7 @@ function TeacherAcademics() {
 }
 function ParentAcademics() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   const [activeTab, setActiveTab] = useState<
     "overview" | "assessments" | "assignments"
@@ -2238,7 +2240,7 @@ function ParentAcademics() {
                     {assessment.title}
                   </h4>
                   <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
-                    <Calendar size={14} /> Due {assessment.date}
+                    <Calendar size={14} /> {t('due')} {assessment.date}
                   </p>
                   <div className="flex items-center justify-between pt-3 border-t border-border/50">
                     <span className="text-xs font-bold text-muted-foreground">
@@ -2273,7 +2275,7 @@ function ParentAcademics() {
                     {submission.assessment?.title}
                   </h4>
                   <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-4">
-                    <Calendar size={14} /> Due {submission.assessment?.date}
+                    <Calendar size={14} /> {t('due')} {submission.assessment?.date}
                   </p>
                   <div className="w-full bg-muted rounded-full h-1.5 mb-3">
                     <div
