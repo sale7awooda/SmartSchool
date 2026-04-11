@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent } from '@/lib/mock-db';
-import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, createFeeItem, getFeeItems } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
@@ -84,6 +84,9 @@ export default function StudentsPage() {
   const { data: classesData } = useSWR('classes', getClasses);
   const classesList = classesData?.map(c => c.name) || [];
 
+  const { data: feeItemsData } = useSWR('fee_items', getFeeItems);
+  const feeItemsList = feeItemsData || [];
+
   const [formData, setFormData] = useState({
     name: '',
     studentId: '',
@@ -93,9 +96,14 @@ export default function StudentsPage() {
     bloodGroup: 'A+',
     address: '',
     parentName: '',
+    parentRelation: 'Father',
     parentPhone: '',
     feeType: 'predefined' as 'predefined' | 'manual',
     feeStructure: '',
+    manualFeeName: '',
+    manualFeeAmount: '',
+    manualFeeFrequency: 'Per Term',
+    manualFeeCategory: 'Academic',
     additionalInfo: ''
   });
 
@@ -265,6 +273,10 @@ export default function StudentsPage() {
   const handleOpenEditStudent = (student: any) => {
     setIsEditing(true);
     setEditingStudent(student);
+    
+    // Check if fee structure is predefined by searching in feeItemsList
+    const isPredefined = feeItemsList.some((item: any) => item.name === student.fee_structure);
+    
     setFormData({
       name: student.name,
       studentId: student.roll_number,
@@ -274,9 +286,14 @@ export default function StudentsPage() {
       bloodGroup: student.blood_group || 'A+',
       address: student.address || '',
       parentName: student.parents?.[0]?.parent?.name || '',
+      parentRelation: student.parents?.[0]?.relationship || 'Father',
       parentPhone: student.parents?.[0]?.parent?.phone || '',
-      feeType: student.fee_structure?.includes('{') ? 'manual' : 'predefined',
+      feeType: isPredefined || !student.fee_structure ? 'predefined' : 'manual',
       feeStructure: student.fee_structure || '',
+      manualFeeName: '',
+      manualFeeAmount: '',
+      manualFeeFrequency: 'Per Term',
+      manualFeeCategory: 'Academic',
       additionalInfo: student.additional_info || ''
     });
     setIsAddStudentOpen(true);
@@ -874,6 +891,26 @@ export default function StudentsPage() {
                   setIsSubmitting(true);
                   
                   try {
+                    let finalFeeStructure = formData.feeStructure;
+                    
+                    if (formData.feeType === 'manual') {
+                      if (!formData.manualFeeName || !formData.manualFeeAmount) {
+                        toast.error('Please fill in all manual fee details');
+                        setIsSubmitting(false);
+                        return;
+                      }
+                      
+                      // Create the new fee item
+                      const newFeeItem = await createFeeItem({
+                        name: formData.manualFeeName,
+                        amount: parseFloat(formData.manualFeeAmount),
+                        frequency: formData.manualFeeFrequency,
+                        category: formData.manualFeeCategory
+                      });
+                      
+                      finalFeeStructure = newFeeItem.name;
+                    }
+
                     if (isEditing && editingStudent) {
                       // Update existing student
                       const { error } = await supabase
@@ -885,7 +922,7 @@ export default function StudentsPage() {
                           dob: formData.dob,
                           gender: formData.gender,
                           blood_group: formData.bloodGroup,
-                          fee_structure: formData.feeStructure,
+                          fee_structure: finalFeeStructure,
                           additional_info: formData.additionalInfo
                         })
                         .eq('id', editingStudent.id);
@@ -896,6 +933,7 @@ export default function StudentsPage() {
                       // Create new student
                       const newStudent = await createStudent({
                         ...formData,
+                        feeStructure: finalFeeStructure,
                         academicYear: activeAcademicYear?.name
                       });
                       
@@ -918,9 +956,14 @@ export default function StudentsPage() {
                       bloodGroup: 'A+',
                       address: '',
                       parentName: '',
+                      parentRelation: 'Father',
                       parentPhone: '',
                       feeType: 'predefined',
                       feeStructure: '',
+                      manualFeeName: '',
+                      manualFeeAmount: '',
+                      manualFeeFrequency: 'Per Term',
+                      manualFeeCategory: 'Academic',
                       additionalInfo: ''
                     });
                     setFormErrors({});
@@ -1038,42 +1081,56 @@ export default function StudentsPage() {
 
                 <div className="pt-4 border-t border-border">
                   <h3 className="font-bold text-foreground mb-4">Parent/Guardian Information</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-foreground">Parent Phone (Search/Register)</label>
-                      <input 
-                        required 
-                        type="tel" 
-                        placeholder="+1 234 567 890" 
-                        value={formData.parentPhone}
-                        onChange={async (e) => {
-                          const phone = e.target.value;
-                          setFormData(prev => ({ ...prev, parentPhone: phone }));
-                          if (phone.length >= 10) {
-                            const { data } = await supabase
-                              .from('users')
-                              .select('name')
-                              .eq('phone', phone)
-                              .eq('role', 'parent')
-                              .maybeSingle();
-                            if (data) {
-                              setFormData(prev => ({ ...prev, parentName: data.name }));
-                              toast.info(`Found existing parent: ${data.name}`);
-                            }
-                          }
-                        }}
-                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-foreground">Parent Name</label>
+                      <label className="text-sm font-bold text-foreground">Parent Name (Searchable)</label>
                       <input 
                         required 
                         type="text" 
                         placeholder="e.g., Homer Simpson" 
                         value={formData.parentName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
+                        onChange={async (e) => {
+                          const name = e.target.value;
+                          setFormData(prev => ({ ...prev, parentName: name }));
+                          if (name.length >= 3) {
+                            const { data } = await supabase
+                              .from('users')
+                              .select('phone')
+                              .ilike('name', `%${name}%`)
+                              .eq('role', 'parent')
+                              .maybeSingle();
+                            if (data) {
+                              setFormData(prev => ({ ...prev, parentPhone: data.phone || '' }));
+                              toast.info(`Found existing parent phone: ${data.phone}`);
+                            }
+                          }
+                        }}
                         className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-foreground">Relation to Student</label>
+                      <select 
+                        required 
+                        value={formData.parentRelation}
+                        onChange={(e) => setFormData(prev => ({ ...prev, parentRelation: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
+                      >
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-foreground">Parent Phone</label>
+                      <input 
+                        required 
+                        type="tel" 
+                        placeholder="+1 234 567 890" 
+                        value={formData.parentPhone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
+                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                       />
                     </div>
                   </div>
@@ -1105,17 +1162,65 @@ export default function StudentsPage() {
                         className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                       >
                         <option value="">Select Fee Structure</option>
-                        <option value="Standard Grade 1-5">Standard Grade 1-5</option>
-                        <option value="Standard Grade 6-10">Standard Grade 6-10</option>
-                        <option value="Scholarship A">Scholarship A (50% Off)</option>
+                        {feeItemsList.map((item: any) => (
+                          <option key={item.id} value={item.name}>{item.name} - ${item.amount} ({item.frequency})</option>
+                        ))}
                       </select>
                     ) : (
-                      <textarea 
-                        placeholder="Enter custom fee details..."
-                        value={formData.feeStructure}
-                        onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium min-h-[100px]"
-                      />
+                      <div className="space-y-4 p-4 border border-border rounded-xl bg-muted/20">
+                        <h4 className="font-bold text-sm text-foreground">Add Fee Item</h4>
+                        <div>
+                          <label className="block text-sm font-bold text-foreground mb-2">Item Name</label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="e.g. Custom Scholarship" 
+                            value={formData.manualFeeName}
+                            onChange={(e) => setFormData(prev => ({ ...prev, manualFeeName: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-bold text-foreground mb-2">Amount ($)</label>
+                            <input 
+                              required 
+                              type="number" 
+                              min="0" 
+                              placeholder="0.00" 
+                              value={formData.manualFeeAmount}
+                              onChange={(e) => setFormData(prev => ({ ...prev, manualFeeAmount: e.target.value }))}
+                              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-foreground mb-2">Frequency</label>
+                            <select 
+                              value={formData.manualFeeFrequency}
+                              onChange={(e) => setFormData(prev => ({ ...prev, manualFeeFrequency: e.target.value }))}
+                              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+                            >
+                              <option>Per Term</option>
+                              <option>Monthly</option>
+                              <option>Annual</option>
+                              <option>One-time</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-foreground mb-2">Category</label>
+                          <select 
+                            value={formData.manualFeeCategory}
+                            onChange={(e) => setFormData(prev => ({ ...prev, manualFeeCategory: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+                          >
+                            <option>Academic</option>
+                            <option>Transport</option>
+                            <option>Extracurricular</option>
+                            <option>Facility</option>
+                          </select>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
