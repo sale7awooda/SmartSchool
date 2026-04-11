@@ -852,7 +852,7 @@ function TeacherAcademics() {
 
   const { data: assessmentsData, isLoading: isAssessmentsLoading, mutate: mutateAssessments } = useSWR(
     ['assessments', activeAcademicYear?.name], 
-    ([_, a]) => getAssessments(a)
+    () => getAssessments()
   );
   const { data: studentsData, isLoading: isStudentsLoading } = useSWR(
     ['students', activeAcademicYear?.name], 
@@ -1938,7 +1938,7 @@ function ParentAcademics() {
           setStudentSubmissions(submissions);
 
           // Also get all published assessments to show what's "To Do"
-          const assessments = await getAssessments(activeAcademicYear?.name);
+          const assessments = await getAssessments();
           // Filter out assessments that already have a submission
           const submittedAssessmentIds = new Set(submissions.map((s: any) => s.assessment_id));
           const pendingAssessments = assessments.filter((a: any) => 

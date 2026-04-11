@@ -87,12 +87,12 @@ export default function ExamsPage() {
 
   if (!user) return null;
 
-  if (!can('view', 'exams')) {
+  if (!can('view', 'assessments')) {
     return <div className="p-4">You do not have permission to view this page.</div>;
   }
 
   const isStudent = isRole('student');
-  const isTeacherOrAdmin = can('manage', 'exams') || can('create', 'exams');
+  const isTeacherOrAdmin = can('manage', 'assessments') || can('create', 'assessments');
 
   const filteredExams = exams.map((exam: any) => ({
     id: exam.id,
@@ -147,7 +147,7 @@ export default function ExamsPage() {
           </p>
         </div>
         
-        {can('create', 'exams') && (
+        {can('create', 'assessments') && (
           <Link 
             href="/dashboard/exams/create"
             className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
