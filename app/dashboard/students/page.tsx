@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent } from '@/lib/mock-db';
-import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getFeeItems, createFeeItem } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
 import { 
   Search, Phone, Mail, UserCircle, GraduationCap, ChevronRight, Filter, 
@@ -84,6 +84,16 @@ export default function StudentsPage() {
   const { data: classesData } = useSWR('classes', getClasses);
   const classesList = classesData?.map(c => c.name) || [];
 
+  const { data: feeItemsData } = useSWR('fee_items', getFeeItems);
+  const feeItems = feeItemsData || [];
+
+  const [parentSearch, setParentSearch] = useState('');
+  const { data: parentsSearchData } = useSWR(
+    parentSearch.length >= 2 ? ['parents-search', parentSearch] : null,
+    ([_, s]) => getPaginatedParents(1, 5, s)
+  );
+  const foundParents = parentsSearchData?.data || [];
+
   const [formData, setFormData] = useState({
     name: '',
     studentId: '',
@@ -94,8 +104,15 @@ export default function StudentsPage() {
     address: '',
     parentName: '',
     parentPhone: '',
+    parentRelation: 'Father',
     feeType: 'predefined' as 'predefined' | 'manual',
     feeStructure: '',
+    manualFeeItem: {
+      name: '',
+      amount: '',
+      frequency: 'Per Term',
+      category: 'Academic'
+    },
     additionalInfo: ''
   });
 
@@ -242,8 +259,15 @@ export default function StudentsPage() {
       address: '',
       parentName: '',
       parentPhone: '',
+      parentRelation: 'Father',
       feeType: 'predefined',
       feeStructure: '',
+      manualFeeItem: {
+        name: '',
+        amount: '',
+        frequency: 'Per Term',
+        category: 'Academic'
+      },
       additionalInfo: ''
     });
     setIsAddStudentOpen(true);
@@ -275,8 +299,15 @@ export default function StudentsPage() {
       address: student.address || '',
       parentName: student.parents?.[0]?.parent?.name || '',
       parentPhone: student.parents?.[0]?.parent?.phone || '',
-      feeType: student.fee_structure?.includes('{') ? 'manual' : 'predefined',
+      parentRelation: student.parents?.[0]?.relationship || 'Father',
+      feeType: student.fee_structure?.includes('$') ? 'manual' : 'predefined',
       feeStructure: student.fee_structure || '',
+      manualFeeItem: {
+        name: '',
+        amount: '',
+        frequency: 'Per Term',
+        category: 'Academic'
+      },
       additionalInfo: student.additional_info || ''
     });
     setIsAddStudentOpen(true);
@@ -894,15 +925,34 @@ export default function StudentsPage() {
                       toast.success("Student updated successfully");
                     } else {
                       // Create new student
-                      const newStudent = await createStudent({
-                        ...formData,
-                        academicYear: activeAcademicYear?.name
-                      });
+                    const studentData = {
+                      ...formData,
+                      academicYear: activeAcademicYear?.name
+                    };
+
+                    // If manual fee, we might want to create a fee item first or just save the string
+                    if (formData.feeType === 'manual' && formData.manualFeeItem.name) {
+                      studentData.feeStructure = `${formData.manualFeeItem.name} ($${formData.manualFeeItem.amount})`;
                       
-                      toast.success("Student registered successfully", {
-                        description: `${formData.name} has been added to Grade ${formData.grade}.`
-                      });
+                      // Optionally create the fee item in the database so it becomes "predefined" for others
+                      try {
+                        await createFeeItem({
+                          name: formData.manualFeeItem.name,
+                          amount: parseFloat(formData.manualFeeItem.amount),
+                          frequency: formData.manualFeeItem.frequency,
+                          category: formData.manualFeeItem.category
+                        });
+                      } catch (e) {
+                        console.error("Error creating manual fee item:", e);
+                      }
                     }
+
+                    await createStudent(studentData);
+                    
+                    toast.success("Student registered successfully", {
+                      description: `${formData.name} has been added to Grade ${formData.grade}.`
+                    });
+                  }
                     
                     // Refresh data
                     await mutateStudents();
@@ -919,8 +969,15 @@ export default function StudentsPage() {
                       address: '',
                       parentName: '',
                       parentPhone: '',
+                      parentRelation: 'Father',
                       feeType: 'predefined',
                       feeStructure: '',
+                      manualFeeItem: {
+                        name: '',
+                        amount: '',
+                        frequency: 'Per Term',
+                        category: 'Academic'
+                      },
                       additionalInfo: ''
                     });
                     setFormErrors({});
@@ -1039,41 +1096,71 @@ export default function StudentsPage() {
                 <div className="pt-4 border-t border-border">
                   <h3 className="font-bold text-foreground mb-4">Parent/Guardian Information</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-2 relative">
+                      <label className="text-sm font-bold text-foreground">Parent Name (Searchable)</label>
+                      <div className="relative">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <input 
+                          required 
+                          type="text" 
+                          placeholder="Search or enter name..." 
+                          value={formData.parentName}
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            setFormData(prev => ({ ...prev, parentName: name }));
+                            setParentSearch(name);
+                          }}
+                          className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                        />
+                      </div>
+                      {foundParents.length > 0 && parentSearch.length >= 2 && (
+                        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+                          {foundParents.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ 
+                                  ...prev, 
+                                  parentName: p.name, 
+                                  parentPhone: p.phone || '' 
+                                }));
+                                setParentSearch('');
+                              }}
+                              className="w-full px-4 py-2.5 text-left hover:bg-muted transition-colors flex items-center justify-between"
+                            >
+                              <span className="font-bold">{p.name}</span>
+                              <span className="text-xs text-muted-foreground">{p.phone}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-foreground">Parent Phone (Search/Register)</label>
+                      <label className="text-sm font-bold text-foreground">Relation to Student</label>
+                      <select 
+                        required 
+                        value={formData.parentRelation}
+                        onChange={(e) => setFormData(prev => ({ ...prev, parentRelation: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
+                      >
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Brother">Brother</option>
+                        <option value="Sister">Sister</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="text-sm font-bold text-foreground">Parent Phone</label>
                       <input 
                         required 
                         type="tel" 
                         placeholder="+1 234 567 890" 
                         value={formData.parentPhone}
-                        onChange={async (e) => {
-                          const phone = e.target.value;
-                          setFormData(prev => ({ ...prev, parentPhone: phone }));
-                          if (phone.length >= 10) {
-                            const { data } = await supabase
-                              .from('users')
-                              .select('name')
-                              .eq('phone', phone)
-                              .eq('role', 'parent')
-                              .maybeSingle();
-                            if (data) {
-                              setFormData(prev => ({ ...prev, parentName: data.name }));
-                              toast.info(`Found existing parent: ${data.name}`);
-                            }
-                          }
-                        }}
+                        onChange={(e) => setFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
                         className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-foreground">Parent Name</label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="e.g., Homer Simpson" 
-                        value={formData.parentName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
-                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                       />
                     </div>
                   </div>
@@ -1105,17 +1192,59 @@ export default function StudentsPage() {
                         className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                       >
                         <option value="">Select Fee Structure</option>
-                        <option value="Standard Grade 1-5">Standard Grade 1-5</option>
-                        <option value="Standard Grade 6-10">Standard Grade 6-10</option>
-                        <option value="Scholarship A">Scholarship A (50% Off)</option>
+                        {feeItems.map(item => (
+                          <option key={item.id} value={item.name}>{item.name} (${item.amount})</option>
+                        ))}
                       </select>
                     ) : (
-                      <textarea 
-                        placeholder="Enter custom fee details..."
-                        value={formData.feeStructure}
-                        onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium min-h-[100px]"
-                      />
+                      <div className="p-4 rounded-2xl border border-border bg-muted/30 space-y-4">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Add Fee Item</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Item Name</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Lab Fee"
+                              value={formData.manualFeeItem.name}
+                              onChange={(e) => setFormData(prev => ({ 
+                                ...prev, 
+                                manualFeeItem: { ...prev.manualFeeItem, name: e.target.value },
+                                feeStructure: e.target.value // Use name as structure for now or combine
+                              }))}
+                              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Amount ($)</label>
+                            <input 
+                              type="number" 
+                              placeholder="0.00"
+                              value={formData.manualFeeItem.amount}
+                              onChange={(e) => setFormData(prev => ({ 
+                                ...prev, 
+                                manualFeeItem: { ...prev.manualFeeItem, amount: e.target.value } 
+                              }))}
+                              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase">Frequency</label>
+                            <select 
+                              value={formData.manualFeeItem.frequency}
+                              onChange={(e) => setFormData(prev => ({ 
+                                ...prev, 
+                                manualFeeItem: { ...prev.manualFeeItem, frequency: e.target.value } 
+                              }))}
+                              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary transition-all"
+                            >
+                              <option>Per Term</option>
+                              <option>Monthly</option>
+                              <option>Annual</option>
+                              <option>One-time</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
