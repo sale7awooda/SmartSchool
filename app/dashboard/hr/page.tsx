@@ -8,6 +8,7 @@ import {
   getLeaveRequests, 
   createLeaveRequest, 
   getPayslips, 
+  createPayslip,
   getFinancials, 
   createFinancial 
 } from '@/lib/supabase-db';
@@ -645,17 +646,38 @@ function LeaveTab({ isAdmin, userName, userId }: { isAdmin: boolean, userName: s
 }
 
 function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
-  const displayPayslips = isAdmin ? MOCK_PAYSLIPS : MOCK_PAYSLIPS.filter(p => p.staff === userName);
+  const { data: payslips, mutate } = useSWR('payslips', getPayslips);
+  const { data: staff } = useSWR('staff', () => getPaginatedStaff(1, 100));
+  const displayPayslips = isAdmin ? (payslips || []) : (payslips || []).filter((p: any) => p.staff === userName);
   const [isRunPayrollOpen, setIsRunPayrollOpen] = useState(false);
   const [isRunningPayroll, setIsRunningPayroll] = useState(false);
 
-  const handleRunPayroll = async (e: React.FormEvent) => {
+  const handleRunPayroll = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsRunningPayroll(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsRunningPayroll(false);
-    toast.success("Payroll processed successfully");
-    setIsRunPayrollOpen(false);
+    const formData = new FormData(e.currentTarget);
+    const month = formData.get('month');
+    
+    try {
+      if (staff && staff.staff) {
+        for (const employee of staff.staff) {
+          await createPayslip({
+            staff_id: employee.id,
+            month: month,
+            amount: 5000,
+            status: 'Processed',
+            date: new Date().toISOString().split('T')[0]
+          });
+        }
+      }
+      toast.success("Payroll processed successfully");
+      setIsRunPayrollOpen(false);
+      mutate();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to process payroll");
+    } finally {
+      setIsRunningPayroll(false);
+    }
   };
 
   return (
@@ -747,9 +769,10 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Pay Period</label>
-                  <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
-                    <option value="oct2023">October 2023</option>
-                    <option value="nov2023">November 2023</option>
+                  <select name="month" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <option value="October 2023">October 2023</option>
+                    <option value="November 2023">November 2023</option>
+                    <option value="December 2023">December 2023</option>
                   </select>
                 </div>
 
