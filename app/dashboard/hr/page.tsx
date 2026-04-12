@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { getPaginatedStaff } from '@/lib/supabase-db';
+import { getPaginatedStaff, createStaff } from '@/lib/supabase-db';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { useSWRConfig } from 'swr';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -63,6 +64,7 @@ const MOCK_FINANCIALS = [
 export default function HRPage() {
   const { user } = useAuth();
   const { can, isAdmin: checkIsAdmin } = usePermissions();
+  const { mutate } = useSWRConfig();
   const [activeTab, setActiveTab] = useState<'directory' | 'leave' | 'payroll' | 'financials'>('directory');
   const [selectedStaff, setSelectedStaff] = useState<typeof MOCK_STAFF[0] | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'overview' | 'qualifications' | 'schedule' | 'leave' | 'payroll' | 'financials'>('overview');
@@ -98,13 +100,32 @@ export default function HRPage() {
     }
   };
 
-  const handleAddEmployee = async (e: React.FormEvent) => {
+  const handleAddEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmittingEmployee(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmittingEmployee(false);
-    toast.success("Employee added successfully");
-    setIsAddEmployeeOpen(false);
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const role = formData.get('role') as string;
+
+    try {
+      await createStaff({
+        name,
+        email,
+        role
+      });
+      toast.success("Employee added successfully");
+      setIsAddEmployeeOpen(false);
+      mutate(
+        (key) => Array.isArray(key) && key[0] === 'staff',
+        undefined,
+        { revalidate: true }
+      );
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add employee");
+    } finally {
+      setIsSubmittingEmployee(false);
+    }
   };
 
   return (
@@ -114,15 +135,6 @@ export default function HRPage() {
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Human Resources</h1>
           <p className="text-muted-foreground mt-2 font-medium">Manage staff directory, leave requests, payroll, and documents.</p>
         </div>
-        {isAdmin && (
-          <button 
-            onClick={() => setIsAddEmployeeOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
-          >
-            <Plus size={16} />
-            Add Employee
-          </button>
-        )}
       </div>
 
       {/* Navigation Tabs */}
@@ -161,7 +173,7 @@ export default function HRPage() {
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
         <AnimatePresence mode="wait">
-          {activeTab === 'directory' && isAdmin && <DirectoryTab key="directory" onSelectStaff={setSelectedStaff} />}
+          {activeTab === 'directory' && isAdmin && <DirectoryTab key="directory" onSelectStaff={setSelectedStaff} onAddEmployee={() => setIsAddEmployeeOpen(true)} />}
           {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} />}
           {activeTab === 'payroll' && <PayrollTab key="payroll" isAdmin={isAdmin} userName={user.name} />}
           {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} />}
@@ -197,26 +209,20 @@ export default function HRPage() {
               </div>
               
               <form onSubmit={handleAddEmployee} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">First Name</label>
-                    <input required type="text" placeholder="John" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Last Name</label>
-                    <input required type="text" placeholder="Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
-                  </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Full Name</label>
+                  <input name="name" required type="text" placeholder="John Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Email Address</label>
-                  <input required type="email" placeholder="john.doe@school.edu" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input name="email" required type="email" placeholder="john.doe@school.edu" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Role</label>
-                    <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <select name="role" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
                       <option value="teacher">Teacher</option>
                       <option value="staff">Staff</option>
                       <option value="admin">Administrator</option>
@@ -225,7 +231,7 @@ export default function HRPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Department</label>
-                    <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <select name="department" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
                       <option value="Academics">Academics</option>
                       <option value="Administration">Administration</option>
                       <option value="Maintenance">Maintenance</option>
@@ -259,7 +265,7 @@ export default function HRPage() {
   );
 }
 
-function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: any) => void }) {
+function DirectoryTab({ onSelectStaff, onAddEmployee }: { onSelectStaff: (staff: any) => void, onAddEmployee: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -290,15 +296,24 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: any) => void }
             <h2 className="text-xl font-bold text-foreground">Staff Directory</h2>
             <p className="text-sm font-medium text-muted-foreground mt-1">Manage employee profiles and contact information.</p>
           </div>
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search staff..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-64"
-            />
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Search staff..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-64"
+              />
+            </div>
+            <button 
+              onClick={onAddEmployee}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+            >
+              <Plus size={16} />
+              Add Employee
+            </button>
           </div>
         </div>
 
@@ -345,15 +360,7 @@ function DirectoryTab({ onSelectStaff }: { onSelectStaff: (staff: any) => void }
               ) : filteredStaff.length > 0 ? filteredStaff.map((staff) => (
                 <tr key={staff.id} className="hover:bg-accent/50 transition-colors">
                   <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold shrink-0">
-                        {staff.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground text-sm">{staff.name}</p>
-                        <p className="text-xs text-muted-foreground font-medium">ID: {staff.id}</p>
-                      </div>
-                    </div>
+                    <p className="font-bold text-foreground text-sm">{staff.name}</p>
                   </td>
                   <td className="p-4">
                     <p className="text-sm font-bold text-foreground capitalize">{staff.role}</p>
