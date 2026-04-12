@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
+import { useLanguage } from '@/lib/language-context';
 import { Student } from '@/lib/mock-db';
 import { supabase } from '@/lib/supabase/client';
 import { getStudents, getAttendance, saveAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById, getActiveAcademicYear } from '@/lib/supabase-db';
