@@ -45,7 +45,6 @@ export default function StaffProfileModal({ selectedStaff, handleCloseProfile, a
         <div className="flex border-b border-border px-6 sm:px-8 overflow-x-auto scrollbar-hide shrink-0">
           {[
             { id: 'overview', label: 'Overview' },
-            { id: 'qualifications', label: 'Qualifications' },
             { id: 'schedule', label: 'Schedule' },
             { id: 'leave', label: 'Leave History' },
             { id: 'payroll', label: 'Payroll' },
@@ -73,10 +72,9 @@ export default function StaffProfileModal({ selectedStaff, handleCloseProfile, a
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   { icon: Mail, label: 'Email Address', value: selectedStaff.email },
-                  { icon: Phone, label: 'Phone Number', value: selectedStaff.phone },
-                  { icon: Building2, label: 'Department', value: selectedStaff.department || 'N/A' },
-                  { icon: Briefcase, label: 'Designation', value: selectedStaff.designation || 'N/A' },
-                  { icon: Calendar, label: 'Joined Date', value: selectedStaff.joinDate || 'N/A' }
+                  { icon: Phone, label: 'Phone Number', value: selectedStaff.phone || 'N/A' },
+                  { icon: Briefcase, label: 'Role', value: selectedStaff.role ? selectedStaff.role.charAt(0).toUpperCase() + selectedStaff.role.slice(1) : 'N/A' },
+                  { icon: Calendar, label: 'Joined Date', value: selectedStaff.created_at ? new Date(selectedStaff.created_at).toLocaleDateString() : 'N/A' }
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
                     <div className="p-3 bg-muted rounded-xl text-muted-foreground"><item.icon size={20} /></div>
@@ -87,42 +85,6 @@ export default function StaffProfileModal({ selectedStaff, handleCloseProfile, a
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Qualifications Tab */}
-          {activeProfileTab === 'qualifications' && (
-            <div className="space-y-6">
-              <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
-                <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
-                  <Award size={20} className="text-primary" />
-                  Academic Qualifications
-                </h3>
-                <ul className="space-y-3">
-                  {selectedStaff.qualifications?.length > 0 ? selectedStaff.qualifications.map((qual: string, i: number) => (
-                    <li key={i} className="flex items-center gap-3 p-3 bg-muted rounded-xl border border-border">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span className="font-medium text-foreground">{qual}</span>
-                    </li>
-                  )) : <p className="text-muted-foreground text-sm">No qualifications listed.</p>}
-                </ul>
-              </div>
-
-              {selectedStaff.subjects?.length > 0 && (
-                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
-                  <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
-                    <Book size={20} className="text-emerald-500" />
-                    Subjects Taught
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedStaff.subjects.map((subj: string, i: number) => (
-                      <span key={i} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg text-sm font-bold border border-emerald-500/20">
-                        {subj}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

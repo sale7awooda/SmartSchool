@@ -455,15 +455,26 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
             <h2 className="text-xl font-bold text-foreground">{isAdmin ? 'Leave Requests' : 'My Leave Requests'}</h2>
             <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Review and approve staff time off.' : 'Track your time off requests.'}</p>
           </div>
-          {!isAdmin && (
-            <button 
-              onClick={() => setIsApplyLeaveOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
-            >
-              <Plus size={16} />
-              Apply for Leave
-            </button>
-          )}
+          <div className="flex gap-2">
+            {isAdmin && (
+              <button 
+                onClick={() => toast.info("Add Leave functionality coming soon")}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl font-bold text-sm hover:bg-secondary/80 transition-colors shadow-sm whitespace-nowrap"
+              >
+                <Plus size={16} />
+                Add Leave
+              </button>
+            )}
+            {!isAdmin && (
+              <button 
+                onClick={() => setIsApplyLeaveOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+              >
+                <Plus size={16} />
+                Apply for Leave
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -759,15 +770,26 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
             <h2 className="text-xl font-bold text-foreground">{isAdmin ? 'Loans, Bonuses & Fines' : 'My Loans & Fines'}</h2>
             <p className="text-sm font-medium text-muted-foreground mt-1">{isAdmin ? 'Manage staff financial additions and deductions.' : 'Track your bonuses, loans, and fines.'}</p>
           </div>
-          {!isAdmin && (
-            <button 
-              onClick={() => setIsApplyLoanOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
-            >
-              <Plus size={16} />
-              Apply for Loan
-            </button>
-          )}
+          <div className="flex gap-2">
+            {isAdmin && (
+              <button 
+                onClick={() => toast.info("Add Fine/Bonus functionality coming soon")}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl font-bold text-sm hover:bg-secondary/80 transition-colors shadow-sm whitespace-nowrap"
+              >
+                <Plus size={16} />
+                Add Fine/Bonus
+              </button>
+            )}
+            {!isAdmin && (
+              <button 
+                onClick={() => setIsApplyLoanOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
+              >
+                <Plus size={16} />
+                Apply for Loan
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">

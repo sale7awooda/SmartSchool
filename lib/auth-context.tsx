@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from './supabase/client';
 import { User } from './mock-db';
@@ -17,9 +17,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const userRef = useRef<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     const getProfile = async (sessionUser: any) => {
@@ -138,7 +143,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'INITIAL_SESSION') return; // Handled by getSession
       
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        setIsLoading(true);
+        if (!userRef.current) {
+          setIsLoading(true);
+        }
       }
       
       loadProfile(session);
