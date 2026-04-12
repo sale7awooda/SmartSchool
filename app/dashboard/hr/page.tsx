@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { getPaginatedStaff, createStaff } from '@/lib/supabase-db';
+import { 
+  getPaginatedStaff, 
+  createStaff, 
+  getLeaveRequests, 
+  createLeaveRequest, 
+  getPayslips, 
+  getFinancials, 
+  createFinancial 
+} from '@/lib/supabase-db';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { useSWRConfig } from 'swr';
@@ -174,9 +182,9 @@ export default function HRPage() {
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
         <AnimatePresence mode="wait">
           {activeTab === 'directory' && isAdmin && <DirectoryTab key="directory" onSelectStaff={setSelectedStaff} onAddEmployee={() => setIsAddEmployeeOpen(true)} />}
-          {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} />}
+          {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} userId={user.id} />}
           {activeTab === 'payroll' && <PayrollTab key="payroll" isAdmin={isAdmin} userName={user.name} />}
-          {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} />}
+          {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} userId={user.id} />}
         </AnimatePresence>
       </div>
 
@@ -433,18 +441,34 @@ function DirectoryTab({ onSelectStaff, onAddEmployee }: { onSelectStaff: (staff:
   );
 }
 
-function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
-  const displayLeaves = isAdmin ? MOCK_LEAVE_REQUESTS : MOCK_LEAVE_REQUESTS.filter(l => l.staff === userName);
+function LeaveTab({ isAdmin, userName, userId }: { isAdmin: boolean, userName: string, userId: string }) {
+  const { data: leaves, mutate } = useSWR('leave_requests', getLeaveRequests);
+  const displayLeaves = isAdmin ? (leaves || []) : (leaves || []).filter((l: any) => l.staff === userName);
   const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
 
-  const handleApplyLeave = async (e: React.FormEvent) => {
+  const handleApplyLeave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmittingLeave(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmittingLeave(false);
-    toast.success("Leave request submitted successfully");
-    setIsApplyLeaveOpen(false);
+    const formData = new FormData(e.currentTarget);
+    const leaveData = {
+      type: formData.get('type'),
+      start_date: formData.get('start_date'),
+      end_date: formData.get('end_date'),
+      reason: formData.get('reason'),
+      staff_id: userId
+    };
+    
+    try {
+      await createLeaveRequest(leaveData);
+      toast.success("Leave request submitted successfully");
+      setIsApplyLeaveOpen(false);
+      mutate();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit leave request");
+    } finally {
+      setIsSubmittingLeave(false);
+    }
   };
 
   return (
@@ -489,7 +513,7 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {displayLeaves.length > 0 ? displayLeaves.map((leave) => (
+              {displayLeaves.length > 0 ? displayLeaves.map((leave: any) => (
                 <tr key={leave.id} className="hover:bg-accent/50 transition-colors">
                   {isAdmin && (
                     <td className="p-4">
@@ -500,8 +524,8 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
                     <p className="text-sm font-bold text-foreground">{leave.type}</p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-medium text-foreground">{leave.startDate} to {leave.endDate}</p>
-                    <p className="text-xs text-muted-foreground font-medium">{leave.days} days</p>
+                    <p className="text-sm font-medium text-foreground">{leave.start_date} to {leave.end_date}</p>
+                    <p className="text-xs text-muted-foreground font-medium">{(new Date(leave.end_date).getTime() - new Date(leave.start_date).getTime()) / (1000 * 60 * 60 * 24) + 1} days</p>
                   </td>
                   <td className="p-4">
                     <span className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 w-fit ${
@@ -520,13 +544,19 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
                       {leave.status === 'Pending' ? (
                         <div className="flex items-center justify-end gap-2">
                           <button 
-                            onClick={() => toast.success('Leave approved')}
+                            onClick={async () => {
+                              await updateLeaveRequestStatus(leave.id, 'Approved');
+                              mutate();
+                            }}
                             className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors" title="Approve"
                           >
                             <CheckCircle2 size={18} />
                           </button>
                           <button 
-                            onClick={() => toast.error('Leave rejected')}
+                            onClick={async () => {
+                              await updateLeaveRequestStatus(leave.id, 'Rejected');
+                              mutate();
+                            }}
                             className="p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors" title="Reject"
                           >
                             <XCircle size={18} />
@@ -565,28 +595,28 @@ function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string })
               <form onSubmit={handleApplyLeave} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Leave Type</label>
-                  <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
-                    <option value="sick">Sick Leave</option>
-                    <option value="annual">Annual Leave</option>
-                    <option value="personal">Personal Leave</option>
-                    <option value="unpaid">Unpaid Leave</option>
+                  <select name="type" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <option value="Sick">Sick Leave</option>
+                    <option value="Annual">Annual Leave</option>
+                    <option value="Personal">Personal Leave</option>
+                    <option value="Unpaid">Unpaid Leave</option>
                   </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Start Date</label>
-                    <input required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                    <input name="start_date" required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">End Date</label>
-                    <input required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                    <input name="end_date" required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Reason</label>
-                  <textarea required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <textarea name="reason" required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
                 <div className="flex gap-3 pt-6">
@@ -748,18 +778,61 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
   );
 }
 
-function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
-  const displayFinancials = isAdmin ? MOCK_FINANCIALS : MOCK_FINANCIALS.filter(f => f.staff === userName);
+function FinancialsTab({ isAdmin, userName, userId }: { isAdmin: boolean, userName: string, userId: string }) {
+  const { data: financials, mutate } = useSWR('financials', getFinancials);
+  const displayFinancials = isAdmin ? (financials || []) : (financials || []).filter((f: any) => f.staff === userName);
   const [isApplyLoanOpen, setIsApplyLoanOpen] = useState(false);
   const [isSubmittingLoan, setIsSubmittingLoan] = useState(false);
+  const [isAddFineBonusOpen, setIsAddFineBonusOpen] = useState(false);
+  const [isSubmittingFineBonus, setIsSubmittingFineBonus] = useState(false);
 
-  const handleApplyLoan = async (e: React.FormEvent) => {
+  const handleApplyLoan = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmittingLoan(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmittingLoan(false);
-    toast.success("Loan application submitted successfully");
-    setIsApplyLoanOpen(false);
+    const formData = new FormData(e.currentTarget);
+    const financialData = {
+      type: 'Loan',
+      amount: formData.get('amount'),
+      description: formData.get('description'),
+      date: new Date().toISOString().split('T')[0],
+      staff_id: userId
+    };
+    
+    try {
+      await createFinancial(financialData);
+      toast.success("Loan application submitted successfully");
+      setIsApplyLoanOpen(false);
+      mutate();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit loan application");
+    } finally {
+      setIsSubmittingLoan(false);
+    }
+  };
+
+  const handleAddFineBonus = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmittingFineBonus(true);
+    const formData = new FormData(e.currentTarget);
+    const financialData = {
+      type: formData.get('type'),
+      amount: formData.get('amount'),
+      description: formData.get('description'),
+      date: new Date().toISOString().split('T')[0],
+      staff_id: formData.get('staff_id'),
+      status: 'Approved'
+    };
+    
+    try {
+      await createFinancial(financialData);
+      toast.success("Fine/Bonus added successfully");
+      setIsAddFineBonusOpen(false);
+      mutate();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add fine/bonus");
+    } finally {
+      setIsSubmittingFineBonus(false);
+    }
   };
 
   return (
@@ -773,7 +846,7 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
           <div className="flex gap-2">
             {isAdmin && (
               <button 
-                onClick={() => toast.info("Add Fine/Bonus functionality coming soon")}
+                onClick={() => setIsAddFineBonusOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl font-bold text-sm hover:bg-secondary/80 transition-colors shadow-sm whitespace-nowrap"
               >
                 <Plus size={16} />
@@ -804,7 +877,7 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {displayFinancials.length > 0 ? displayFinancials.map((item) => (
+              {displayFinancials.length > 0 ? displayFinancials.map((item: any) => (
                 <tr key={item.id} className="hover:bg-accent/50 transition-colors">
                   {isAdmin && (
                     <td className="p-4">
@@ -860,12 +933,12 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
               <form onSubmit={handleApplyLoan} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Amount Requested ($)</label>
-                  <input required type="number" min="1" step="0.01" placeholder="0.00" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <input name="amount" required type="number" min="1" step="0.01" placeholder="0.00" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Reason</label>
-                  <textarea required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <textarea name="description" required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
                 <div className="flex gap-3 pt-6">
@@ -882,6 +955,63 @@ function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userName: stri
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
                     {isSubmittingLoan ? <Loader2 size={20} className="animate-spin" /> : 'Submit Request'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAddFineBonusOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Add Fine/Bonus</h2>
+                <p className="text-sm font-medium text-muted-foreground mt-2">Add a financial record for a staff member.</p>
+              </div>
+              
+              <form onSubmit={handleAddFineBonus} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Staff ID</label>
+                  <input name="staff_id" required type="text" placeholder="Staff UUID" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Type</label>
+                  <select name="type" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                    <option value="Bonus">Bonus</option>
+                    <option value="Fine">Fine</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Amount ($)</label>
+                  <input name="amount" required type="number" min="1" step="0.01" placeholder="0.00" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Description</label>
+                  <textarea name="description" required rows={3} placeholder="Description..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddFineBonusOpen(false)}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingFineBonus}
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingFineBonus ? <Loader2 size={20} className="animate-spin" /> : 'Add Record'}
                   </button>
                 </div>
               </form>

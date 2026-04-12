@@ -249,6 +249,44 @@ CREATE TABLE IF NOT EXISTS public.broadcasts (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Leave Requests Table
+CREATE TABLE IF NOT EXISTS public.leave_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  staff_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  reason TEXT,
+  status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Payslips Table
+CREATE TABLE IF NOT EXISTS public.payslips (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  staff_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  month TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Paid')),
+  date DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Financials Table
+CREATE TABLE IF NOT EXISTS public.financials (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  staff_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('Bonus', 'Fine', 'Loan')),
+  amount NUMERIC NOT NULL,
+  date DATE NOT NULL,
+  status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Paid', 'Active')),
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 3. Enable Row Level Security (RLS)
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
@@ -265,6 +303,9 @@ ALTER TABLE public.assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leave_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payslips ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.financials ENABLE ROW LEVEL SECURITY;
 
 -- System Settings Table
 CREATE TABLE IF NOT EXISTS public.system_settings (
@@ -431,6 +472,28 @@ DROP POLICY IF EXISTS "Admins can manage broadcasts" ON public.broadcasts;
 CREATE POLICY "Admins can manage broadcasts" ON public.broadcasts FOR ALL USING (get_user_role() = 'admin');
 DROP POLICY IF EXISTS "All users can view broadcasts" ON public.broadcasts;
 CREATE POLICY "All users can view broadcasts" ON public.broadcasts FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Leave Requests Policies
+DROP POLICY IF EXISTS "Admins can manage leave requests" ON public.leave_requests;
+CREATE POLICY "Admins can manage leave requests" ON public.leave_requests FOR ALL USING (get_user_role() = 'admin');
+DROP POLICY IF EXISTS "Users can view their own leave requests" ON public.leave_requests;
+CREATE POLICY "Users can view their own leave requests" ON public.leave_requests FOR SELECT USING (staff_id = auth.uid());
+DROP POLICY IF EXISTS "Users can insert their own leave requests" ON public.leave_requests;
+CREATE POLICY "Users can insert their own leave requests" ON public.leave_requests FOR INSERT WITH CHECK (staff_id = auth.uid());
+
+-- Payslips Policies
+DROP POLICY IF EXISTS "Admins can manage payslips" ON public.payslips;
+CREATE POLICY "Admins can manage payslips" ON public.payslips FOR ALL USING (get_user_role() = 'admin');
+DROP POLICY IF EXISTS "Users can view their own payslips" ON public.payslips;
+CREATE POLICY "Users can view their own payslips" ON public.payslips FOR SELECT USING (staff_id = auth.uid());
+
+-- Financials Policies
+DROP POLICY IF EXISTS "Admins can manage financials" ON public.financials;
+CREATE POLICY "Admins can manage financials" ON public.financials FOR ALL USING (get_user_role() = 'admin');
+DROP POLICY IF EXISTS "Users can view their own financials" ON public.financials;
+CREATE POLICY "Users can view their own financials" ON public.financials FOR SELECT USING (staff_id = auth.uid());
+DROP POLICY IF EXISTS "Users can insert their own loan requests" ON public.financials;
+CREATE POLICY "Users can insert their own loan requests" ON public.financials FOR INSERT WITH CHECK (staff_id = auth.uid() AND type = 'Loan');
 
 -- Schedules Policies
 ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
