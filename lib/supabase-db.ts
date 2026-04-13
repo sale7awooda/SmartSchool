@@ -29,7 +29,6 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
     ...s.user,
     ...s,
     userId: s.user_id,
-    rollNumber: s.roll_number,
     id: s.id // Use student UUID as the main ID
   })) as Student[];
 }
@@ -67,7 +66,6 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
     ...s.user,
     ...s,
     id: s.user_id,
-    rollNumber: s.roll_number,
     parentNames: s.parents?.map((p: any) => p.parent?.name).join(', ') || 'N/A'
   })) as (Student & { parentNames: string })[];
 

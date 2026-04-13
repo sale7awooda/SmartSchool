@@ -257,7 +257,7 @@ function TeacherAttendance() {
                   </div>
                   <div>
                     <p className="font-bold text-foreground">{student.name}</p>
-                    <p className="text-xs font-medium text-muted-foreground">{t('student_id_label')}: {student.rollNumber || student.id.substring(0, 8)}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('student_id_label')}: {student.roll_number || student.id.substring(0, 8)}</p>
                   </div>
                 </div>
 

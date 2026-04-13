@@ -293,7 +293,7 @@ export default function StudentsPage() {
     setEditingStudent(student);
     setFormData({
       name: student.name,
-      studentId: student.rollNumber,
+      studentId: student.roll_number,
       grade: student.grade,
       dob: student.dob,
       gender: student.gender || 'Male',
@@ -477,7 +477,7 @@ export default function StudentsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 font-medium text-foreground">
-                            {student.rollNumber}
+                            {student.roll_number}
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-foreground border border-border">
@@ -621,7 +621,7 @@ export default function StudentsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 font-medium text-foreground">
-                            {student.rollNumber}
+                            {student.roll_number}
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-foreground border border-border">

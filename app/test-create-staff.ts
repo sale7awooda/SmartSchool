@@ -1,4 +1,4 @@
-import { createStaff } from '../lib/supabase-db';
+import { createStaff } from './lib/supabase-db';
 
 async function test() {
   try {
