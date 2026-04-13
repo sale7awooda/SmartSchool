@@ -1,0 +1,41 @@
+import { supabase } from '@/lib/supabase/client';
+import { Student, User, Parent } from '@/lib/mock-db';
+
+export async function getPaginatedMedicalRecords(page: number = 1, limit: number = 10, search: string = '') {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('medical_records')
+    .select(`
+      *,
+      student:students(name, grade)
+    `, { count: 'exact' });
+
+  if (search) {
+    query = query.ilike('student.name', `%${search}%`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
+  if (error) throw error;
+
+  return {
+    data,
+    count: count || 0,
+    totalPages: Math.ceil((count || 0) / limit)
+  };
+}
+
+
+export async function createMedicalRecord(recordData: any) {
+  const { data, error } = await supabase
+    .from('medical_records')
+    .insert([recordData])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+

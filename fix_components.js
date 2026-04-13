@@ -1,4 +1,23 @@
-"use client";
+const fs = require('fs');
+const path = require('path');
+
+const files = [
+  'components/dashboard/academics/AdminAcademics.tsx',
+  'components/dashboard/academics/TeacherAcademics.tsx',
+  'components/dashboard/academics/ParentAcademics.tsx'
+];
+
+for (const file of files) {
+  const filePath = path.join(__dirname, file);
+  let content = fs.readFileSync(filePath, 'utf-8');
+  
+  // Find the first occurrence of 'export function'
+  const exportIndex = content.indexOf('export function');
+  if (exportIndex !== -1) {
+    const actualContent = content.substring(exportIndex);
+    
+    // We need the original imports
+    const originalImports = `"use client";
 
 import useSWR from 'swr';
 import { useState, useEffect } from "react";
@@ -59,26 +78,9 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 
-import { AdminAcademics } from "@/components/dashboard/academics/AdminAcademics";
-import { TeacherAcademics } from "@/components/dashboard/academics/TeacherAcademics";
-import { ParentAcademics } from "@/components/dashboard/academics/ParentAcademics";
-
-export default function AcademicsPage() {
-  const { user } = useAuth();
-  const { can, isRole } = usePermissions();
-  const { t } = useLanguage();
-
-  if (!user) return null;
-
-  if (!can('view', 'academics')) {
-    return <div className="p-4">{t('no_permission')}</div>;
+`;
+    
+    fs.writeFileSync(filePath, originalImports + actualContent);
   }
-
-  if (isRole("teacher")) return <TeacherAcademics />;
-  if (isRole(["parent", "student"])) return <ParentAcademics />;
-  if (isRole(["admin"])) return <AdminAcademics />;
-
-  return (
-    <div className="p-4">You do not have permission to view this page.</div>
-  );
 }
+console.log('Fixed components');

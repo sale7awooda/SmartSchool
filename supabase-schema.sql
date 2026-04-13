@@ -36,7 +36,7 @@ DROP TABLE IF EXISTS public.timeline_records CASCADE;
 
 -- 3. Create Tables
 CREATE TABLE public.users (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('admin', 'teacher', 'accountant', 'staff', 'student', 'parent')),
