@@ -7,6 +7,7 @@ import {
   createStaff, 
   getLeaveRequests, 
   createLeaveRequest, 
+  updateLeaveRequestStatus,
   getPayslips, 
   createPayslip,
   getFinancials, 
@@ -659,8 +660,8 @@ function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: string 
     const month = formData.get('month');
     
     try {
-      if (staff && staff.staff) {
-        for (const employee of staff.staff) {
+      if (staff && staff.data) {
+        for (const employee of staff.data) {
           await createPayslip({
             staff_id: employee.id,
             month: month,

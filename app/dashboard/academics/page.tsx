@@ -2065,7 +2065,7 @@ function ParentAcademics() {
             {t('academic_report')}
           </h1>
           <p className="text-muted-foreground mt-2 font-medium">
-            {t('viewing_performance_for')} {studentData?.name || user?.name} ({studentData?.roll_number || user?.studentId})
+            {t('viewing_performance_for')} {studentData?.name || user?.name} ({studentData?.rollNumber || user?.studentId})
           </p>
         </div>
         <div className="flex bg-muted p-1 rounded-xl w-fit overflow-x-auto max-w-full scrollbar-hide">

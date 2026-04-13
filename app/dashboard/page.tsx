@@ -514,7 +514,7 @@ function ParentDashboard({ notices }: { notices: any[] }) {
           <div className="relative z-10">
             <p className="text-primary-foreground/80 text-sm font-semibold tracking-wider uppercase mb-2">{t('student_profile')}</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{activeStudent.name}</h2>
-            <p className="text-primary-foreground/90 mt-2 font-medium text-lg">{activeStudent.grade} • ID: {activeStudent.roll_number || activeStudent.id.substring(0, 8)}</p>
+            <p className="text-primary-foreground/90 mt-2 font-medium text-lg">{activeStudent.grade} • ID: {activeStudent.rollNumber || activeStudent.id.substring(0, 8)}</p>
           </div>
           <div className="absolute -right-6 -bottom-6 opacity-10">
             <Users size={160} />
