@@ -16,8 +16,9 @@ export function useStudents(page: number, limit: number, search: string, academi
   );
 
   return {
-    students: data?.students || [],
-    total: data?.total || 0,
+    students: data?.data || [],
+    total: data?.count || 0,
+    totalPages: data?.totalPages || 0,
     isLoading,
     error,
     mutate
@@ -61,7 +62,7 @@ export function useParentSearch(searchQuery: string) {
   );
 
   return {
-    parents: data?.parents || [],
+    parents: data?.data || [],
     isLoading
   };
 }
