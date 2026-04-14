@@ -233,6 +233,51 @@ export default function StudentsPage() {
     }
   };
 
+  const handleSaveStudent = async () => {
+    if (!validateForm()) return;
+    setIsSubmitting(true);
+    try {
+      if (isEditing && editingStudent) {
+        const { error } = await supabase
+          .from('students')
+          .update({
+            name: formData.name,
+            roll_number: formData.studentId,
+            grade: formData.grade,
+            dob: formData.dob,
+            gender: formData.gender,
+            blood_group: formData.bloodGroup,
+            address: formData.address,
+            fee_structure: formData.feeStructure,
+            additional_info: formData.additionalInfo
+          })
+          .eq('id', editingStudent.id);
+        if (error) throw error;
+        toast.success("Student updated successfully");
+      } else {
+        await createStudent({
+          name: formData.name,
+          roll_number: formData.studentId,
+          grade: formData.grade,
+          dob: formData.dob,
+          gender: formData.gender,
+          blood_group: formData.bloodGroup,
+          address: formData.address,
+          fee_structure: formData.feeStructure,
+          additional_info: formData.additionalInfo
+        });
+        toast.success("Student created successfully");
+      }
+      mutateStudents();
+      setIsAddStudentOpen(false);
+    } catch (error) {
+      console.error('Error saving student:', error);
+      toast.error('Failed to save student');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
