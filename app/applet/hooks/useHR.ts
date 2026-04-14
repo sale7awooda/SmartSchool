@@ -12,8 +12,9 @@ export function useStaff(page: number = 1, limit: number = 10, search: string = 
   );
 
   return {
-    staff: data?.staff || [],
-    total: data?.total || 0,
+    staff: data?.data || [],
+    total: data?.count || 0,
+    totalPages: data?.totalPages || 0,
     isLoading,
     mutate
   };
