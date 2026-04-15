@@ -987,7 +987,7 @@ export default function TransportPage() {
       )}
 
       {/* Admin Modal */}
-      <AdminModal isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} modalMode={modalMode} currentRoute={currentRoute} setCurrentRoute={setCurrentRoute} handleSaveRoute={handleSaveRoute} isSubmitting={isSubmitting} t={t} />
+      <AdminModal isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} modalMode={modalMode} currentRoute={currentRoute} setCurrentRoute={setCurrentRoute} handleSaveRoute={handleSaveRoute} isSubmitting={isSubmitting} t={t} drivers={drivers} />
     </motion.div>
   );
 }
