@@ -3,7 +3,17 @@ import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, He
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
-export function StudentProfileModal({ selectedPerson, setSelectedPerson, activeProfileTab, setActiveProfileTab, behaviorRecords, timelineRecords, t, isStudent }: any) {
+const getRoleBadgeColor = (role: string) => {
+  switch (role) {
+    case 'admin': return 'bg-purple-500/20 text-purple-500 border-purple-500/20';
+    case 'teacher': return 'bg-primary/20 text-primary border-primary/20';
+    case 'accountant': return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20';
+    case 'staff': return 'bg-muted text-foreground border-border';
+    default: return 'bg-muted text-foreground border-border';
+  }
+};
+
+export function StudentProfileModal({ selectedPerson, setSelectedPerson, activeProfileTab, setActiveProfileTab, behaviorRecords, timelineRecords, t, isStudent, handleCloseProfile }: any) {
   return (
     <AnimatePresence>
         {selectedPerson && (

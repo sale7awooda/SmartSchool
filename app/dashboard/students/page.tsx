@@ -786,7 +786,7 @@ export default function StudentsPage() {
         editingStudent={editingStudent}
         mutateStudents={mutateStudents}
       />
-      <StudentProfileModal selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} activeProfileTab={activeProfileTab} setActiveProfileTab={setActiveProfileTab} behaviorRecords={behaviorRecords} timelineRecords={timelineRecords} t={t} isStudent={isStudent} />
+      <StudentProfileModal selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} activeProfileTab={activeProfileTab} setActiveProfileTab={setActiveProfileTab} behaviorRecords={behaviorRecords} timelineRecords={timelineRecords} t={t} isStudent={isStudent} handleCloseProfile={handleCloseProfile} />
 
     </motion.div>
   );
