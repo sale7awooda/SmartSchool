@@ -764,7 +764,28 @@ export default function StudentsPage() {
 
       <PromotionModal isPromotionModalOpen={isPromotionModalOpen} setIsPromotionModalOpen={setIsPromotionModalOpen} promotionType={promotionType} setPromotionType={setPromotionType} promotionValue={promotionValue} setPromotionValue={setPromotionValue} targetGrade={targetGrade} setTargetGrade={setTargetGrade} isSubmitting={isSubmitting} handlePromoteStudents={handlePromoteStudents} classesList={classesList} t={t} />
       <DeleteModal isDeleteModalOpen={isDeleteModalOpen} setIsDeleteModalOpen={setIsDeleteModalOpen} deleteReason={deleteReason} setDeleteReason={setDeleteReason} isSubmitting={isSubmitting} handleDeleteStudent={handleDeleteStudent} t={t} />
-      <AddStudentModal isAddStudentOpen={isAddStudentOpen} setIsAddStudentOpen={setIsAddStudentOpen} isEditing={isEditing} formData={formData} setFormData={setFormData} handleSaveStudent={handleSaveStudent} isSubmitting={isSubmitting} classesList={classesList} feeItems={feeItems} parentSearch={parentSearch} setParentSearch={setParentSearch} foundParents={foundParents} t={t} />
+      <AddStudentModal 
+        isAddStudentOpen={isAddStudentOpen} 
+        setIsAddStudentOpen={setIsAddStudentOpen} 
+        isEditing={isEditing} 
+        formData={formData} 
+        setFormData={setFormData} 
+        handleSaveStudent={handleSaveStudent} 
+        isSubmitting={isSubmitting} 
+        setIsSubmitting={setIsSubmitting}
+        classesList={classesList} 
+        feeItems={feeItems} 
+        parentSearch={parentSearch} 
+        setParentSearch={setParentSearch} 
+        foundParents={foundParents} 
+        t={t}
+        validateForm={validateForm}
+        formErrors={formErrors}
+        setFormErrors={setFormErrors}
+        activeAcademicYear={activeAcademicYear}
+        editingStudent={editingStudent}
+        mutateStudents={mutateStudents}
+      />
       <StudentProfileModal selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} activeProfileTab={activeProfileTab} setActiveProfileTab={setActiveProfileTab} behaviorRecords={behaviorRecords} timelineRecords={timelineRecords} t={t} isStudent={isStudent} />
 
     </motion.div>

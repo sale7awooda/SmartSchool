@@ -2,8 +2,32 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Camera, UserPlus, Settings, Trash2, Edit } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase/client';
+import { createStudent, createFeeItem } from '@/lib/supabase-db';
 
-export function AddStudentModal({ isAddStudentOpen, setIsAddStudentOpen, isEditing, formData, setFormData, handleSaveStudent, isSubmitting, classesList, feeItems, parentSearch, setParentSearch, foundParents, t }: any) {
+export function AddStudentModal({ 
+  isAddStudentOpen, 
+  setIsAddStudentOpen, 
+  isEditing, 
+  formData, 
+  setFormData, 
+  handleSaveStudent, 
+  isSubmitting, 
+  setIsSubmitting,
+  classesList, 
+  feeItems, 
+  parentSearch, 
+  setParentSearch, 
+  foundParents, 
+  t,
+  validateForm,
+  formErrors,
+  setFormErrors,
+  activeAcademicYear,
+  editingStudent,
+  mutateStudents
+}: any) {
   return (
     <AnimatePresence>
         {isAddStudentOpen && (
