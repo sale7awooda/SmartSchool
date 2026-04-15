@@ -6,6 +6,55 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { createStudent, createFeeItem } from '@/lib/supabase-db';
 
+interface ManualFeeItem {
+  name: string;
+  amount: string;
+  frequency: string;
+  category: string;
+}
+
+interface FormData {
+  name: string;
+  studentId: string;
+  grade: string;
+  dob: string;
+  gender: string;
+  bloodGroup: string;
+  address: string;
+  parentName: string;
+  parentPhone: string;
+  parentRelation: string;
+  feeType: 'predefined' | 'manual';
+  feeStructure: string;
+  manualFeeItem: ManualFeeItem;
+  additionalInfo: string;
+}
+
+type FormErrors = Record<string, string>;
+
+interface AddStudentModalProps {
+  isAddStudentOpen: boolean;
+  setIsAddStudentOpen: (open: boolean) => void;
+  isEditing: boolean;
+  formData: FormData;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  handleSaveStudent: () => Promise<void>;
+  isSubmitting: boolean;
+  setIsSubmitting: (submitting: boolean) => void;
+  classesList: string[];
+  feeItems: any[];
+  parentSearch: string;
+  setParentSearch: (search: string) => void;
+  foundParents: any[];
+  t: (key: string) => string;
+  validateForm: () => boolean;
+  formErrors: FormErrors;
+  setFormErrors: React.Dispatch<React.SetStateAction<FormErrors>>;
+  activeAcademicYear: any;
+  editingStudent: any;
+  mutateStudents: () => Promise<any>;
+}
+
 export function AddStudentModal({ 
   isAddStudentOpen, 
   setIsAddStudentOpen, 
@@ -27,7 +76,7 @@ export function AddStudentModal({
   activeAcademicYear,
   editingStudent,
   mutateStudents
-}: any) {
+}: AddStudentModalProps) {
   return (
     <AnimatePresence>
         {isAddStudentOpen && (
