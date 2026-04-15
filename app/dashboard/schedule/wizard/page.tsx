@@ -48,6 +48,7 @@ export default function TimetableWizard() {
   const [teachers, setTeachers] = useState<DBUser[]>([]);
   const [drafts, setDrafts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
 
   const { data: classesData } = useSWR('classes', getClasses);
