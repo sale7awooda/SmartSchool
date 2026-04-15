@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { Student } from "@/lib/mock-db";
 import { useLanguage } from "@/lib/language-context";
+import { AssessmentType, getAssessmentColor, getAssessmentIcon } from "./utils";
 import { 
   getAssessments, 
   createAssessment, 
