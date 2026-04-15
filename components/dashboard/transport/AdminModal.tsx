@@ -61,7 +61,7 @@ export function AdminModal({ isModalOpen, setIsModalOpen, modalMode, currentRout
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
                       <option value="">Select Driver</option>
-                      {drivers.map(d => (
+                      {drivers.map((d: any) => (
                         <option key={d.id} value={d.id}>{d.name} ({d.role})</option>
                       ))}
                     </select>
@@ -83,7 +83,7 @@ export function AdminModal({ isModalOpen, setIsModalOpen, modalMode, currentRout
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
                       <option value="">Select Attendant</option>
-                      {drivers.map(u => (
+                      {drivers.map((u: any) => (
                         <option key={u.id} value={u.id}>{u.name}</option>
                       ))}
                     </select>
