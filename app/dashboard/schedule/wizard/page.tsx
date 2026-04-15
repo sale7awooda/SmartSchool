@@ -1068,7 +1068,7 @@ export default function TimetableWizard() {
       </AnimatePresence>
 
       {/* Drafts Modal */}
-      <DraftsModal isDraftModalOpen={isDraftModalOpen} setIsDraftModalOpen={setIsDraftModalOpen} drafts={drafts} loadDraft={loadDraft} handleDeleteDraft={handleDeleteDraft} isSubmitting={isSubmitting} />
+      <DraftsModal isDraftModalOpen={isDraftModalOpen} setIsDraftModalOpen={setIsDraftModalOpen} drafts={drafts} loadDraft={handleLoadDraft} handleDeleteDraft={handleDeleteDraft} isSubmitting={isSubmitting} />
     </div>
   );
 }
