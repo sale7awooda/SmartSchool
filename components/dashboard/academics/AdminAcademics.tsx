@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import { AssessmentType, getAssessmentColor, getAssessmentIcon } from "./utils";
 
 export function AdminAcademics() {
   const { t } = useLanguage();
@@ -678,12 +679,8 @@ export function AdminAcademics() {
   );
 }
 
+
 // --- Types & Mock Data for Assessments ---
-type AssessmentType =
-  | "Homework"
-  | "Assignment"
-  | "Online Exam"
-  | "Offline Exam";
 
 interface Assessment {
   id: string;
@@ -784,31 +781,5 @@ const MOCK_SUBMISSIONS: StudentSubmission[] = [
     feedback: "Excellent work!",
   },
 ];
-
-const getAssessmentIcon = (type: AssessmentType) => {
-  switch (type) {
-    case "Homework":
-      return <FileText size={18} />;
-    case "Assignment":
-      return <ClipboardList size={18} />;
-    case "Online Exam":
-      return <Monitor size={18} />;
-    case "Offline Exam":
-      return <PenTool size={18} />;
-  }
-};
-
-const getAssessmentColor = (type: AssessmentType) => {
-  switch (type) {
-    case "Homework":
-      return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-    case "Assignment":
-      return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-    case "Online Exam":
-      return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-    case "Offline Exam":
-      return "bg-rose-500/10 text-rose-500 border-rose-500/20";
-  }
-};
 
 // --- Teacher View ---
