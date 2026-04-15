@@ -84,6 +84,8 @@ export default function TransportPage() {
   const [parentStudent, setParentStudent] = useState<any>(null);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const t = (key: string) => key;
 
   useEffect(() => {
     const fetchRoutes = async () => {
@@ -985,7 +987,7 @@ export default function TransportPage() {
       )}
 
       {/* Admin Modal */}
-      <AdminModal isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} modalMode={modalMode} formData={formData} setFormData={setFormData} handleSaveRoute={handleSaveRoute} isSubmitting={isSubmitting} t={t} />
+      <AdminModal isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} modalMode={modalMode} currentRoute={currentRoute} setCurrentRoute={setCurrentRoute} handleSaveRoute={handleSaveRoute} isSubmitting={isSubmitting} t={t} />
     </motion.div>
   );
 }

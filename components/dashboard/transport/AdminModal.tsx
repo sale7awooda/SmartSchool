@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 const TransportMap = dynamic(() => import('@/components/transport/TransportMap'), { ssr: false });
 import Image from 'next/image';
 
-export function AdminModal({ isModalOpen, setIsModalOpen, modalMode, formData, setFormData, handleSaveRoute, isSubmitting, t }: any) {
+export function AdminModal({ isModalOpen, setIsModalOpen, modalMode, currentRoute, setCurrentRoute, handleSaveRoute, isSubmitting, t }: any) {
   return (
     <AnimatePresence>
         {isModalOpen && (
