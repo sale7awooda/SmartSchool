@@ -16,7 +16,6 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   experimental: {
-    turbopack: {},
   },
   // Allow access to remote image placeholder.
   images: {

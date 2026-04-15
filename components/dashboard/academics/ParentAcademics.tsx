@@ -521,9 +521,12 @@ export function ParentAcademics() {
                   <div
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border w-fit mb-3 ${getAssessmentColor(selectedAssignment.type as AssessmentType)}`}
                   >
-                    {getAssessmentIcon(
-                      selectedAssignment.type as AssessmentType,
-                    )}
+                    {(() => {
+                      const Icon = getAssessmentIcon(
+                        selectedAssignment.type as AssessmentType,
+                      );
+                      return <Icon size={18} />;
+                    })()}
                     {selectedAssignment.type}
                   </div>
                   <h2 className="text-2xl font-bold text-foreground tracking-tight">
@@ -667,7 +670,10 @@ export function ParentAcademics() {
                     <div
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border ${getAssessmentColor(assessment.type as AssessmentType)}`}
                     >
-                      {getAssessmentIcon(assessment.type as AssessmentType)}
+                      {(() => {
+                        const Icon = getAssessmentIcon(assessment.type as AssessmentType);
+                        return <Icon size={18} />;
+                      })()}
                       {assessment.type}
                     </div>
                     <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">

@@ -441,8 +441,11 @@ export function TeacherAcademics() {
                       <div
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border ${getAssessmentColor(assessment.type)}`}
                       >
-                        {getAssessmentIcon(assessment.type)}
-                        {assessment.type}
+                      {(() => {
+                        const Icon = getAssessmentIcon(assessment.type);
+                        return <Icon size={18} />;
+                      })()}
+                      {assessment.type}
                       </div>
                       <span
                         className={`text-xs font-bold px-2.5 py-1 rounded-md ${
@@ -610,7 +613,10 @@ export function TeacherAcademics() {
                                 <div
                                   className={`w-10 h-10 rounded-lg flex items-center justify-center border ${getAssessmentColor(assessment.type)}`}
                                 >
-                                  {getAssessmentIcon(assessment.type)}
+                                  {(() => {
+                                    const Icon = getAssessmentIcon(assessment.type);
+                                    return <Icon size={18} />;
+                                  })()}
                                 </div>
                                 <div>
                                   <h4 className="font-bold text-foreground">
@@ -669,7 +675,10 @@ export function TeacherAcademics() {
                 <div
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border ${getAssessmentColor(selectedAssessment.type)}`}
                 >
-                  {getAssessmentIcon(selectedAssessment.type)}
+                  {(() => {
+                    const Icon = getAssessmentIcon(selectedAssessment.type);
+                    return <Icon size={18} />;
+                  })()}
                   {selectedAssessment.type} (Max: {selectedAssessment.max_score})
                 </div>
               </div>
