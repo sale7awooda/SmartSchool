@@ -2,7 +2,23 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Camera, UserPlus, Settings, Trash2, Edit, Save, Play, CheckCircle2, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export function DraftsModal({ isDraftModalOpen, setIsDraftModalOpen, drafts, loadDraft, handleDeleteDraft, isSubmitting }: any) {
+interface Draft {
+  id: string;
+  name: string;
+  updated_at: string;
+  [key: string]: any;
+}
+
+interface DraftsModalProps {
+  isDraftModalOpen: boolean;
+  setIsDraftModalOpen: (open: boolean) => void;
+  drafts: Draft[];
+  loadDraft: (draft: Draft) => void;
+  handleDeleteDraft: (id: string) => void;
+  isSubmitting: boolean;
+}
+
+export function DraftsModal({ isDraftModalOpen, setIsDraftModalOpen, drafts, loadDraft, handleDeleteDraft, isSubmitting }: DraftsModalProps) {
   return (
     <AnimatePresence>
         {isDraftModalOpen && (
@@ -27,7 +43,7 @@ export function DraftsModal({ isDraftModalOpen, setIsDraftModalOpen, drafts, loa
                     No saved drafts found.
                   </div>
                 ) : (
-                  drafts.map((draft) => (
+                  drafts.map((draft: Draft) => (
                     <div 
                       key={draft.id}
                       className="p-4 bg-muted/50 border border-border rounded-xl flex items-center justify-between hover:bg-muted transition-colors group"
@@ -40,7 +56,7 @@ export function DraftsModal({ isDraftModalOpen, setIsDraftModalOpen, drafts, loa
                       </div>
                       <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => handleLoadDraft(draft)}
+                          onClick={() => loadDraft(draft)}
                           className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors"
                         >
                           Load
