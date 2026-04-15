@@ -3,7 +3,7 @@ import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, He
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
-export function DeleteModal({ isDeleteModalOpen, setIsDeleteModalOpen, deleteReason, setDeleteReason, isSubmitting, handleDeleteStudent, t }: any) {
+export function DeleteModal({ isDeleteModalOpen, setIsDeleteModalOpen, setStudentToDelete, deleteReason, setDeleteReason, isSubmitting, handleDeleteStudent, t }: any) {
   return (
     <AnimatePresence>
         {isDeleteModalOpen && (

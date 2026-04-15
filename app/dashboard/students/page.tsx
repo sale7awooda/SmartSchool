@@ -763,7 +763,7 @@ export default function StudentsPage() {
       )}
 
       <PromotionModal isPromotionModalOpen={isPromotionModalOpen} setIsPromotionModalOpen={setIsPromotionModalOpen} promotionType={promotionType} setPromotionType={setPromotionType} promotionValue={promotionValue} setPromotionValue={setPromotionValue} targetGrade={targetGrade} setTargetGrade={setTargetGrade} isSubmitting={isSubmitting} handlePromoteStudents={handlePromoteStudents} classesList={classesList} t={t} />
-      <DeleteModal isDeleteModalOpen={isDeleteModalOpen} setIsDeleteModalOpen={setIsDeleteModalOpen} deleteReason={deleteReason} setDeleteReason={setDeleteReason} isSubmitting={isSubmitting} handleDeleteStudent={handleDeleteStudent} t={t} />
+      <DeleteModal isDeleteModalOpen={isDeleteModalOpen} setIsDeleteModalOpen={setIsDeleteModalOpen} setStudentToDelete={setStudentToDelete} deleteReason={deleteReason} setDeleteReason={setDeleteReason} isSubmitting={isSubmitting} handleDeleteStudent={handleDeleteStudent} t={t} />
       <AddStudentModal 
         isAddStudentOpen={isAddStudentOpen} 
         setIsAddStudentOpen={setIsAddStudentOpen} 
