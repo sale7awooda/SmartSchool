@@ -71,7 +71,7 @@ export function AdminModal({ isModalOpen, setIsModalOpen, modalMode, currentRout
                     <select 
                       value={currentRoute.attendant_id || ''}
                       onChange={(e) => {
-                        const attendant = drivers.find(u => u.id === e.target.value);
+                        const attendant = drivers.find((u: any) => u.id === e.target.value);
                         setCurrentRoute({
                           ...currentRoute, 
                           attendant_id: e.target.value,
