@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { Notice, MOCK_USERS, MOCK_PARENTS, MOCK_CHATS, MOCK_MESSAGES } from '@/lib/mock-db';
+import { Notice, User } from '@/types';
 import { useLanguage } from '@/lib/language-context';
 import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2, Send, Search, Smartphone, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,14 +18,14 @@ export default function CommunicationPage() {
   const [activeTab, setActiveTab] = useState<'notices' | 'messages' | 'broadcasts'>('notices');
   
   // Notices State
-  const [notices, setNotices] = useState<any[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newNotice, setNewNotice] = useState({ title: '', content: '', targetAudience: 'all', isImportant: false });
 
   // Messages State
-  const [chatUsers, setChatUsers] = useState<any[]>([]);
-  const [activeChatUser, setActiveChatUser] = useState<any>(null);
+  const [chatUsers, setChatUsers] = useState<User[]>([]);
+  const [activeChatUser, setActiveChatUser] = useState<User | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
 

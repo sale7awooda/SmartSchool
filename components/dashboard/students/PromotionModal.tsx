@@ -3,7 +3,37 @@ import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, He
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
-export function PromotionModal({ isPromotionModalOpen, setIsPromotionModalOpen, promotionType, setPromotionType, promotionValue, setPromotionValue, targetGrade, setTargetGrade, isSubmitting, handlePromoteStudents, classesList, t }: any) {
+import { Student } from '@/types';
+
+interface PromotionModalProps {
+  isPromotionModalOpen: boolean;
+  setIsPromotionModalOpen: (open: boolean) => void;
+  promotionType: 'grade' | 'class' | 'manual';
+  setPromotionType: (type: 'grade' | 'class' | 'manual') => void;
+  promotionValue: string;
+  setPromotionValue: (value: string) => void;
+  targetGrade: string;
+  setTargetGrade: (grade: string) => void;
+  isSubmitting: boolean;
+  handlePromoteStudents: (type: 'grade' | 'class' | 'manual', value?: string) => Promise<void>;
+  classesList: string[];
+  t: (key: string) => string;
+}
+
+export function PromotionModal({ 
+  isPromotionModalOpen, 
+  setIsPromotionModalOpen, 
+  promotionType, 
+  setPromotionType, 
+  promotionValue, 
+  setPromotionValue, 
+  targetGrade, 
+  setTargetGrade, 
+  isSubmitting, 
+  handlePromoteStudents, 
+  classesList, 
+  t 
+}: PromotionModalProps) {
   return (
     <AnimatePresence>
         {isPromotionModalOpen && (

@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { User, Student, Parent } from '@/lib/mock-db';
+import { User, Student, Parent, BehaviorRecord, TimelineEvent } from '@/types';
 import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getFeeItems, createFeeItem } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
@@ -27,8 +27,8 @@ import { StudentProfileModal } from '@/components/dashboard/students/StudentProf
 type DirectoryTab = 'students' | 'parents';
 type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
 
-const isStudent = (person: User | Student | Parent): person is Student => {
-  return person && 'grade' in person;
+const isStudent = (person: User | Student | Parent | null): person is Student => {
+  return !!(person && 'grade' in person);
 };
 
 export default function StudentsPage() {
@@ -45,7 +45,7 @@ export default function StudentsPage() {
   const [mainTab, setMainTab] = useState<'directory' | 'history' | 'promotions'>('directory');
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
@@ -338,7 +338,7 @@ export default function StudentsPage() {
     }
   }, [activeAcademicYear]);
 
-  const handleOpenEditStudent = (student: any) => {
+  const handleOpenEditStudent = (student: Student & { parents?: any[] }) => {
     setIsEditing(true);
     setEditingStudent(student);
     setFormData({
@@ -509,7 +509,7 @@ export default function StudentsPage() {
                         </td>
                       </tr>
                     ) : (
-                      students.map((student: any) => (
+                      students.map((student: Student & { parents?: any[] }) => (
                         <tr 
                           key={student.id} 
                           onClick={() => setSelectedPerson(student)}
@@ -654,10 +654,9 @@ export default function StudentsPage() {
                         </td>
                       </tr>
                     ) : (
-                      students.map((student: any) => (
+                      students.map((student: Student) => (
                         <tr 
                           key={student.id} 
-                          className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors group"
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">

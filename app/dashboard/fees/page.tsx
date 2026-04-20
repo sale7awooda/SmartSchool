@@ -4,7 +4,7 @@ import useSWR, { mutate } from 'swr';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { FeeInvoice } from '@/lib/mock-db';
+import { FeeInvoice } from '@/types';
 import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment, getActiveAcademicYear } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';

@@ -3,7 +3,27 @@ import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, He
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
-export function DeleteModal({ isDeleteModalOpen, setIsDeleteModalOpen, setStudentToDelete, deleteReason, setDeleteReason, isSubmitting, handleDeleteStudent, t }: any) {
+interface DeleteModalProps {
+  isDeleteModalOpen: boolean;
+  setIsDeleteModalOpen: (open: boolean) => void;
+  setStudentToDelete: (id: string | null) => void;
+  deleteReason: string;
+  setDeleteReason: (reason: string) => void;
+  isSubmitting: boolean;
+  handleDeleteStudent: () => Promise<void>;
+  t: (key: string) => string;
+}
+
+export function DeleteModal({ 
+  isDeleteModalOpen, 
+  setIsDeleteModalOpen, 
+  setStudentToDelete, 
+  deleteReason, 
+  setDeleteReason, 
+  isSubmitting, 
+  handleDeleteStudent, 
+  t 
+}: DeleteModalProps) {
   return (
     <AnimatePresence>
         {isDeleteModalOpen && (

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { Student, User, Parent } from '@/lib/mock-db';
+import { Student, User, Parent } from '@/types';
 
 export async function getPaginatedRoutes(page: number = 1, limit: number = 10, search: string = '') {
   const from = (page - 1) * limit;

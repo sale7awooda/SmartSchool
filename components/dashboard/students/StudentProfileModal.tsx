@@ -13,7 +13,31 @@ const getRoleBadgeColor = (role: string) => {
   }
 };
 
-export function StudentProfileModal({ selectedPerson, setSelectedPerson, activeProfileTab, setActiveProfileTab, behaviorRecords, timelineRecords, t, isStudent, handleCloseProfile }: any) {
+import { BehaviorRecord, Student, TimelineEvent, User } from '@/types';
+
+interface StudentProfileModalProps {
+  selectedPerson: Student | User | null;
+  setSelectedPerson: (person: Student | User | null) => void;
+  activeProfileTab: 'overview' | 'medical' | 'behavior' | 'timeline';
+  setActiveProfileTab: (tab: 'overview' | 'medical' | 'behavior' | 'timeline') => void;
+  behaviorRecords: BehaviorRecord[];
+  timelineRecords: TimelineEvent[];
+  t: (key: string) => string;
+  isStudent: (person: any) => person is Student;
+  handleCloseProfile: () => void;
+}
+
+export function StudentProfileModal({ 
+  selectedPerson, 
+  setSelectedPerson, 
+  activeProfileTab, 
+  setActiveProfileTab, 
+  behaviorRecords, 
+  timelineRecords, 
+  t, 
+  isStudent, 
+  handleCloseProfile 
+}: StudentProfileModalProps) {
   return (
     <AnimatePresence>
         {selectedPerson && (

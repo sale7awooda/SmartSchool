@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { Student, User, Parent } from '@/lib/mock-db';
+import { Student, User, Parent } from '@/types';
 
 export async function getSchedules(classId?: string, academicYear?: string) {
   try {

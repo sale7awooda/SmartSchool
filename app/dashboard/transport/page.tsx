@@ -13,8 +13,9 @@ import useSWR from 'swr';
 import { 
   BusRoute, 
   Student,
-  BusStop
-} from '@/lib/mock-db';
+  BusStop,
+  User as UserType
+} from '@/types';
 import { 
   MapPin, 
   Navigation, 
@@ -59,7 +60,7 @@ export default function TransportPage() {
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [addressSearchQuery, setAddressSearchQuery] = useState('');
-  const [addressResults, setAddressResults] = useState<any[]>([]);
+  const [addressResults, setAddressResults] = useState<any[]>([]); // Geocoding results can vary
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isAddingStop, setIsAddingStop] = useState(false);
@@ -81,9 +82,9 @@ export default function TransportPage() {
     }
     return 60000;
   });
-  const [parentStudent, setParentStudent] = useState<any>(null);
-  const [drivers, setDrivers] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
+  const [parentStudent, setParentStudent] = useState<Student | null>(null);
+  const [drivers, setDrivers] = useState<UserType[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const t = (key: string) => key;
 
@@ -111,12 +112,12 @@ export default function TransportPage() {
           driver_phone: route.driver?.phone,
           attendant_name: route.attendant?.name,
           attendant_phone: route.attendant?.phone,
-          stops: route.stops.map((stop: any) => ({
+          stops: route.stops.map((stop: BusStop & { lat?: number, lng?: number, arrival_time?: string, student_id?: string }) => ({
             id: stop.id,
             name: stop.name,
-            arrivalTime: stop.arrival_time,
-            coordinates: { lat: stop.lat, lng: stop.lng },
-            studentId: stop.student_id
+            arrivalTime: stop.arrival_time || stop.arrivalTime,
+            coordinates: { lat: stop.lat || stop.coordinates?.lat || 0, lng: stop.lng || stop.coordinates?.lng || 0 },
+            studentId: stop.student_id || stop.studentId
           }))
         }));
         setRoutes(mappedRoutes as any);
@@ -252,7 +253,7 @@ export default function TransportPage() {
 
       routeIdsToJoin.forEach(routeId => {
         const channel = supabase.channel(`route:${routeId}`)
-          .on('broadcast', { event: 'location_update' }, (payload: any) => {
+          .on('broadcast', { event: 'location_update' }, (payload: { payload: { routeId: string, lat: number, lng: number } }) => {
             setLiveBusLocations(prev => ({
               ...prev,
               [payload.payload.routeId]: { lat: payload.payload.lat, lng: payload.payload.lng }

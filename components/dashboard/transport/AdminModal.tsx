@@ -1,11 +1,35 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Camera, UserPlus, Settings, Trash2, Edit, Bus, Users, Clock, Shield, Map, CheckCircle2, User, Save } from 'lucide-react';
+import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Camera, UserPlus, Settings, Trash2, Edit, Bus, Users, Clock, Shield, Map, CheckCircle2, User as UserIcon, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import dynamic from 'next/dynamic';
 const TransportMap = dynamic(() => import('@/components/transport/TransportMap'), { ssr: false });
 import Image from 'next/image';
 
-export function AdminModal({ isModalOpen, setIsModalOpen, modalMode, currentRoute, setCurrentRoute, handleSaveRoute, isSubmitting, t, drivers }: any) {
+import { BusRoute, User } from '@/types';
+
+interface AdminModalProps {
+  isModalOpen: boolean;
+  setIsModalOpen: (open: boolean) => void;
+  modalMode: 'create' | 'edit' | 'view';
+  currentRoute: Partial<BusRoute>;
+  setCurrentRoute: (route: Partial<BusRoute>) => void;
+  handleSaveRoute: () => Promise<void>;
+  isSubmitting: boolean;
+  t: (key: string) => string;
+  drivers: User[];
+}
+
+export function AdminModal({ 
+  isModalOpen, 
+  setIsModalOpen, 
+  modalMode, 
+  currentRoute, 
+  setCurrentRoute, 
+  handleSaveRoute, 
+  isSubmitting, 
+  t, 
+  drivers 
+}: AdminModalProps) {
   return (
     <AnimatePresence>
         {isModalOpen && (

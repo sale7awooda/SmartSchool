@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { createStudent, createFeeItem } from '@/lib/supabase-db';
 
+import { AcademicEnrollment, Student, User } from '@/types';
+
 interface ManualFeeItem {
   name: string;
   amount: string;
@@ -45,13 +47,13 @@ interface AddStudentModalProps {
   feeItems: any[];
   parentSearch: string;
   setParentSearch: (search: string) => void;
-  foundParents: any[];
+  foundParents: User[];
   t: (key: string) => string;
   validateForm: () => boolean;
   formErrors: FormErrors;
   setFormErrors: React.Dispatch<React.SetStateAction<FormErrors>>;
-  activeAcademicYear: any;
-  editingStudent: any;
+  activeAcademicYear: { name: string } | null;
+  editingStudent: Student | null;
   mutateStudents: () => Promise<any>;
 }
 

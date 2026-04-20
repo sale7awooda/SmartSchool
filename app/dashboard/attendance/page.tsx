@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { useLanguage } from '@/lib/language-context';
-import { Student } from '@/lib/mock-db';
+import { Student } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import { getStudents, getAttendance, saveAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById, getActiveAcademicYear } from '@/lib/supabase-db';
 import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search, Users } from 'lucide-react';
