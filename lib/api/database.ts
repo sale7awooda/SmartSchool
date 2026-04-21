@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase/client';
-import { Student, User, Parent } from '@/lib/mock-db';
 
 export async function seedDatabase(demoData: any) {
   const { 
@@ -116,7 +115,7 @@ export async function seedDatabase(demoData: any) {
 
 export async function resetDatabase(keepUsers: boolean = true) {
   const tables = [
-    'attendance', 'behavior_records', 'timeline_records', 'submissions', 
+    'audit_logs', 'attendance', 'behavior_records', 'timeline_records', 'submissions', 
     'assessments', 'fee_invoices', 'bus_stops', 'bus_routes', 
     'parent_student', 'students', 'classes', 'subjects', 'academic_years', 'notices'
   ];

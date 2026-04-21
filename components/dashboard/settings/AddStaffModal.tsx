@@ -18,6 +18,7 @@ import {
   deleteSubject,
   createStaff
 } from '@/lib/supabase-db';
+import { processCreateStaffAction } from '@/app/actions/staff';
 import { usePermissions } from '@/lib/permissions';
 import { useSettings } from '@/lib/settings-context';
 import { motion, AnimatePresence } from 'motion/react';
@@ -88,11 +89,33 @@ export function AddStaffModal({ onClose, onSuccess }: { onClose: () => void, onS
     department: 'Academics'
   });
 
+  const { user } = useAuth();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if(!user) return;
     setIsSubmitting(true);
     try {
-      await createStaff(formData);
+      const actionFormData = new FormData();
+      actionFormData.append('name', formData.name);
+      actionFormData.append('email', formData.email);
+      actionFormData.append('role', formData.role);
+      actionFormData.append('phone', formData.phone);
+      actionFormData.append('department', formData.department);
+      actionFormData.append('createdBy', user.id);
+
+      const result = await processCreateStaffAction({ success: false, message: '' }, actionFormData);
+      
+      if (!result.success) {
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0][0];
+          toast.error("Validation Error", { description: firstError });
+        } else {
+          toast.error("Error", { description: result.message });
+        }
+        return;
+      }
+      
       toast.success('Staff member added successfully');
       onSuccess();
     } catch (error) {

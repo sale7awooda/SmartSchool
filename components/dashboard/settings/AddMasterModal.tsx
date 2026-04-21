@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
+import { processCreateMasterEntityAction } from '@/app/actions/settings';
 import { useAuth } from '@/lib/auth-context';
 import { 
   getPaginatedStaff, 
@@ -82,17 +83,31 @@ export function AddMasterModal({ type, onClose, onSuccess }: { type: 'year' | 'c
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
 
+  const { user } = useAuth();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setIsSubmitting(true);
+    
     try {
-      if (type === 'year') {
-        await createAcademicYear({ name, is_active: false });
-      } else if (type === 'class') {
-        await createClass({ name });
-      } else if (type === 'subject') {
-        await createSubject({ name });
+      const formData = new FormData();
+      formData.append('type', type);
+      formData.append('name', name);
+      formData.append('createdBy', user.id);
+
+      const result = await processCreateMasterEntityAction({ success: false, message: '' }, formData);
+      
+      if (!result.success) {
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0][0] as string;
+          toast.error("Validation Error", { description: firstError });
+        } else {
+          toast.error("Error", { description: result.message });
+        }
+        return;
       }
+      
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully`);
       onSuccess();
     } catch (error) {

@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
-import { Student } from "@/lib/mock-db";
+import { Student } from "@/types";
 import { useLanguage } from "@/lib/language-context";
 import { 
   getAssessments, 

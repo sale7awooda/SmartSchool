@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Wand2, Plus, Trash2, AlertCircle } from 'lucide-react';
-import { TimetablePeriod } from '@/lib/mock-db';
+import { TimetablePeriod } from '@/types';
 import { getSubjects, getTeachers, getClasses } from '@/lib/supabase-db';
 
 interface GenerateTimetableModalProps {

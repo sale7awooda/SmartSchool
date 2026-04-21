@@ -4,9 +4,10 @@ import useSWR from 'swr';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
-import { Student } from "@/lib/mock-db";
+import { Student } from "@/types";
 import { useLanguage } from "@/lib/language-context";
 import { AssessmentType, getAssessmentColor, getAssessmentIcon } from "./utils";
+import { processCreateAssessmentAction, processSaveGradesAction } from '@/app/actions/academics';
 import { 
   getAssessments, 
   createAssessment, 
@@ -165,46 +166,73 @@ export function TeacherAcademics() {
   };
 
   const handleSaveGrades = async () => {
+    if (!selectedAssessment || !user) return;
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    
+    try {
+      const records = students.map((student: any) => ({
+        student_id: student.id,
+        score: parseInt(grades[selectedAssessment.id]?.[student.id] || "0", 10),
+        feedback: feedbacks[selectedAssessment.id]?.[student.id] || ''
+      }));
 
-    if (selectedAssessment) {
+      const formData = new FormData();
+      formData.append('assessment_id', selectedAssessment.id);
+      formData.append('gradedBy', user.id);
+      formData.append('records', JSON.stringify(records));
+
+      const result = await processSaveGradesAction({ success: false, message: '' }, formData);
+      
+      if (!result.success) {
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0][0] as string;
+          toast.error("Validation Error", { description: firstError });
+        } else {
+          toast.error("Error", { description: result.message });
+        }
+        setIsSaving(false);
+        return;
+      }
+
       mutateAssessments(
         assessments.map((a: any) =>
           a.id === selectedAssessment.id ? { ...a, status: "Graded" } : a,
         ),
       );
-    }
 
-    setIsSaving(false);
-    toast.success("Grades saved successfully", {
-      description: `Updated records for ${selectedAssessment?.title}.`,
-    });
+      toast.success("Grades saved successfully", {
+        description: `Updated records for ${selectedAssessment.title}.`,
+      });
+    } catch (e) {
+      toast.error("Error saving grades");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCreateAssessment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if(!user) return;
     const formData = new FormData(e.currentTarget);
-    const assessmentData = {
-      title: formData.get("title") as string,
-      type: formData.get("type") as string,
-      subject: formData.get("subject") as string,
-      class: formData.get("class") as string,
-      max_score: Number(formData.get("maxScore")),
-      date: formData.get("date") as string,
-      status: "Published",
-      description: formData.get("description") as string,
-    };
+    formData.append('createdBy', user.id);
 
-    try {
-      const newAssessment = await createAssessment(assessmentData);
-      mutateAssessments([newAssessment, ...assessments]);
-      setShowNewAssessment(false);
-      toast.success("Assessment created successfully");
-    } catch (error) {
-      console.error('Error creating assessment:', error);
-      toast.error("Failed to create assessment");
+    const result = await processCreateAssessmentAction({ success: false, message: '' }, formData);
+    
+    if (!result.success) {
+      if (result.errors) {
+        const firstError = Object.values(result.errors)[0][0];
+        toast.error("Validation Error", { description: firstError });
+      } else {
+        toast.error("Error", { description: result.message });
+      }
+      return;
     }
+
+    // Refresh assessments via SWR or state (optimistic)
+    // Actually we can refetch or optimistically add, for now we will cheat and refetch
+    mutateAssessments();
+    setShowNewAssessment(false);
+    toast.success("Assessment created successfully");
   };
 
   if (isLoading) {

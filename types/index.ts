@@ -51,6 +51,52 @@ export interface TimelineEvent {
   icon?: 'award' | 'alert' | 'calendar' | 'file';
 }
 
+export interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  createdAt: string;
+  author: string;
+  authorName: string;
+  authorRole: string;
+  targetAudience: 'all' | 'parents' | 'staff' | 'students';
+  isImportant: boolean;
+}
+
+export interface TimetablePeriod {
+  id: string;
+  dayOfWeek: number;
+  period: number;
+  classId: string;
+  subject: string;
+  teacherName: string;
+  room: string;
+  startTime: string;
+  endTime: string;
+  color?: string;
+}
+
+export interface FeeItem {
+  id: string;
+  description: string;
+  amount: number;
+  grade_levels?: string[];
+  is_mandatory: boolean;
+}
+
+export interface FeeInvoice {
+  id: string;
+  studentId: string;
+  studentName: string;
+  grade: string;
+  amount: number;
+  dueDate: string;
+  status: 'paid' | 'pending' | 'overdue';
+  items: { description: string; amount: number }[];
+  term: string;
+}
+
 export interface AcademicEnrollment {
   id: string;
   studentId: string;
@@ -97,6 +143,13 @@ export interface Parent {
   studentId?: string;
   studentIds?: string[];
   role: 'parent';
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  phone: string;
+  licenseNumber?: string;
 }
 
 export interface BusStop {

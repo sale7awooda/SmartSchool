@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from './supabase/client';
-import { User } from './mock-db';
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;

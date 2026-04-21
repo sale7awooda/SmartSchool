@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent, BehaviorRecord, TimelineEvent } from '@/types';
 import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getFeeItems, createFeeItem } from '@/lib/supabase-db';
+import { processDeleteStudentAction } from '@/app/actions/students';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
 import { 
@@ -207,18 +208,20 @@ export default function StudentsPage() {
   };
 
   const handleDeleteStudent = async () => {
-    if (!studentToDelete || !deleteReason) return;
+    if (!studentToDelete || !deleteReason || !user) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('students')
-        .update({ 
-          is_deleted: true, 
-          deleted_reason: deleteReason 
-        })
-        .eq('id', studentToDelete);
+      const formData = new FormData();
+      formData.append('student_id', studentToDelete);
+      formData.append('deletedBy', user.id);
+      formData.append('reason', deleteReason);
+
+      const result = await processDeleteStudentAction({ success: false, message: '' }, formData);
       
-      if (error) throw error;
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
       
       toast.success("Student deleted successfully");
       mutateStudents();
@@ -343,9 +346,9 @@ export default function StudentsPage() {
     setEditingStudent(student);
     setFormData({
       name: student.name,
-      studentId: student.roll_number,
-      grade: student.grade,
-      dob: student.dob,
+      studentId: String(student.roll_number || ''),
+      grade: student.grade || '',
+      dob: student.dob || '',
       gender: student.gender || 'Male',
       bloodGroup: student.blood_group || 'A+',
       address: student.address || '',

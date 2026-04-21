@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase/client';
-import { Student, User, Parent } from '@/lib/mock-db';
 
 export async function getPaginatedMedicalRecords(page: number = 1, limit: number = 10, search: string = '') {
   const from = (page - 1) * limit;

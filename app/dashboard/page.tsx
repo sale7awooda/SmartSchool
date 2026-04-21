@@ -21,8 +21,9 @@ export default function DashboardHome() {
 
   const fetchDashboardData = async () => {
     if (!user) return null;
-    let stats = { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0 };
+    let stats = { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0, totalStaff: 0 };
     let notices = [];
+    let recentActivities = [];
 
     try {
       if (isRole(['admin', 'accountant'])) {
@@ -36,6 +37,12 @@ export default function DashboardHome() {
         }
 
         const { count: studentCount } = await studentQuery;
+        
+        // Fetch staff count
+        const { count: staffCount } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .in('role', ['teacher', 'staff', 'accountant', 'admin', 'principal', 'superintendent']);
         
         const { data: attendanceData } = await supabase
           .from('attendance')
@@ -67,8 +74,24 @@ export default function DashboardHome() {
           totalStudents: studentCount || 0,
           attendanceToday: attendanceRate,
           feeCollected: collected,
-          pendingFees: pending
+          pendingFees: pending,
+          totalStaff: staffCount || 0,
         };
+        
+        // Safely try to fetch audit logs securely created by new system integrations
+        try {
+          const { data: auditData, error: auditError } = await supabase
+            .from('audit_logs')
+            .select('*, user:users(name)')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          
+          if (!auditError && auditData) {
+            recentActivities = auditData;
+          }
+        } catch (e) {
+          console.warn('Audit logs table may not exist yet or failed to fetch');
+        }
       }
 
       const { data: noticesData } = await supabase
@@ -86,7 +109,7 @@ export default function DashboardHome() {
       }
     }
 
-    return { stats, notices };
+    return { stats, notices, recentActivities };
   };
 
   const { data, isLoading } = useSWR(
@@ -152,26 +175,45 @@ export default function DashboardHome() {
     );
   }
 
-  const stats = data?.stats || { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0 };
+  const stats = data?.stats || { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0, totalStaff: 0 };
   const notices = data?.notices || [];
+  const recentActivities = data?.recentActivities || [];
 
   if (isRole('parent')) return <ParentDashboard notices={notices} />;
   if (isRole('teacher')) return <TeacherDashboard notices={notices} />;
   if (isRole('accountant')) return <AccountantDashboard stats={stats} notices={notices} />;
-  return <AdminDashboard stats={stats} notices={notices} />;
+  return <AdminDashboard stats={stats} notices={notices} recentActivities={recentActivities} />;
 }
 
-function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: any[] }) {
+function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats: any, notices: any[], recentActivities: any[] }) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
   
   const stats = [
     { label: t('total_students'), value: realStats.totalStudents.toLocaleString(), icon: Users, color: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
-    { label: t('attendance_today'), value: `${realStats.attendanceToday}%`, icon: CalendarCheck, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
+    { label: 'Total Staff', value: realStats.totalStaff.toLocaleString(), icon: CheckCircle2, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
     { label: t('fees_collected'), value: `$${realStats.feeCollected.toLocaleString()}`, icon: CreditCard, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/20' },
     { label: t('pending_dues'), value: `$${realStats.pendingFees.toLocaleString()}`, icon: TrendingUp, color: 'bg-amber-500', shadow: 'shadow-amber-500/20' },
   ];
+
+  const formatActionType = (action: string) => {
+    switch(action) {
+      case 'STUDENT_ENROLLED': return 'New Student Enrolled';
+      case 'STAFF_CREATED': return 'New Staff Member Onboarded';
+      case 'FEE_INVOICE_CREATED': return 'Fee Invoice Generated';
+      case 'FEE_INVOICE_VOIDED': return 'Fee Invoice Voided';
+      case 'FEE_PAYMENT_RECORDED': return 'Payment Recorded';
+      case 'ASSESSMENT_CREATED': return 'New Assessment Created';
+      case 'ATTENDANCE_RECORDED': return 'Bulk Attendance Saved';
+      default: return action;
+    }
+  };
+
+  const formatTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
@@ -208,10 +250,13 @@ function AdminDashboard({ stats: realStats, notices }: { stats: any, notices: an
         <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
           <h3 className="text-xl font-bold text-foreground mb-6">{t('recent_activity')}</h3>
           <div className="space-y-4">
-            {[
-              { action: 'New student enrolled', time: '10 mins ago' },
-              { action: 'Fee payment received', time: '1 hour ago' },
-              { action: 'Attendance report generated', time: '3 hours ago' },
+            {recentActivities.length > 0 ? recentActivities.map((activity, i) => (
+              <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/30">
+                <span className="font-semibold text-foreground">{formatActionType(activity.action_type)}</span>
+                <span className="text-xs font-medium text-muted-foreground">{formatTime(activity.created_at)}</span>
+              </div>
+            )) : [
+              { action: 'No recent activity yet', time: '-' },
             ].map((activity, i) => (
               <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/30">
                 <span className="font-semibold text-foreground">{activity.action}</span>

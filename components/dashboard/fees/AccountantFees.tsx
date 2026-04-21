@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { FeeInvoice, FeeItem, Student, User } from '@/types';
 import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment, getActiveAcademicYear } from '@/lib/supabase-db';
+import { processPaymentAction, processVoidInvoiceAction, processCreateInvoiceAction } from '@/app/actions/finance';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -108,7 +109,7 @@ export function AccountantFees() {
     amount: inv.amount,
     dueDate: inv.due_date,
     status: inv.status,
-    description: inv.description
+    term: inv.description
   }));
 
   const filteredInvoices = mappedInvoices.filter((inv: any) => {
@@ -123,14 +124,27 @@ export function AccountantFees() {
     e.preventDefault();
     if (!selectedInvoice || !user) return;
     setIsRecordingPayment(true);
+    
     try {
-      await recordPayment({
-        invoiceId: selectedInvoice.id,
-        amount: selectedInvoice.amount,
-        paymentMethod: paymentForm.paymentMethod,
-        referenceNumber: paymentForm.referenceNumber,
-        recordedBy: user.id
-      });
+      const formData = new FormData();
+      formData.append('invoiceId', selectedInvoice.id);
+      formData.append('amount', selectedInvoice.amount.toString());
+      formData.append('paymentMethod', paymentForm.paymentMethod);
+      formData.append('referenceNumber', paymentForm.referenceNumber);
+      formData.append('recordedBy', user.id);
+
+      const result = await processPaymentAction({ success: false, message: '' }, formData);
+      
+      if (!result.success) {
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0][0];
+          toast.error("Validation Error", { description: firstError });
+        } else {
+          toast.error("Error", { description: result.message });
+        }
+        return;
+      }
+
       mutate(['invoices', page, debouncedSearch, activeTab]);
       getFeeStats().then(setStats).catch(console.error);
       toast.success("Payment recorded", {
@@ -191,15 +205,27 @@ export function AccountantFees() {
 
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setIsCreatingInvoice(true);
     try {
-      await createInvoice({
-        student_id: newInvoiceData.studentId,
-        amount: parseFloat(newInvoiceData.amount),
-        due_date: newInvoiceData.dueDate,
-        description: newInvoiceData.description,
-        status: 'pending'
-      });
+      const formData = new FormData();
+      formData.append('studentId', newInvoiceData.studentId);
+      formData.append('amount', newInvoiceData.amount);
+      formData.append('dueDate', newInvoiceData.dueDate);
+      formData.append('description', newInvoiceData.description);
+      formData.append('createdBy', user.id);
+
+      const result = await processCreateInvoiceAction({ success: false, message: '' }, formData);
+      if (!result.success) {
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0][0];
+          toast.error("Validation Error", { description: firstError });
+        } else {
+          toast.error("Error", { description: result.message });
+        }
+        return;
+      }
+
       mutate(['invoices', page, debouncedSearch, activeTab]);
       getFeeStats().then(setStats).catch(console.error);
       const studentName = students.find(s => s.id === newInvoiceData.studentId)?.name || 'Student';
@@ -217,10 +243,19 @@ export function AccountantFees() {
   };
 
   const handleVoidInvoice = async () => {
-    if (!selectedInvoice) return;
+    if (!selectedInvoice || !user) return;
     setIsVoidingInvoice(true);
     try {
-      await updateInvoice(selectedInvoice.id, { status: 'void' });
+      const formData = new FormData();
+      formData.append('invoiceId', selectedInvoice.id);
+      formData.append('voidedBy', user.id);
+      
+      const result = await processVoidInvoiceAction({ success: false, message: '' }, formData);
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
+
       mutate(['invoices', page, debouncedSearch, activeTab]);
       getFeeStats().then(setStats).catch(console.error);
       toast.error("Invoice voided", {
@@ -398,7 +433,7 @@ export function AccountantFees() {
                         {t(invoice.status)}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-muted-foreground">{invoice.id} • {invoice.description}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{invoice.id} • {invoice.term}</p>
                     <p className="text-sm font-medium text-muted-foreground mt-1">{t('due')}: {new Date(invoice.dueDate).toLocaleDateString()}</p>
                   </div>
                 </div>
@@ -408,7 +443,7 @@ export function AccountantFees() {
                   <div className="flex gap-2">
                     {invoice.status !== 'paid' && can('manage', 'fees') && (
                       <button 
-                        onClick={() => setSelectedInvoice(invoice)}
+                        onClick={() => setSelectedInvoice(invoice as unknown as FeeInvoice)}
                         className="px-5 py-2.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl text-sm font-bold transition-colors"
                       >
                         {t('record_payment')}
@@ -595,7 +630,7 @@ export function AccountantFees() {
                   {studentInvoices.map(inv => (
                     <div key={inv.id} className="p-4 rounded-xl border border-border flex items-center justify-between hover:bg-muted/30 transition-colors">
                       <div>
-                        <p className="font-bold text-sm">{inv.description}</p>
+                        <p className="font-bold text-sm">{inv.term}</p>
                         <p className="text-xs text-muted-foreground">{inv.id} • {new Date(inv.dueDate).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right rtl:text-left">

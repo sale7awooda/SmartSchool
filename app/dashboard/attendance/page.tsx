@@ -7,7 +7,8 @@ import { usePermissions } from '@/lib/permissions';
 import { useLanguage } from '@/lib/language-context';
 import { Student } from '@/types';
 import { supabase } from '@/lib/supabase/client';
-import { getStudents, getAttendance, saveAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById, getActiveAcademicYear } from '@/lib/supabase-db';
+import { getStudents, getAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById, getActiveAcademicYear } from '@/lib/supabase-db';
+import { processSaveAttendanceAction } from '@/app/actions/attendance';
 import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
@@ -106,7 +107,17 @@ function TeacherAttendance() {
           marked_by: user.id
         }));
 
-      await saveAttendance(attendancePayload);
+      const formData = new FormData();
+      formData.append('records', JSON.stringify(attendancePayload));
+      formData.append('recordedBy', user.id);
+
+      const result = await processSaveAttendanceAction({ success: false, message: '' }, formData);
+
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
+
       setIsSaved(true);
       toast.success(t('attendance_saved_success'), {
         description: t('attendance_saved_desc').replace('{count}', attendancePayload.length.toString()),

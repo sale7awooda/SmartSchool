@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 const TransportMap = dynamic(() => import('@/components/transport/TransportMap'), { ssr: false });
 import Image from 'next/image';
 
-import { BusRoute, User } from '@/types';
+import { BusRoute, User, Student, BusStop } from '@/types';
 
 interface AdminModalProps {
   isModalOpen: boolean;
@@ -17,6 +17,24 @@ interface AdminModalProps {
   isSubmitting: boolean;
   t: (key: string) => string;
   drivers: User[];
+  students: Student[];
+  isAddingStop: boolean;
+  setIsAddingStop: (isAdding: boolean) => void;
+  studentSearchQuery: string;
+  setStudentSearchQuery: (query: string) => void;
+  selectedStudent: Student | null;
+  setSelectedStudent: (student: Student | null) => void;
+  addressSearchQuery: string;
+  setAddressSearchQuery: (query: string) => void;
+  handleAddressSearch: () => void;
+  addressResults: any[];
+  setAddressResults: (results: any[]) => void;
+  selectedLocation: { lat: number; lng: number } | null;
+  setSelectedLocation: (location: { lat: number; lng: number } | null) => void;
+  handleAddStop: () => void;
+  handleRemoveStop: (index: number) => void;
+  handleUpdateStop: (index: number, field: keyof BusStop, value: string) => void;
+  routeCoordinates: [number, number][];
 }
 
 export function AdminModal({ 
@@ -28,7 +46,25 @@ export function AdminModal({
   handleSaveRoute, 
   isSubmitting, 
   t, 
-  drivers 
+  drivers,
+  students,
+  isAddingStop,
+  setIsAddingStop,
+  studentSearchQuery,
+  setStudentSearchQuery,
+  selectedStudent,
+  setSelectedStudent,
+  addressSearchQuery,
+  setAddressSearchQuery,
+  handleAddressSearch,
+  addressResults,
+  setAddressResults,
+  selectedLocation,
+  setSelectedLocation,
+  handleAddStop,
+  handleRemoveStop,
+  handleUpdateStop,
+  routeCoordinates
 }: AdminModalProps) {
   return (
     <AnimatePresence>
@@ -232,7 +268,7 @@ export function AdminModal({
                             />
                             {stop.studentId && (
                               <div className="flex items-center text-xs text-muted-foreground">
-                                <User size={12} className="mr-1" />
+                                <UserIcon size={12} className="mr-1" />
                                 {students.find(s => s.id === stop.studentId)?.name || 'Student'}
                               </div>
                             )}

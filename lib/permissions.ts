@@ -1,5 +1,5 @@
 import { useAuth } from './auth-context';
-import { Role } from './mock-db';
+import { Role } from '@/types';
 
 type Action = 'view' | 'create' | 'edit' | 'delete' | 'manage';
 type Resource = 

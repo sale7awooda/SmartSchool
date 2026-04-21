@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { getNotices, createNotice, getMessages, sendMessage, getUsersForChat } from '@/lib/supabase-db';
+import { processCreateNoticeAction, processSendMessageAction } from '@/app/actions/communication';
 
 export default function CommunicationPage() {
   const { user } = useAuth();
@@ -55,7 +56,7 @@ export default function CommunicationPage() {
       .channel('public:notices')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notices' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setNotices(prev => [payload.new, ...prev]);
+          setNotices(prev => [payload.new as Notice, ...prev]);
         }
       })
       .subscribe();
@@ -95,27 +96,36 @@ export default function CommunicationPage() {
   const canCreateNotice = can('create', 'communication');
 
   const visibleNotices = notices.filter(notice => {
-    if (notice.target_audience === 'all') return true;
-    if (notice.target_audience === 'staff' && ['admin', 'accountant', 'teacher', 'staff'].includes(user.role)) return true;
-    if (notice.target_audience === 'parents' && ['admin', 'accountant', 'parent'].includes(user.role)) return true;
+    if (notice.targetAudience === 'all') return true;
+    if (notice.targetAudience === 'staff' && ['admin', 'accountant', 'teacher', 'staff'].includes(user.role)) return true;
+    if (notice.targetAudience === 'parents' && ['admin', 'accountant', 'parent'].includes(user.role)) return true;
     return false;
   });
 
   const handleCreateNotice = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newNotice.title || !newNotice.content) return;
+    if (!newNotice.title || !newNotice.content || !user) return;
     
     setIsSubmitting(true);
     try {
-      await createNotice({
-        title: newNotice.title,
-        content: newNotice.content,
-        target_audience: newNotice.targetAudience,
-        is_important: newNotice.isImportant,
-        author_id: user.id,
-        author_name: user.name,
-        author_role: user.role
-      });
+      const formData = new FormData();
+      formData.append('title', newNotice.title);
+      formData.append('content', newNotice.content);
+      formData.append('target_audience', newNotice.targetAudience);
+      formData.append('is_important', newNotice.isImportant.toString());
+      formData.append('createdBy', user.id);
+
+      const result = await processCreateNoticeAction({ success: false, message: '' }, formData);
+      if (!result.success) {
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0][0] as string;
+          toast.error("Validation Error", { description: firstError });
+        } else {
+          toast.error("Error", { description: result.message });
+        }
+        return;
+      }
+
       setIsCreating(false);
       setNewNotice({ title: '', content: '', targetAudience: 'all', isImportant: false });
       toast.success(t('notice_posted_success'));
@@ -128,17 +138,22 @@ export default function CommunicationPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !activeChatUser) return;
+    if (!messageInput.trim() || !activeChatUser || !user) return;
     
     const text = messageInput;
     setMessageInput('');
     
     try {
-      await sendMessage({
-        sender_id: user.id,
-        receiver_id: activeChatUser.id,
-        content: text
-      });
+      const formData = new FormData();
+      formData.append('receiver_id', activeChatUser.id);
+      formData.append('content', text);
+      formData.append('senderBy', user.id);
+
+      const result = await processSendMessageAction({ success: false, message: '' }, formData);
+      
+      if (!result.success) {
+        toast.error(t('failed_to_send_message'));
+      }
     } catch (error) {
       toast.error(t('failed_to_send_message'));
     }
@@ -218,10 +233,10 @@ export default function CommunicationPage() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
               key={notice.id} 
               className={`bg-card rounded-[1.5rem] border shadow-sm overflow-hidden transition-all hover:shadow-md ${
-                notice.is_important ? 'border-amber-500/30 ring-1 ring-amber-500/10' : 'border-border'
+                notice.isImportant ? 'border-amber-500/30 ring-1 ring-amber-500/10' : 'border-border'
               }`}
             >
-              {notice.is_important && (
+              {notice.isImportant && (
                 <div className="bg-amber-500/10 px-6 py-3 border-b border-amber-500/20 flex items-center gap-2 text-amber-500 text-xs font-bold uppercase tracking-wider">
                   <AlertCircle size={16} />
                   {t('important_announcement')}
@@ -235,15 +250,15 @@ export default function CommunicationPage() {
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-5 border-t border-border text-xs text-muted-foreground font-bold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <UserIcon size={16} className="text-muted-foreground" />
-                    {notice.author_name} <span className="text-muted-foreground/50">•</span> {notice.author_role}
+                    {notice.authorName} <span className="text-muted-foreground/50">•</span> {notice.authorRole}
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar size={16} className="text-muted-foreground" />
-                    {new Date(notice.created_at).toLocaleDateString(t('locale'), { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(notice.createdAt).toLocaleDateString(t('locale'), { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                   <div className="flex items-center gap-2 ml-auto rtl:ml-0 rtl:mr-auto">
                     <MessageSquare size={16} className="text-muted-foreground" />
-                    {t('audience')}: <span className="text-primary bg-primary/10 px-2 py-1 rounded-md">{t(notice.target_audience)}</span>
+                    {t('audience')}: <span className="text-primary bg-primary/10 px-2 py-1 rounded-md">{t(notice.targetAudience)}</span>
                   </div>
                 </div>
               </div>

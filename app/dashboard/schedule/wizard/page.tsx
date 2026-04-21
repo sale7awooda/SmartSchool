@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, ArrowRight, Save, Settings, BookOpen, LayoutGrid,
-  CheckCircle2, Wand2, MapPin, User, AlertCircle, Plus, X, Trash2,
+  CheckCircle2, Wand2, MapPin, User as UserIcon, AlertCircle, Plus, X, Trash2,
   Loader2, History, FolderOpen
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { getTeachers, saveScheduleDraft, getScheduleDrafts, publishSchedule, deleteScheduleDraft, getSchedules, getClasses, getSubjects, getActiveAcademicYear } from '@/lib/supabase-db';
 import { toast } from 'sonner';
-import { User as DBUser } from '@/lib/mock-db';
+import { User } from '@/types';
 import useSWR from 'swr';
 import { DraftsModal } from '@/components/dashboard/schedule/DraftsModal';
 
@@ -45,7 +45,7 @@ export default function TimetableWizard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [schedule, setSchedule] = useState<any[]>(INITIAL_SCHEDULE);
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
-  const [teachers, setTeachers] = useState<DBUser[]>([]);
+  const [teachers, setTeachers] = useState<User[]>([]);
   const [drafts, setDrafts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -958,7 +958,7 @@ export default function TimetableWizard() {
                                               </p>
                                             </div>
                                             <p className="text-[10px] font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
-                                              <User size={10} /> {classData.teacher}
+                                              <UserIcon size={10} /> {classData.teacher}
                                             </p>
                                           </div>
                                         )}

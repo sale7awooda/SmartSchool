@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase/client';
-import { Student, User, Parent } from '@/lib/mock-db';
 
 export async function getSystemSettings() {
   try {

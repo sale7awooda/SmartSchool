@@ -291,7 +291,7 @@ export function ParentFees() {
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0">
                 <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('secure_checkout')}</h2>
                 <p className="text-sm font-medium text-muted-foreground mt-2">
-                  {selectedInvoiceToPay ? `${t('paying_for')} ${selectedInvoiceToPay.description}` : t('paying_total_outstanding')}
+                  {selectedInvoiceToPay ? `${t('paying_for')} ${selectedInvoiceToPay.term || selectedInvoiceToPay.id}` : t('paying_total_outstanding')}
                 </p>
               </div>
               

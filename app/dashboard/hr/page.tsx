@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { getPaginatedStaff, createStaff } from '@/lib/supabase-db';
+import { processCreateStaffAction } from '@/app/actions/staff';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { useSWRConfig } from 'swr';
@@ -109,18 +110,25 @@ export default function HRPage() {
 
   const handleAddEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     setIsSubmittingEmployee(true);
     const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const role = formData.get('role') as string;
+    formData.append('createdBy', user.id);
 
     try {
-      await createStaff({
-        name,
-        email,
-        role
-      });
+      const result = await processCreateStaffAction({ success: false, message: '' }, formData);
+      
+      if (!result.success) {
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0][0];
+          toast.error("Validation Error", { description: firstError });
+        } else {
+          toast.error("Error", { description: result.message });
+        }
+        setIsSubmittingEmployee(false);
+        return;
+      }
+
       toast.success("Employee added successfully");
       setIsAddEmployeeOpen(false);
       mutate(

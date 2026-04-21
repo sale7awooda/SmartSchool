@@ -19,7 +19,6 @@ import { usePermissions } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase/client';
 import { getSchedules, getClasses, getTeachers, getActiveAcademicYear } from '@/lib/supabase-db';
 import useSWR from 'swr';
-import { MOCK_SCHEDULE } from '@/lib/mock-db';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 const PERIODS = [
@@ -118,11 +117,7 @@ export default function AdminScheduleView() {
       };
     }
 
-    return MOCK_SCHEDULE.find(s => 
-      s.classId === grade && 
-      s.period === periodId && 
-      s.dayOfWeek === dayIndex
-    );
+    return null;
   };
 
   const getTeacherPeriodData = (teacherName: string, periodId: number, day: string) => {
@@ -143,11 +138,7 @@ export default function AdminScheduleView() {
       };
     }
 
-    return MOCK_SCHEDULE.find(s => 
-      s.teacherName === teacherName && 
-      s.period === periodId && 
-      s.dayOfWeek === dayIndex
-    );
+    return null;
   };
 
   const tabs = availableTabs;

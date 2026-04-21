@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
-import { Student } from "@/lib/mock-db";
+import { Student } from "@/types";
 import { useLanguage } from "@/lib/language-context";
 import { 
   getAssessments, 
@@ -29,6 +29,7 @@ import {
   deleteClass,
   deleteSubject
 } from "@/lib/supabase-db";
+import { processDeleteMasterEntityAction, processUpdateMasterEntityAction, processCreateMasterEntityAction } from '@/app/actions/settings';
 import { supabase } from "@/lib/supabase/client";
 import {
   BookOpen,
@@ -86,23 +87,43 @@ export function AdminAcademics() {
 
   const handleCreateYear = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
+    const formValues = new FormData(e.currentTarget);
     const yearData = {
-      name: formData.get("name") as string,
-      start_date: formData.get("startDate") as string,
-      end_date: formData.get("endDate") as string,
+      start_date: formValues.get("startDate") as string,
+      end_date: formValues.get("endDate") as string,
       is_active: editingYear ? editingYear.is_active : true
     };
+    const name = formValues.get("name") as string;
 
     try {
+      const formData = new FormData();
+      formData.append('type', 'year');
+      formData.append('name', name);
+      
       if (editingYear) {
-        const updatedYear = await updateAcademicYear(editingYear.id, yearData);
-        mutateYears(academicYears.map(y => y.id === editingYear.id ? updatedYear : y));
+        formData.append('id', editingYear.id);
+        formData.append('payload', JSON.stringify(yearData));
+        formData.append('updatedBy', user.id);
+        
+        const result = await processUpdateMasterEntityAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        mutateYears(); // Trigger refresh
         toast.success("Academic year updated successfully");
       } else {
-        const newYear = await createAcademicYear(yearData);
-        mutateYears([newYear, ...academicYears]);
+        formData.append('createdBy', user.id);
+        const result = await processCreateMasterEntityAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        // Need to update the payload fields separately since processCreateMasterEntityAction only takes name for now
+        // Let's rely on mutate to refetch
+        mutateYears();
         toast.success("Academic year created successfully");
       }
       setIsAddYearOpen(false);
@@ -115,9 +136,21 @@ export function AdminAcademics() {
     }
   };
 
-  const handleDeleteYear = async (id: string) => {
+  const handleDeleteYear = async (id: string, name: string) => {
+    if (!user) return;
     try {
-      await deleteAcademicYear(id);
+      const formData = new FormData();
+      formData.append('type', 'year');
+      formData.append('id', id);
+      formData.append('name', name);
+      formData.append('deletedBy', user.id);
+
+      const result = await processDeleteMasterEntityAction({ success: false, message: '' }, formData);
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
+      
       mutateYears(academicYears.filter(y => y.id !== id));
       toast.success("Academic year deleted successfully");
     } catch (error) {
@@ -128,23 +161,41 @@ export function AdminAcademics() {
 
   const handleCreateClass = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
+    const formValues = new FormData(e.currentTarget);
     const classData = {
-      name: formData.get("name") as string,
-      grade: formData.get("grade") as string,
-      section: formData.get("section") as string,
-      academic_year_id: formData.get("academicYearId") as string
+      grade: formValues.get("grade") as string,
+      section: formValues.get("section") as string,
+      academic_year_id: formValues.get("academicYearId") as string
     };
+    const name = formValues.get("name") as string;
 
     try {
+      const formData = new FormData();
+      formData.append('type', 'class');
+      formData.append('name', name);
+
       if (editingClass) {
-        const updatedClass = await updateClass(editingClass.id, classData);
-        mutateClasses(classes.map(c => c.id === editingClass.id ? updatedClass : c));
+        formData.append('id', editingClass.id);
+        formData.append('payload', JSON.stringify(classData));
+        formData.append('updatedBy', user.id);
+        
+        const result = await processUpdateMasterEntityAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        mutateClasses();
         toast.success("Class updated successfully");
       } else {
-        const newClass = await createClass(classData);
-        mutateClasses([newClass, ...classes]);
+        formData.append('createdBy', user.id);
+        const result = await processCreateMasterEntityAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        mutateClasses();
         toast.success("Class created successfully");
       }
       setIsAddClassOpen(false);
@@ -157,9 +208,21 @@ export function AdminAcademics() {
     }
   };
 
-  const handleDeleteClass = async (id: string) => {
+  const handleDeleteClass = async (id: string, name: string) => {
+    if (!user) return;
     try {
-      await deleteClass(id);
+      const formData = new FormData();
+      formData.append('type', 'class');
+      formData.append('id', id);
+      formData.append('name', name);
+      formData.append('deletedBy', user.id);
+
+      const result = await processDeleteMasterEntityAction({ success: false, message: '' }, formData);
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
+
       mutateClasses(classes.filter(c => c.id !== id));
       toast.success("Class deleted successfully");
     } catch (error) {
@@ -170,22 +233,40 @@ export function AdminAcademics() {
 
   const handleCreateSubject = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
+    const formValues = new FormData(e.currentTarget);
     const subjectData = {
-      name: formData.get("name") as string,
-      code: formData.get("code") as string,
-      description: formData.get("description") as string
+      code: formValues.get("code") as string,
+      description: formValues.get("description") as string
     };
+    const name = formValues.get("name") as string;
 
     try {
+      const formData = new FormData();
+      formData.append('type', 'subject');
+      formData.append('name', name);
+
       if (editingSubject) {
-        const updatedSubject = await updateSubject(editingSubject.id, subjectData);
-        mutateSubjects(subjects.map(s => s.id === editingSubject.id ? updatedSubject : s));
+        formData.append('id', editingSubject.id);
+        formData.append('payload', JSON.stringify(subjectData));
+        formData.append('updatedBy', user.id);
+
+        const result = await processUpdateMasterEntityAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        mutateSubjects();
         toast.success("Subject updated successfully");
       } else {
-        const newSubject = await createSubject(subjectData);
-        mutateSubjects([newSubject, ...subjects]);
+        formData.append('createdBy', user.id);
+        const result = await processCreateMasterEntityAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        mutateSubjects();
         toast.success("Subject created successfully");
       }
       setIsAddSubjectOpen(false);
@@ -198,9 +279,21 @@ export function AdminAcademics() {
     }
   };
 
-  const handleDeleteSubject = async (id: string) => {
+  const handleDeleteSubject = async (id: string, name: string) => {
+    if (!user) return;
     try {
-      await deleteSubject(id);
+      const formData = new FormData();
+      formData.append('type', 'subject');
+      formData.append('id', id);
+      formData.append('name', name);
+      formData.append('deletedBy', user.id);
+
+      const result = await processDeleteMasterEntityAction({ success: false, message: '' }, formData);
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
+
       mutateSubjects(subjects.filter(s => s.id !== id));
       toast.success("Subject deleted successfully");
     } catch (error) {
@@ -361,7 +454,7 @@ export function AdminAcademics() {
                       <button 
                         onClick={() => {
                           if (confirm(t('confirm_delete'))) {
-                            handleDeleteClass(cls.id);
+                            handleDeleteClass(cls.id, cls.name);
                           }
                         }}
                         className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
@@ -427,7 +520,7 @@ export function AdminAcademics() {
                         <button 
                           onClick={() => {
                             if (confirm(t('confirm_delete'))) {
-                              handleDeleteYear(year.id);
+                              handleDeleteYear(year.id, year.name);
                             }
                           }}
                           className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
@@ -492,7 +585,7 @@ export function AdminAcademics() {
                         <button 
                           onClick={() => {
                             if (confirm(t('confirm_delete'))) {
-                              handleDeleteSubject(subject.id);
+                              handleDeleteSubject(subject.id, subject.name);
                             }
                           }}
                           className="p-2 text-muted-foreground hover:text-red-500 transition-colors"

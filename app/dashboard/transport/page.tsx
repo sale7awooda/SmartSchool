@@ -352,8 +352,8 @@ export default function TransportPage() {
   const isStaff = isRole(['staff', 'teacher']);
 
   // For Parents: Find their child's bus route
-  const parentRoute = parentStudent?.bus_route_id 
-    ? routes.find(r => r.id === parentStudent.bus_route_id) 
+  const parentRoute = parentStudent?.busRouteId 
+    ? routes.find(r => r.id === parentStudent.busRouteId) 
     : null;
 
   // For Staff: Find assigned route
@@ -926,7 +926,7 @@ export default function TransportPage() {
                 <h3 className="font-bold text-foreground mb-4">Student Drop-off</h3>
                 <div className="space-y-4">
                   {students
-                    .filter(s => s.bus_route_id === staffRoute.id)
+                    .filter(s => s.busRouteId === staffRoute.id)
                     .sort((a, b) => {
                       const stopIndexA = staffRoute.stops.findIndex(stop => stop.id === a.stopId);
                       const stopIndexB = staffRoute.stops.findIndex(stop => stop.id === b.stopId);
@@ -988,7 +988,35 @@ export default function TransportPage() {
       )}
 
       {/* Admin Modal */}
-      <AdminModal isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} modalMode={modalMode} currentRoute={currentRoute} setCurrentRoute={setCurrentRoute} handleSaveRoute={handleSaveRoute} isSubmitting={isSubmitting} t={t} drivers={drivers} />
+      <AdminModal 
+        isModalOpen={isModalOpen} 
+        setIsModalOpen={setIsModalOpen} 
+        modalMode={modalMode} 
+        currentRoute={currentRoute} 
+        setCurrentRoute={setCurrentRoute} 
+        handleSaveRoute={handleSaveRoute} 
+        isSubmitting={isSubmitting} 
+        t={t} 
+        drivers={drivers} 
+        students={students}
+        isAddingStop={isAddingStop}
+        setIsAddingStop={setIsAddingStop}
+        studentSearchQuery={studentSearchQuery}
+        setStudentSearchQuery={setStudentSearchQuery}
+        selectedStudent={selectedStudent}
+        setSelectedStudent={setSelectedStudent}
+        addressSearchQuery={addressSearchQuery}
+        setAddressSearchQuery={setAddressSearchQuery}
+        handleAddressSearch={handleAddressSearch}
+        addressResults={addressResults}
+        setAddressResults={setAddressResults}
+        selectedLocation={selectedLocation}
+        setSelectedLocation={setSelectedLocation}
+        handleAddStop={handleAddStop}
+        handleRemoveStop={handleRemoveStop}
+        handleUpdateStop={handleUpdateStop}
+        routeCoordinates={routeCoordinates}
+      />
     </motion.div>
   );
 }

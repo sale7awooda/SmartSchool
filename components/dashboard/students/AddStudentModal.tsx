@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import { createStudent, createFeeItem } from '@/lib/supabase-db';
+import { processCreateStudentAction, processUpdateStudentAction } from '@/app/actions/students';
+import { useAuth } from '@/lib/auth-context';
 
 import { AcademicEnrollment, Student, User } from '@/types';
 
@@ -79,6 +81,8 @@ export function AddStudentModal({
   editingStudent,
   mutateStudents
 }: AddStudentModalProps) {
+  const { user } = useAuth();
+  
   return (
     <AnimatePresence>
         {isAddStudentOpen && (
@@ -118,52 +122,83 @@ export function AddStudentModal({
                   try {
                     if (isEditing && editingStudent) {
                       // Update existing student
-                      const { error } = await supabase
-                        .from('students')
-                        .update({
-                          name: formData.name,
-                          grade: formData.grade,
-                          roll_number: formData.studentId,
-                          dob: formData.dob,
-                          gender: formData.gender,
-                          blood_group: formData.bloodGroup,
-                          fee_structure: formData.feeStructure,
-                          additional_info: formData.additionalInfo
-                        })
-                        .eq('id', editingStudent.id);
+                      if (!user) return;
+                      const actionFormData = new FormData();
+                      actionFormData.append('student_id', editingStudent.id);
+                      actionFormData.append('name', formData.name);
+                      actionFormData.append('studentId', formData.studentId);
+                      actionFormData.append('grade', formData.grade);
+                      actionFormData.append('dob', formData.dob);
+                      actionFormData.append('gender', formData.gender);
+                      actionFormData.append('bloodGroup', formData.bloodGroup);
+                      actionFormData.append('address', formData.address);
+                      actionFormData.append('feeStructure', formData.feeStructure);
+                      actionFormData.append('additionalInfo', formData.additionalInfo);
+                      actionFormData.append('updatedBy', user.id);
+
+                      const result = await processUpdateStudentAction({ success: false, message: '' }, actionFormData);
                       
-                      if (error) throw error;
+                      if (!result.success) {
+                        toast.error("Error", { description: result.message });
+                        return;
+                      }
+
                       toast.success("Student updated successfully");
                     } else {
                       // Create new student
-                    const studentData = {
-                      ...formData,
-                      academicYear: activeAcademicYear?.name
-                    };
-
-                    // If manual fee, we might want to create a fee item first or just save the string
-                    if (formData.feeType === 'manual' && formData.manualFeeItem.name) {
-                      studentData.feeStructure = `${formData.manualFeeItem.name} ($${formData.manualFeeItem.amount})`;
+                      if (!user) return;
                       
-                      // Optionally create the fee item in the database so it becomes "predefined" for others
-                      try {
-                        await createFeeItem({
-                          name: formData.manualFeeItem.name,
-                          amount: parseFloat(formData.manualFeeItem.amount),
-                          frequency: formData.manualFeeItem.frequency,
-                          category: formData.manualFeeItem.category
-                        });
-                      } catch (e) {
-                        console.error("Error creating manual fee item:", e);
-                      }
-                    }
+                      const actionFormData = new FormData();
+                      actionFormData.append('name', formData.name);
+                      actionFormData.append('studentId', formData.studentId);
+                      actionFormData.append('grade', formData.grade);
+                      actionFormData.append('dob', formData.dob);
+                      actionFormData.append('gender', formData.gender);
+                      actionFormData.append('bloodGroup', formData.bloodGroup);
+                      actionFormData.append('address', formData.address);
+                      actionFormData.append('parentName', formData.parentName);
+                      actionFormData.append('parentPhone', formData.parentPhone);
+                      actionFormData.append('parentRelation', formData.parentRelation);
+                      actionFormData.append('academicYear', activeAcademicYear?.name || '2025-2026');
+                      actionFormData.append('createdBy', user.id);
 
-                    await createStudent(studentData);
-                    
-                    toast.success("Student registered successfully", {
-                      description: `${formData.name} has been added to Grade ${formData.grade}.`
-                    });
-                  }
+                      // If manual fee, we might want to create a fee item first or just save the string
+                      if (formData.feeType === 'manual' && formData.manualFeeItem.name) {
+                        actionFormData.append('feeStructure', `${formData.manualFeeItem.name} ($${formData.manualFeeItem.amount})`);
+                        
+                        // Optionally create the fee item in the database so it becomes "predefined" for others
+                        try {
+                          await createFeeItem({
+                            name: formData.manualFeeItem.name,
+                            amount: parseFloat(formData.manualFeeItem.amount),
+                            frequency: formData.manualFeeItem.frequency,
+                            category: formData.manualFeeItem.category
+                          });
+                        } catch (e) {
+                          console.error("Error creating manual fee item:", e);
+                        }
+                      } else {
+                        actionFormData.append('feeStructure', formData.feeStructure);
+                      }
+                      
+                      actionFormData.append('additionalInfo', formData.additionalInfo);
+
+                      const result = await processCreateStudentAction({ success: false, message: '' }, actionFormData);
+                      
+                      if (!result.success) {
+                        if (result.errors) {
+                          const firstError = Object.values(result.errors)[0][0];
+                          toast.error("Validation Error", { description: firstError });
+                        } else {
+                          toast.error("Error", { description: result.message });
+                        }
+                        return;
+                      }
+                      
+                      toast.success("Student registered successfully", {
+                        description: `${formData.name} has been added to Grade ${formData.grade}.`
+                      });
+                    }
                     
                     // Refresh data
                     await mutateStudents();

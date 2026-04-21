@@ -10,7 +10,6 @@ import {
   Clock,
   Loader2
 } from 'lucide-react';
-import { MOCK_SCHEDULE } from '@/lib/mock-db';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { getStudents, getSchedules, getActiveAcademicYear } from '@/lib/supabase-db';
@@ -130,8 +129,7 @@ export default function StudentScheduleView() {
       };
     }
 
-    // Fallback to mock data
-    return MOCK_SCHEDULE.find(s => s.dayOfWeek === dayId && s.period === periodId && s.classId === grade);
+    return null;
   };
 
   return (
