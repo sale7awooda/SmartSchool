@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { FeeInvoice, FeeItem, Student, User } from '@/types';
 import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment, getActiveAcademicYear } from '@/lib/supabase-db';
-import { processPaymentAction, processVoidInvoiceAction, processCreateInvoiceAction } from '@/app/actions/finance';
+import { processPaymentAction, processVoidInvoiceAction, processCreateInvoiceAction, processCreateFeeItemAction, processUpdateFeeItemAction, processDeleteFeeItemAction } from '@/app/actions/finance';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
 import { CreditCard, Search, CheckCircle2, Clock, AlertCircle, FileText, Download, Plus, DollarSign, Loader2, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -162,23 +162,35 @@ export function AccountantFees() {
 
   const handleAddFeeItem = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setIsSubmittingFeeItem(true);
     try {
+      const formData = new FormData();
+      formData.append('name', newFeeItem.name);
+      formData.append('amount', newFeeItem.amount);
+      formData.append('frequency', newFeeItem.frequency);
+      formData.append('category', newFeeItem.category);
+      
       if (editingFeeItem) {
-        await updateFeeItem(editingFeeItem.id, {
-          name: newFeeItem.name,
-          amount: parseFloat(newFeeItem.amount),
-          frequency: newFeeItem.frequency,
-          category: newFeeItem.category
-        });
+        formData.append('id', editingFeeItem.id);
+        formData.append('createdBy', user.id); // For audit log purposes
+
+        const result = await processUpdateFeeItemAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        mutate('feeItems');
         toast.success("Fee item updated");
       } else {
-        await createFeeItem({
-          name: newFeeItem.name,
-          amount: parseFloat(newFeeItem.amount),
-          frequency: newFeeItem.frequency,
-          category: newFeeItem.category
-        });
+        formData.append('createdBy', user.id);
+        
+        const result = await processCreateFeeItemAction({ success: false, message: '' }, formData);
+        if (!result.success) {
+          toast.error("Error", { description: result.message });
+          return;
+        }
+        mutate('feeItems');
         toast.success("Fee item added to structure");
       }
       setIsAddFeeItemOpen(false);
@@ -193,9 +205,18 @@ export function AccountantFees() {
   };
 
   const handleDeleteFeeItem = async (id: string) => {
+    if (!user) return;
     try {
-      await deleteFeeItem(id);
-      setFeeStructure(prev => prev.filter(i => i.id !== id));
+      const formData = new FormData();
+      formData.append('id', id);
+      formData.append('deletedBy', user.id);
+
+      const result = await processDeleteFeeItemAction({ success: false, message: '' }, formData);
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
+      mutate('feeItems');
       toast.success("Fee item deleted");
     } catch (error) {
       console.error('Error deleting fee item:', error);

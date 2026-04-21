@@ -194,3 +194,160 @@ export async function processPaymentAction(
 
   return { success: true, message: "Payment processed successfully!" };
 }
+
+export const FeeItemSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  amount: z.number().positive("Amount must be greater than zero"),
+  frequency: z.string().min(1, "Frequency is required"),
+  category: z.string().min(1, "Category is required"),
+  createdBy: z.string().uuid("Invalid user ID")
+});
+
+export type FeeItemState = {
+  success: boolean;
+  message: string;
+  errors?: Record<string, string[]>;
+};
+
+export async function processCreateFeeItemAction(
+  prevState: FeeItemState,
+  formData: FormData
+): Promise<FeeItemState> {
+  const rawData = {
+    name: formData.get('name') as string,
+    amount: parseFloat(formData.get('amount') as string),
+    frequency: formData.get('frequency') as string,
+    category: formData.get('category') as string,
+    createdBy: formData.get('createdBy') as string,
+  };
+
+  const validatedFields = FeeItemSchema.safeParse(rawData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: "Validation failed",
+      errors: validatedFields.error.flatten().fieldErrors
+    };
+  }
+
+  const data = validatedFields.data;
+  const supabase = await createClient();
+
+  const { data: newFeeItem, error } = await supabase
+    .from('fee_items')
+    .insert([{
+      name: data.name,
+      amount: data.amount,
+      frequency: data.frequency,
+      category: data.category
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return { success: false, message: "Failed to create fee item: " + error.message };
+  }
+
+  await logAudit('FEE_ITEM_CREATED', data.createdBy, {
+    item_id: newFeeItem.id,
+    name: data.name,
+    amount: data.amount
+  });
+
+  return { success: true, message: "Fee item created successfully." };
+}
+
+export const UpdateFeeItemSchema = FeeItemSchema.extend({
+  id: z.string().uuid("Invalid fee item ID")
+});
+
+export async function processUpdateFeeItemAction(
+  prevState: FeeItemState,
+  formData: FormData
+): Promise<FeeItemState> {
+  const rawData = {
+    id: formData.get('id') as string,
+    name: formData.get('name') as string,
+    amount: parseFloat(formData.get('amount') as string),
+    frequency: formData.get('frequency') as string,
+    category: formData.get('category') as string,
+    createdBy: formData.get('createdBy') as string,
+  };
+
+  const validatedFields = UpdateFeeItemSchema.safeParse(rawData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: "Validation failed",
+      errors: validatedFields.error.flatten().fieldErrors
+    };
+  }
+
+  const { id, createdBy, ...updateData } = validatedFields.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('fee_items')
+    .update(updateData)
+    .eq('id', id);
+
+  if (error) {
+    console.error(error);
+    return { success: false, message: "Failed to update fee item: " + error.message };
+  }
+
+  await logAudit('FEE_ITEM_UPDATED', createdBy, {
+    item_id: id,
+    name: updateData.name,
+    amount: updateData.amount
+  });
+
+  return { success: true, message: "Fee item updated successfully." };
+}
+
+export const DeleteFeeItemSchema = z.object({
+  id: z.string().uuid("Invalid fee item ID"),
+  deletedBy: z.string().uuid("Invalid user ID")
+});
+
+export async function processDeleteFeeItemAction(
+  prevState: FeeItemState,
+  formData: FormData
+): Promise<FeeItemState> {
+  const rawData = {
+    id: formData.get('id') as string,
+    deletedBy: formData.get('deletedBy') as string,
+  };
+
+  const validatedFields = DeleteFeeItemSchema.safeParse(rawData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: "Validation failed",
+      errors: validatedFields.error.flatten().fieldErrors
+    };
+  }
+
+  const { id, deletedBy } = validatedFields.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('fee_items')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(error);
+    return { success: false, message: "Failed to delete fee item: " + error.message };
+  }
+
+  await logAudit('FEE_ITEM_DELETED', deletedBy, {
+    item_id: id
+  });
+
+  return { success: true, message: "Fee item deleted successfully." };
+}

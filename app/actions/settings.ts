@@ -145,6 +145,8 @@ export async function processUpdateMasterEntityAction(
   });
 
   return { success: true, message: `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully.` };
+}
+
 export const DeleteMasterEntitySchema = z.object({
   id: z.string(),
   name: z.string(),
