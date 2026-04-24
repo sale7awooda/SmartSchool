@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
-import { createStudent, createFeeItem } from '@/lib/supabase-db';
+import { createStudent, createFeeItem, getStudentCountForAcademicYear } from '@/lib/supabase-db';
 import { processCreateStudentAction, processUpdateStudentAction } from '@/app/actions/students';
 import { useAuth } from '@/lib/auth-context';
 
@@ -148,9 +148,32 @@ export function AddStudentModal({
                       // Create new student
                       if (!user) return;
                       
+                      let finalStudentId = formData.studentId;
+                      
+                      // Fallback generation if ID is somehow missing
+                      if (!finalStudentId && activeAcademicYear) {
+                        try {
+                          const count = await getStudentCountForAcademicYear(activeAcademicYear.name);
+                          const yearSuffix = activeAcademicYear.name.split('-')[0].slice(-2);
+                          const nextNumber = String(count + 1).padStart(3, '0');
+                          finalStudentId = `S${yearSuffix}${nextNumber}`;
+                        } catch (e) {
+                          console.error("Failed to generate fallback ID:", e);
+                          toast.error("Failed to generate Student ID. Please try again.");
+                          setIsSubmitting(false);
+                          return;
+                        }
+                      }
+
+                      if (!finalStudentId) {
+                        toast.error("Student ID is missing. Please close and reopen the form.");
+                        setIsSubmitting(false);
+                        return;
+                      }
+                      
                       const actionFormData = new FormData();
                       actionFormData.append('name', formData.name);
-                      actionFormData.append('studentId', formData.studentId);
+                      actionFormData.append('studentId', finalStudentId);
                       actionFormData.append('grade', formData.grade);
                       actionFormData.append('dob', formData.dob);
                       actionFormData.append('gender', formData.gender);
@@ -252,10 +275,9 @@ export function AddStudentModal({
                     />
                     {formErrors.name && <p className="text-xs text-red-500 font-medium">{formErrors.name}</p>}
                   </div>
-                  <div className="space-y-2">
+                  <div className={isEditing ? "space-y-2" : "hidden"}>
                     <label className="text-sm font-bold text-foreground">{t('student_id_auto')}</label>
                     <input 
-                      required 
                       type="text" 
                       placeholder="e.g., S26001" 
                       value={formData.studentId}

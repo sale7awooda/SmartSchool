@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
-export const CreateInvoiceSchema = z.object({
+const CreateInvoiceSchema = z.object({
   studentId: z.string().uuid("Invalid student ID"),
   amount: z.number().positive("Amount must be greater than zero"),
   dueDate: z.string().min(1, "Due date is required"),
@@ -71,7 +71,7 @@ export async function processCreateInvoiceAction(
 
   return { success: true, message: "Invoice created successfully." };
 }
-export const VoidInvoiceSchema = z.object({
+const VoidInvoiceSchema = z.object({
   invoiceId: z.string().uuid("Invalid invoice ID format"),
   voidedBy: z.string().uuid("Invalid user ID")
 });
@@ -126,7 +126,7 @@ export async function processVoidInvoiceAction(
 }
 
 // Zod Schema for Secure Validation Boundary
-export const PaymentSchema = z.object({
+const PaymentSchema = z.object({
   invoiceId: z.string().uuid("Invalid invoice ID format"),
   amount: z.number().positive("Amount must be greater than zero"),
   paymentMethod: z.enum(['Cash', 'Credit Card', 'Bank Transfer', 'Cheque']),
@@ -195,7 +195,7 @@ export async function processPaymentAction(
   return { success: true, message: "Payment processed successfully!" };
 }
 
-export const FeeItemSchema = z.object({
+const FeeItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
   amount: z.number().positive("Amount must be greater than zero"),
   frequency: z.string().min(1, "Frequency is required"),
@@ -259,7 +259,7 @@ export async function processCreateFeeItemAction(
   return { success: true, message: "Fee item created successfully." };
 }
 
-export const UpdateFeeItemSchema = FeeItemSchema.extend({
+const UpdateFeeItemSchema = FeeItemSchema.extend({
   id: z.string().uuid("Invalid fee item ID")
 });
 
@@ -308,7 +308,7 @@ export async function processUpdateFeeItemAction(
   return { success: true, message: "Fee item updated successfully." };
 }
 
-export const DeleteFeeItemSchema = z.object({
+const DeleteFeeItemSchema = z.object({
   id: z.string().uuid("Invalid fee item ID"),
   deletedBy: z.string().uuid("Invalid user ID")
 });

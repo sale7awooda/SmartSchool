@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
-export const CreateNoticeSchema = z.object({
+const CreateNoticeSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
   target_audience: z.enum(['all', 'parents', 'teachers', 'students', 'staff']),
@@ -69,7 +69,7 @@ export async function processCreateNoticeAction(
   return { success: true, message: "Notice published successfully." };
 }
 
-export const SendMessageSchema = z.object({
+const SendMessageSchema = z.object({
   receiver_id: z.string().uuid("Invalid receiver ID"),
   content: z.string().min(1, "Message content cannot be empty").max(2000, "Message is too long"),
   senderBy: z.string().uuid("Invalid sender ID")

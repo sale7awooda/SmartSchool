@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
-export const CreateAssessmentSchema = z.object({
+const CreateAssessmentSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
   subject: z.string().min(1, "Subject is required"),
   grade: z.string().min(1, "Class/Grade is required"),
@@ -70,7 +70,7 @@ export async function processCreateAssessmentAction(
   return { success: true, message: "Assessment created successfully." };
 }
 
-export const SaveGradesSchema = z.object({
+const SaveGradesSchema = z.object({
   assessment_id: z.string().uuid("Invalid assessment ID"),
   gradedBy: z.string().uuid("Invalid user ID"),
   records: z.array(z.object({

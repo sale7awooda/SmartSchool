@@ -5,14 +5,14 @@ import { createClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
 // Common Zod schema pieces
-export const AttendanceRecordSchema = z.object({
+const AttendanceRecordSchema = z.object({
   student_id: z.string().uuid("Invalid student ID"),
   date: z.string().min(1, "Date is required"),
   status: z.enum(['present', 'absent', 'late', 'excused']),
   remarks: z.string().optional()
 });
 
-export const SaveAttendanceSchema = z.object({
+const SaveAttendanceSchema = z.object({
   records: z.array(AttendanceRecordSchema),
   recordedBy: z.string().uuid("Invalid user ID")
 });

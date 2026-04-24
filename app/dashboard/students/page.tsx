@@ -286,8 +286,8 @@ export default function StudentsPage() {
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!formData.name.trim()) errors.name = 'Full name is required';
-    if (!formData.studentId.trim()) errors.studentId = 'Student ID is required';
-    else if (!/^[a-zA-Z0-9]+$/.test(formData.studentId)) errors.studentId = 'Student ID must be alphanumeric';
+    if (isEditing && !formData.studentId.trim()) errors.studentId = 'Student ID is required';
+    
     if (!formData.grade) errors.grade = 'Grade is required';
     if (!formData.dob) errors.dob = 'Date of birth is required';
     if (!formData.parentName.trim()) errors.parentName = 'Parent name is required';

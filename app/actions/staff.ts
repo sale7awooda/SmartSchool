@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
-export const CreateStaffSchema = z.object({
+const CreateStaffSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
   role: z.enum(['teacher', 'staff', 'accountant', 'admin', 'principal', 'superintendent']),
@@ -86,7 +86,7 @@ export async function processCreateStaffAction(
   return { success: true, message: "Staff member added successfully." };
 }
 
-export const UpdateStaffSchema = CreateStaffSchema.partial().extend({
+const UpdateStaffSchema = CreateStaffSchema.partial().extend({
   staff_id: z.string().uuid("Invalid staff ID"),
   updatedBy: z.string().uuid("Invalid user ID")
 });

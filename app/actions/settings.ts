@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
-export const MasterEntitySchema = z.object({
+const MasterEntitySchema = z.object({
   type: z.enum(['year', 'class', 'subject']),
   name: z.string().min(1, "Name is required"),
   createdBy: z.string().uuid("Invalid user ID")
@@ -69,7 +69,7 @@ export async function processCreateMasterEntityAction(
   return { success: true, message: `${type.charAt(0).toUpperCase() + type.slice(1)} created successfully.` };
 }
 
-export const UpdateMasterEntitySchema = z.object({
+const UpdateMasterEntitySchema = z.object({
   type: z.enum(['year', 'class', 'subject']),
   id: z.string(),
   name: z.string().min(1, "Name is required"),
@@ -147,7 +147,7 @@ export async function processUpdateMasterEntityAction(
   return { success: true, message: `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully.` };
 }
 
-export const DeleteMasterEntitySchema = z.object({
+const DeleteMasterEntitySchema = z.object({
   id: z.string(),
   name: z.string(),
   deletedBy: z.string().uuid("Invalid user ID")
