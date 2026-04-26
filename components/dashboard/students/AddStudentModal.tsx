@@ -23,6 +23,7 @@ interface FormData {
   grade: string;
   dob: string;
   gender: string;
+  studentEmail: string;
   bloodGroup: string;
   address: string;
   parentName: string;
@@ -183,6 +184,7 @@ export function AddStudentModal({
                       actionFormData.append('parentPhone', formData.parentPhone);
                       actionFormData.append('parentRelation', formData.parentRelation);
                       actionFormData.append('academicYear', activeAcademicYear?.name || '2025-2026');
+                      actionFormData.append('studentEmail', formData.studentEmail);
                       actionFormData.append('createdBy', user.id);
 
                       // If manual fee, we might want to create a fee item first or just save the string
@@ -190,15 +192,17 @@ export function AddStudentModal({
                         actionFormData.append('feeStructure', `${formData.manualFeeItem.name} ($${formData.manualFeeItem.amount})`);
                         
                         // Optionally create the fee item in the database so it becomes "predefined" for others
-                        try {
-                          await createFeeItem({
-                            name: formData.manualFeeItem.name,
-                            amount: parseFloat(formData.manualFeeItem.amount),
-                            frequency: formData.manualFeeItem.frequency,
-                            category: formData.manualFeeItem.category
-                          });
-                        } catch (e) {
-                          console.error("Error creating manual fee item:", e);
+                        if (formData.manualFeeItem.amount && !isNaN(parseFloat(formData.manualFeeItem.amount))) {
+                          try {
+                            await createFeeItem({
+                              name: formData.manualFeeItem.name,
+                              amount: parseFloat(formData.manualFeeItem.amount),
+                              frequency: formData.manualFeeItem.frequency,
+                              category: formData.manualFeeItem.category
+                            });
+                          } catch (e) {
+                            console.error("Error creating manual fee item:", e);
+                          }
                         }
                       } else {
                         actionFormData.append('feeStructure', formData.feeStructure);
@@ -234,6 +238,7 @@ export function AddStudentModal({
                       grade: '',
                       dob: '',
                       gender: 'Male',
+                      studentEmail: '',
                       bloodGroup: 'A+',
                       address: '',
                       parentName: '',
@@ -317,6 +322,21 @@ export function AddStudentModal({
                       className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.dob ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                     />
                     {formErrors.dob && <p className="text-xs text-red-500 font-medium">{formErrors.dob}</p>}
+                  </div>
+                  <div className="space-y-2 text-foreground">
+                    <label className="text-sm font-bold">{t('email_address')}</label>
+                    <input 
+                      required 
+                      type="email" 
+                      placeholder="student@example.com" 
+                      value={formData.studentEmail}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, studentEmail: e.target.value }));
+                        if (formErrors.studentEmail) setFormErrors(prev => ({ ...prev, studentEmail: '' }));
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.studentEmail ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                    />
+                    {formErrors.studentEmail && <p className="text-xs text-red-500 font-medium">{formErrors.studentEmail}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">{t('gender')}</label>

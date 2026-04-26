@@ -101,7 +101,6 @@ export async function createStudent(studentData: any) {
       email: `${studentData.studentId.toLowerCase()}@school.com`,
       name: studentData.name,
       role: 'student',
-      address: studentData.address,
       phone: studentData.phone || null
     }])
     .select()
@@ -120,6 +119,7 @@ export async function createStudent(studentData: any) {
       dob: studentData.dob,
       gender: studentData.gender,
       blood_group: studentData.bloodGroup,
+      address: studentData.address,
       academic_year: studentData.academicYear || '2025-2026',
       fee_structure: studentData.feeStructure,
       additional_info: studentData.additionalInfo

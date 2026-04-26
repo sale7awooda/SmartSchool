@@ -269,9 +269,9 @@ export default function CommunicationPage() {
 
       {/* Messages Tab */}
       {activeTab === 'messages' && (
-        <div className="flex-1 bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden flex h-full min-h-[500px]">
-          {/* Chat List */}
-          <div className="w-1/3 border-r border-border flex flex-col bg-muted/30 rtl:border-r-0 rtl:border-l">
+        <div className="flex-1 bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden flex h-full min-h-[500px] relative">
+          {/* Chat List - Hidden on mobile if active chat exists */}
+          <div className={`w-full md:w-1/3 border-r border-border flex flex-col bg-muted/30 rtl:border-r-0 rtl:border-l ${activeChatUser ? 'hidden md:flex' : 'flex'}`}>
             <div className="p-4 border-b border-border">
               <div className="relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
@@ -300,11 +300,17 @@ export default function CommunicationPage() {
             </div>
           </div>
 
-          {/* Chat Window */}
-          <div className="flex-1 flex flex-col bg-card">
+          {/* Chat Window - Hidden on mobile if NO active chat exists */}
+          <div className={`flex-1 flex flex-col bg-card w-full absolute inset-0 md:relative md:flex z-10 ${!activeChatUser ? 'hidden md:flex' : 'flex'}`}>
             {activeChatUser ? (
               <>
-                <div className="p-4 border-b border-border flex items-center gap-3 bg-card">
+                <div className="p-4 border-b border-border flex items-center gap-3 bg-card sticky top-0 z-20 shadow-sm">
+                  <button 
+                    onClick={() => setActiveChatUser(null)}
+                    className="md:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full active:scale-95 transition-all"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
                   <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
                     {activeChatUser.name.charAt(0)}
                   </div>
@@ -314,7 +320,7 @@ export default function CommunicationPage() {
                   </div>
                 </div>
                 
-                <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 bg-muted/20">
+                <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar space-y-6 bg-muted/20 pb-safe">
                   {messages.map(msg => {
                     const isMe = msg.sender_id === user.id;
                     return (
@@ -322,7 +328,7 @@ export default function CommunicationPage() {
                         <div className={`max-w-[85%] px-5 py-3.5 rounded-2xl ${
                           isMe 
                             ? 'bg-primary text-primary-foreground rounded-br-sm rtl:rounded-br-2xl rtl:rounded-bl-sm' 
-                            : 'bg-muted text-foreground rounded-bl-sm rtl:rounded-bl-2xl rtl:rounded-br-sm'
+                            : 'bg-card border border-border shadow-sm text-foreground rounded-bl-sm rtl:rounded-bl-2xl rtl:rounded-br-sm'
                         }`}>
                           <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
                         </div>
@@ -334,27 +340,27 @@ export default function CommunicationPage() {
                   })}
                 </div>
 
-                <div className="p-4 border-t border-border bg-card">
-                  <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                <div className="p-4 border-t border-border bg-card pb-safe lg:pb-4">
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-3 relative">
                     <input 
                       type="text" 
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       placeholder={t('type_message_placeholder')} 
-                      className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
+                      className="flex-1 bg-muted/50 border border-border rounded-full px-5 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                     />
                     <button 
                       type="submit"
                       disabled={!messageInput.trim()}
-                      className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 rtl:rotate-180"
+                      className="p-3 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 rtl:rotate-180"
                     >
-                      <Send size={20} />
+                      <Send size={18} className="translate-x-0.5" />
                     </button>
                   </form>
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center flex-col text-muted-foreground">
+              <div className="flex-1 flex items-center justify-center flex-col text-muted-foreground bg-card">
                 <MessageSquare size={48} className="mb-4 opacity-20" />
                 <p>{t('select_user_to_chat')}</p>
               </div>

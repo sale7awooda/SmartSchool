@@ -20,6 +20,7 @@ const CreateStudentSchema = z.object({
   
   // Fee & Academic info
   academicYear: z.string().min(1, "Academic year is required"),
+  studentEmail: z.string().email("Invalid email address"),
   feeStructure: z.string().optional(),
   additionalInfo: z.string().optional(),
 
@@ -78,6 +79,7 @@ export async function processUpdateStudentAction(
         dob: updateData.dob,
         gender: updateData.gender,
         blood_group: updateData.bloodGroup,
+        address: updateData.address,
         fee_structure: updateData.feeStructure,
         additional_info: updateData.additionalInfo
       })
@@ -91,7 +93,7 @@ export async function processUpdateStudentAction(
     }
 
     if (updateData.name) {
-      await supabase.from('users').update({ name: updateData.name, address: updateData.address }).eq('id', student.user_id);
+      await supabase.from('users').update({ name: updateData.name }).eq('id', student.user_id);
     }
 
     await logAudit('STUDENT_UPDATED', updatedBy, {
@@ -165,6 +167,7 @@ export async function processCreateStudentAction(
       parentPhone: formData.get('parentPhone') as string,
       parentRelation: formData.get('parentRelation') as string,
       academicYear: formData.get('academicYear') as string,
+      studentEmail: formData.get('studentEmail') as string,
       feeStructure: formData.get('feeStructure') as string,
       additionalInfo: formData.get('additionalInfo') as string,
       createdBy: formData.get('createdBy') as string,
@@ -184,8 +187,40 @@ export async function processCreateStudentAction(
     const adminClient = createAdminClient();
     const supabase = await createClient();
 
+    // 0. Check if student already exists in database (using admin client to bypass RLS)
+    const { data: existingStudent, error: checkError } = await adminClient
+      .from('students')
+      .select('id')
+      .eq('roll_number', studentData.studentId)
+      .maybeSingle();
+
+    if (existingStudent) {
+      return { success: false, message: "A student with this ID (Roll Number) already exists." };
+    }
+
     // 1. Create the student auth profile
-    const studentEmail = `${studentData.studentId.toLowerCase()}@school.com`;
+    const studentEmail = studentData.studentEmail;
+    
+    // Check if auth user exists first
+    const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
+    const authExists = listData?.users.find(u => u.email === studentEmail);
+
+    if (authExists) {
+      return { success: false, message: "A system account for this email already exists." };
+    }
+
+    // Check if user exists in public.users using admin client
+    const { data: existingPublicUser, error: publicUserError } = await adminClient
+      .from('users')
+      .select('id')
+      .eq('email', studentEmail)
+      .maybeSingle();
+
+    if (existingPublicUser) {
+      return { success: false, message: "A user profile with this email already exists in the system." };
+    }
+
+    // Create the student auth profile
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: studentEmail,
       email_confirm: true,
@@ -202,27 +237,26 @@ export async function processCreateStudentAction(
       return { success: false, message: "Auth profile created but no user data returned." };
     }
 
-    // Create the student public profile
-    const { data: user, error: userError } = await supabase
+    // Upsert the student public profile (since trigger might have already inserted it)
+    const { data: user, error: userError } = await adminClient
       .from('users')
-      .insert([{
+      .upsert([{
         id: authData.user.id,
         email: studentEmail,
         name: studentData.name,
         role: 'student',
-        address: studentData.address,
         phone: null
       }])
       .select()
       .single();
 
     if (userError) {
-      console.error(userError);
-      return { success: false, message: "Failed to create student user profile: " + userError.message };
+      console.error("User profile creation/update error:", userError);
+      return { success: false, message: "Failed to create/update student user profile: " + userError.message };
     }
 
     // 2. Create the student record
-    const { data: student, error: studentError } = await supabase
+    const { data: student, error: studentError } = await adminClient
       .from('students')
       .insert([{
         user_id: user.id,
@@ -232,6 +266,7 @@ export async function processCreateStudentAction(
         dob: studentData.dob,
         gender: studentData.gender,
         blood_group: studentData.bloodGroup,
+        address: studentData.address,
         academic_year: studentData.academicYear || '2025-2026',
         fee_structure: studentData.feeStructure,
         additional_info: studentData.additionalInfo
@@ -240,7 +275,7 @@ export async function processCreateStudentAction(
       .single();
 
     if (studentError) {
-      console.error(studentError);
+      console.error("Student record creation error:", studentError);
       return { success: false, message: "Failed to create student record: " + studentError.message };
     }
 

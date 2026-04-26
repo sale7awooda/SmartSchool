@@ -261,46 +261,71 @@ function TeacherAttendance() {
           students.map((student) => {
             const status = attendance[student.id];
             return (
-              <div key={student.id} className="bg-card p-5 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-lg">
-                    {student.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground">{student.name}</p>
-                    <p className="text-xs font-medium text-muted-foreground">{t('student_id_label')}: {student.rollNumber || student.id.substring(0, 8)}</p>
-                  </div>
+              <div key={student.id} className="relative rounded-[1.5rem] mb-4 overflow-hidden shadow-sm touch-pan-y group">
+                {/* Swipe target backgrounds behind the card */}
+                <div className="absolute inset-0 flex items-center justify-between px-6 md:hidden">
+                  <div className="text-emerald-500 font-bold flex items-center gap-2"><CheckCircle2 size={24} /> <span className="text-xs">{t('present')}</span></div>
+                  <div className="text-destructive font-bold flex items-center gap-2"><span className="text-xs">{t('absent')}</span> <XCircle size={24} /></div>
                 </div>
 
-                <div className="flex gap-2 bg-muted/50 p-1.5 rounded-2xl">
-                  <button
-                    onClick={() => handleStatusChange(student.id, 'present')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                      status === 'present' ? 'bg-card text-emerald-500 shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <CheckCircle2 size={18} className={status === 'present' ? 'fill-emerald-500/20' : ''} />
-                    <span className="sm:hidden md:inline">{t('present')}</span>
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(student.id, 'late')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                      status === 'late' ? 'bg-card text-amber-500 shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <Clock size={18} className={status === 'late' ? 'fill-amber-500/20' : ''} />
-                    <span className="sm:hidden md:inline">{t('late')}</span>
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(student.id, 'absent')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                      status === 'absent' ? 'bg-card text-destructive shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <XCircle size={18} className={status === 'absent' ? 'fill-destructive/20' : ''} />
-                    <span className="sm:hidden md:inline">{t('absent')}</span>
-                  </button>
-                </div>
+                <motion.div 
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.4}
+                  onDragEnd={(e, { offset }) => {
+                    if (offset.x > 75) {
+                      handleStatusChange(student.id, 'present');
+                    } else if (offset.x < -75) {
+                      handleStatusChange(student.id, 'absent');
+                    }
+                  }}
+                  className={`bg-card p-5 border relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all rounded-[1.5rem] ${
+          status === 'present' ? 'border-emerald-500/50 bg-emerald-500/5' : 
+          status === 'absent' ? 'border-destructive/50 bg-destructive/5' : 
+          status === 'late' ? 'border-amber-500/50 bg-amber-500/5' : 
+          'border-border'
+        }`}
+                >
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-lg">
+                      {student.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground">{student.name}</p>
+                      <p className="text-xs font-medium text-muted-foreground">{t('student_id_label')}: {student.rollNumber || student.id.substring(0, 8)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 bg-background p-1.5 rounded-2xl relative z-10 overflow-hidden ring-1 ring-border mt-2 sm:mt-0">
+                    <button
+                      onClick={() => handleStatusChange(student.id, 'present')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        status === 'present' ? 'bg-emerald-500/10 text-emerald-500 shadow-sm ring-1 ring-emerald-500/20' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <CheckCircle2 size={18} className={status === 'present' ? 'fill-emerald-500/20' : ''} />
+                      <span className="sm:hidden lg:inline">{t('present')}</span>
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(student.id, 'late')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        status === 'late' ? 'bg-amber-500/10 text-amber-500 shadow-sm ring-1 ring-amber-500/20' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <Clock size={18} className={status === 'late' ? 'fill-amber-500/20' : ''} />
+                      <span className="sm:hidden lg:inline">{t('late')}</span>
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(student.id, 'absent')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        status === 'absent' ? 'bg-destructive/10 text-destructive shadow-sm ring-1 ring-destructive/20' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <XCircle size={18} className={status === 'absent' ? 'fill-destructive/20' : ''} />
+                      <span className="sm:hidden lg:inline">{t('absent')}</span>
+                    </button>
+                  </div>
+                </motion.div>
               </div>
             );
           })

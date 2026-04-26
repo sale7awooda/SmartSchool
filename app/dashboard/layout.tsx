@@ -255,23 +255,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation (Quick Links) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-lg border-t border-border z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {/* Mobile Bottom Navigation (Quick Links - 2026 PWA Spec) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-lg border-t border-border z-50 pb-safe">
         <div className="flex justify-around items-center h-16 px-2">
-          {navItems.slice(0, 5).map((item) => {
+          {[
+            { id: 'dashboard', name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
+            { id: 'classes', name: t('attendance'), href: '/dashboard/attendance', icon: CalendarCheck },
+            { id: 'messages', name: t('communication'), href: '/dashboard/communication', icon: MessageSquare },
+            { id: 'profile', name: t('settings'), href: '/dashboard/settings', icon: Settings },
+          ].map((item) => {
             const isActive = item.href === '/dashboard' 
               ? pathname === '/dashboard' 
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              : pathname.startsWith(item.href);
             return (
               <Link
-                key={item.name}
+                key={item.id}
                 href={item.href}
                 className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
                   isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
+                style={{ touchAction: 'manipulation' }}
               >
-                <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/10' : ''}`}>
-                  <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-primary/10 scale-110' : 'active:scale-95'}`}>
+                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
                 <span className={`text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}>{item.name}</span>
               </Link>

@@ -216,8 +216,8 @@ function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2 pb-safe @container">
+      <div className="flex flex-col @[600px]:flex-row @[600px]:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('welcome_back')}, {user?.name}</h1>
           <p className="text-muted-foreground mt-2 font-medium">{t('school_status_desc')}</p>
@@ -230,24 +230,24 @@ function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 @[800px]:grid-cols-4 gap-4 @[600px]:gap-6">
         {stats.map((stat, i) => (
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
             key={i} 
-            className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-all"
+            className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-transform active:scale-95 cursor-pointer touch-manipulation"
           >
             <div className={`w-12 h-12 rounded-2xl ${stat.color} text-white flex items-center justify-center mb-5 shadow-lg ${stat.shadow}`}>
-              <stat.icon size={32} />
+              <stat.icon size={26} />
             </div>
             <p className="text-sm font-semibold text-muted-foreground">{stat.label}</p>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{stat.value}</p>
+            <p className="text-2xl @[600px]:text-3xl font-bold text-foreground mt-1">{stat.value}</p>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+      <div className="grid @[800px]:grid-cols-2 gap-6">
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 @[600px]:p-8 overflow-hidden relative">
           <h3 className="text-xl font-bold text-foreground mb-6">{t('recent_activity')}</h3>
           <div className="space-y-4">
             {recentActivities.length > 0 ? recentActivities.map((activity, i) => (
@@ -266,19 +266,19 @@ function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats
           </div>
         </div>
 
-        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 @[600px]:p-8 transition-transform">
           <h3 className="text-xl font-bold text-foreground mb-6">{t('quick_actions')}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 @[400px]:grid-cols-2 gap-4">
             <Link 
               href="/dashboard/students?add=true" 
-              className="flex items-center justify-center gap-2 p-4 bg-primary/10 text-primary hover:bg-primary/20 rounded-2xl font-bold transition-all active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 p-4 bg-primary/10 text-primary hover:bg-primary/20 rounded-2xl font-bold transition-transform active:scale-[0.98] focus:ring focus:ring-primary/50 touch-manipulation"
             >
               <Users size={20} />
               {t('register_student')}
             </Link>
             <Link 
               href="/dashboard/fees" 
-              className="flex items-center justify-center gap-2 p-4 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-2xl font-bold transition-all active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 p-4 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-2xl font-bold transition-transform active:scale-[0.98] focus:ring focus:ring-indigo-500/50 touch-manipulation"
             >
               <CreditCard size={20} />
               {t('manage_fees')}
@@ -286,15 +286,15 @@ function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats
           </div>
         </div>
 
-        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 @[600px]:p-8">
           <h3 className="text-xl font-bold text-foreground mb-6">{t('urgent_alerts')}</h3>
           <div className="space-y-5">
             {notices.filter(n => n.is_important).slice(0, 3).map((notice) => (
               <div key={notice.id} className="flex gap-4 pb-5 border-b border-border/80 last:border-0 last:pb-0">
                 <div className="w-2.5 h-2.5 mt-2 rounded-full bg-amber-500 shrink-0 shadow-sm shadow-amber-500/50" />
                 <div>
-                  <p className="font-bold text-foreground text-sm sm:text-base">{notice.title}</p>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">{t('posted')} {new Date(notice.created_at).toLocaleDateString()} {t('by')} {notice.author_name}</p>
+                  <p className="font-bold text-foreground text-sm @[600px]:text-base">{notice.title}</p>
+                  <p className="text-xs @[600px]:text-sm font-medium text-muted-foreground mt-1">{t('posted')} {new Date(notice.created_at).toLocaleDateString()} {t('by')} {notice.author_name}</p>
                 </div>
               </div>
             ))}
@@ -320,23 +320,23 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col overflow-y-auto custom-scrollbar pr-2 pb-safe @container">
+      <div className="flex flex-col @[600px]:flex-row @[600px]:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('hello')}, {user?.name}</h1>
           <p className="text-muted-foreground mt-2 font-medium">{t('classes_today').replace('{count}', '3')}</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/dashboard/attendance" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
+          <Link href="/dashboard/attendance" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all shadow-md shadow-primary/20 flex items-center gap-2 touch-manipulation">
             <CalendarCheck size={18} />
             {t('take_attendance')}
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 @[800px]:grid-cols-3 gap-4 @[600px]:gap-6">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
+          <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm hover:shadow-md transition-transform active:scale-95 cursor-pointer touch-manipulation">
             <div className={`w-10 h-10 rounded-xl ${stat.color} text-white flex items-center justify-center mb-4`}>
               <stat.icon size={20} />
             </div>
@@ -346,8 +346,8 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+      <div className="grid @[1000px]:grid-cols-3 gap-6">
+        <div className="@[1000px]:col-span-2 bg-card rounded-[1.5rem] border border-border shadow-sm p-6 @[600px]:p-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold text-foreground">{t('todays_schedule')}</h3>
             <Link href="/dashboard/schedule" className="text-sm font-bold text-primary hover:underline">{t('view_full_schedule')}</Link>
@@ -359,7 +359,7 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
               { class: 'Grade 11 - Physics', time: '11:00 AM', room: 'Room 405', color: 'bg-emerald-500/10 text-emerald-500' },
               { class: 'Grade 9 - Science', time: '01:30 PM', room: 'Lab 1', color: 'bg-amber-500/10 text-amber-500' }
             ].map((cls, i) => (
-              <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-border bg-muted/30 hover:bg-muted transition-all gap-4">
+              <div key={i} className="flex flex-col @[600px]:flex-row @[600px]:items-center justify-between p-5 rounded-2xl border border-border bg-muted/30 hover:bg-muted transition-all gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-2xl ${cls.color} flex items-center justify-center font-bold text-sm`}>
                     {cls.time.split(':')[0]}
@@ -371,7 +371,7 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
                 </div>
                 <Link 
                   href={`/dashboard/attendance?class=${cls.class}`}
-                  className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted hover:border-primary/50 transition-all text-center"
+                  className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted hover:border-primary/50 transition-all text-center active:scale-95 touch-manipulation block @[600px]:inline-block"
                 >
                   {t('mark_attendance')}
                 </Link>
@@ -381,16 +381,16 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 @[600px]:p-8">
             <h3 className="text-xl font-bold text-foreground mb-6">{t('quick_actions')}</h3>
             <div className="grid grid-cols-1 gap-3">
-              <Link href="/dashboard/communication?new=notice" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-all group">
+              <Link href="/dashboard/communication?new=notice" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-transform active:scale-95 group touch-manipulation">
                 <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   <Bell size={18} />
                 </div>
                 <span className="font-bold text-sm">{t('post_notice')}</span>
               </Link>
-              <Link href="/dashboard/assessments?new=true" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-all group">
+              <Link href="/dashboard/assessments?new=true" className="flex items-center gap-3 p-4 rounded-xl border border-border hover:bg-muted transition-transform active:scale-95 group touch-manipulation">
                 <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-lg group-hover:bg-indigo group-hover:text-indigo-foreground transition-colors">
                   <BookOpen size={18} />
                 </div>
@@ -399,7 +399,7 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
             </div>
           </div>
 
-          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
+          <div className="bg-card rounded-[1.5rem] border border-border shadow-sm p-6 @[600px]:p-8">
             <h3 className="text-xl font-bold text-foreground mb-6">{t('recent_notices')}</h3>
             <div className="space-y-5">
               {notices.slice(0, 3).map((notice) => (
