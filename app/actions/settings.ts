@@ -148,6 +148,7 @@ export async function processUpdateMasterEntityAction(
 }
 
 const DeleteMasterEntitySchema = z.object({
+  type: z.string(),
   id: z.string(),
   name: z.string(),
   deletedBy: z.string().uuid("Invalid user ID")
