@@ -110,7 +110,7 @@ export async function processUpdateMasterEntityAction(
     return { success: false, message: "Invalid payload format" };
   }
 
-  const updateData = { name, ...parsedPayload };
+  const updateData: { name: string; is_active?: boolean; [key: string]: any } = { name, ...parsedPayload };
 
   if (type === 'year') {
     tableName = 'academic_years';
