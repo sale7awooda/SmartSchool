@@ -63,6 +63,7 @@ import { AssessmentType, getAssessmentColor, getAssessmentIcon } from "./utils";
 
 export function AdminAcademics() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<
     "overview" | "years" | "classes" | "subjects"
   >("overview");
