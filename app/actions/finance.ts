@@ -41,7 +41,6 @@ export async function processCreateInvoiceAction(
   }
 
   const data = validatedFields.data;
-
   const adminClient = createAdminClient();
   const { data: newInvoice, error: invoiceError } = await adminClient
     .from('fee_invoices')
@@ -102,7 +101,6 @@ export async function processVoidInvoiceAction(
   }
 
   const data = validatedFields.data;
-
   const adminClient = createAdminClient();
   const { error: invoiceError } = await adminClient
     .from('fee_invoices')

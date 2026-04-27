@@ -192,6 +192,17 @@ export function AccountantFees() {
           toast.error("Error", { description: result.message });
           return;
         }
+
+        // Optimistic update for edit
+        const updatedItem = {
+          ...editingFeeItem,
+          name: newFeeItem.name,
+          amount: parseFloat(newFeeItem.amount),
+          frequency: newFeeItem.frequency,
+          category: newFeeItem.category
+        };
+        setFeeStructure(prev => prev.map(item => item.id === editingFeeItem.id ? updatedItem : item));
+
         getFeeItems().then(setFeeStructure).catch(console.error);
         toast.success("Fee item updated");
       } else {
@@ -229,6 +240,10 @@ export function AccountantFees() {
         toast.error("Error", { description: result.message });
         return;
       }
+      
+      // Optimistic update
+      setFeeStructure(prev => prev.filter(item => item.id !== id));
+      
       await fetchFeeData();
       toast.success("Fee item deleted");
       setDeleteConfirmId(null);
@@ -409,9 +424,10 @@ export function AccountantFees() {
                         </button>
                         <button 
                           onClick={() => setDeleteConfirmId(item.id)}
-                          className="text-[10px] font-bold text-destructive hover:text-destructive/80"
+                          className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-all"
+                          title={t('delete')}
                         >
-                          {t('delete')}
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
