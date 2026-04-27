@@ -88,7 +88,7 @@ export default function LoginPage() {
             initial={{ scale: 0.5, opacity: 0, y: -20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="flex flex-col items-center gap-4 group cursor-default"
+            className="flex flex-col items-center gap-6 group cursor-default"
           >
             <div className="relative">
               {/* Floating Elements - Moved to be around the text */}
@@ -98,7 +98,7 @@ export default function LoginPage() {
                   rotate: [0, 10, 0]
                 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-4 -right-12 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-primary border border-primary/10"
+                className="absolute -top-12 -right-8 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-primary border border-primary/10 z-20"
               >
                 <GraduationCap size={24} />
               </motion.div>
@@ -109,17 +109,12 @@ export default function LoginPage() {
                   rotate: [0, -10, 0]
                 }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                className="absolute -bottom-2 -left-12 w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-emerald-500 border border-emerald-500/10"
+                className="absolute -bottom-8 -left-12 w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-emerald-500 border border-emerald-500/10 z-20"
               >
                 <BookOpen size={20} />
               </motion.div>
 
-              <h1 className="text-5xl font-black text-primary tracking-tighter drop-shadow-sm">
-                SMART SCHOOL
-              </h1>
-              <p className="text-primary/60 font-medium tracking-widest text-xs uppercase">
-                Management System
-              </p>
+              <Logo withText size={100} className="flex-col gap-5 text-center" />
             </div>
           </motion.div>
         </div>

@@ -1,4 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200">
-  <rect width="100%" height="100%" fill="white" />
-  <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="100" font-weight="bold" fill="blue" text-anchor="middle" dominant-baseline="central">Smart School</text>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="140" fill="url(#grad)"/>
+  <path d="M256 120L400 190V300C400 300 360 350 256 350C152 350 112 300 112 300V190L256 120Z" fill="white" fill-opacity="0.15"/>
+  <path d="M256 140L120 210L256 280L392 210L256 140Z" fill="white"/>
+  <path d="M160 230V310C160 310 200 350 256 350C312 350 352 310 352 310V230" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="210" r="30" fill="white" stroke="#4f46e5" stroke-width="4"/>
+  <path d="M256 195V225M241 210H271" stroke="#4f46e5" stroke-width="6" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#818CF8"/>
+    </linearGradient>
+  </defs>
 </svg>

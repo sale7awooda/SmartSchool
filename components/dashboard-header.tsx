@@ -23,6 +23,7 @@ import { useAuth } from '@/lib/auth-context';
 import { motion, AnimatePresence } from 'motion/react';
 import useSWR from 'swr';
 import { getNotices } from '@/lib/supabase-db';
+import { Logo } from '@/components/logo';
 
 interface DashboardHeaderProps {
   onShowProfile?: () => void;
@@ -60,6 +61,7 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
         >
           <Menu size={24} />
         </button>
+        <Logo size={32} className="md:hidden" />
       </div>
 
       <div className="flex items-center gap-1 sm:gap-4">
