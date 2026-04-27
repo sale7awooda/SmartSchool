@@ -47,6 +47,12 @@ CREATE TABLE public.users (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Helper Function to get user role
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS TEXT AS $$
+  SELECT role FROM public.users WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER;
+
 -- Students Table
 CREATE TABLE IF NOT EXISTS public.students (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -336,12 +342,6 @@ CREATE POLICY "All users can view system settings" ON public.system_settings FOR
 
 -- 4. RLS Policies
 
--- Helper Function to get user role
-CREATE OR REPLACE FUNCTION public.get_user_role()
-RETURNS TEXT AS $$
-  SELECT role FROM public.users WHERE id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER;
-
 -- Users Table Policies
 DROP POLICY IF EXISTS "Admins can manage all users" ON public.users;
 CREATE POLICY "Admins can manage all users" ON public.users FOR ALL USING (get_user_role() = 'admin');
@@ -396,6 +396,7 @@ CREATE POLICY "All users can view stops" ON public.bus_stops FOR SELECT USING (a
 
 -- Notices Policies
 DROP POLICY IF EXISTS "Admins can manage notices" ON public.notices;
+DROP POLICY IF EXISTS "Staff can manage notices" ON public.notices;
 CREATE POLICY "Staff can manage notices" ON public.notices FOR ALL USING (get_user_role() IN ('admin', 'teacher', 'accountant', 'staff'));
 DROP POLICY IF EXISTS "All users can view notices" ON public.notices;
 CREATE POLICY "All users can view notices" ON public.notices FOR SELECT USING (auth.role() = 'authenticated');

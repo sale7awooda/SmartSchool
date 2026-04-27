@@ -61,11 +61,36 @@ USING (
 
 
 -- 3. Securing SUBMISSIONS and GRADES
-ALTER TABLE "assessment_submissions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "submissions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "grades" ENABLE ROW LEVEL SECURITY;
 
 -- Teachers and Admins can view all submissions
 CREATE POLICY "Staff can view all submissions" 
-ON "assessment_submissions" FOR SELECT 
+ON "submissions" FOR SELECT 
+TO authenticated
+USING (
+  (SELECT role FROM users WHERE id = auth.uid()) IN ('admin', 'teacher')
+);
+
+-- Students can only view their own submissions
+CREATE POLICY "Students can view own submissions" 
+ON "submissions" FOR SELECT 
+TO authenticated
+USING (
+  student_id IN (SELECT id FROM students WHERE user_id = auth.uid())
+);
+
+-- Parents can only view their children's submissions
+CREATE POLICY "Parents can view children submissions" 
+ON "submissions" FOR SELECT 
+TO authenticated
+USING (
+  student_id IN (SELECT student_id FROM parent_student WHERE parent_id = auth.uid())
+);
+
+-- Staff can view all grades
+CREATE POLICY "Staff can view all grades" 
+ON "grades" FOR SELECT 
 TO authenticated
 USING (
   (SELECT role FROM users WHERE id = auth.uid()) IN ('admin', 'teacher')
@@ -73,18 +98,10 @@ USING (
 
 -- Students can only view their own grades
 CREATE POLICY "Students can view own grades" 
-ON "assessment_submissions" FOR SELECT 
+ON "grades" FOR SELECT 
 TO authenticated
 USING (
   student_id IN (SELECT id FROM students WHERE user_id = auth.uid())
-);
-
--- Parents can only view their children's grades
-CREATE POLICY "Parents can view children grades" 
-ON "assessment_submissions" FOR SELECT 
-TO authenticated
-USING (
-  student_id IN (SELECT student_id FROM parent_student WHERE parent_id = auth.uid())
 );
 
 

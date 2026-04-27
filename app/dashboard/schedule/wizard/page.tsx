@@ -158,11 +158,23 @@ export default function TimetableWizard() {
     for (let i = 1; i <= constraints.periodsPerDay; i++) {
       p.push({ id: i, label: `Period ${i}` });
       if (i === 3) {
-        p.push({ id: 'break', label: 'Breakfast Break' });
+        p.push({ id: 'break', label: 'Break' });
       }
     }
     return p;
   }, [constraints.periodsPerDay]);
+
+  const getGridTemplateColumns = () => {
+    const cols = ['120px'];
+    periods.forEach(p => {
+      if (p.id === 'break') {
+        cols.push('60px');
+      } else {
+        cols.push('minmax(120px, 1fr)');
+      }
+    });
+    return cols.join(' ');
+  };
 
   const totalAvailable = GRADES.length * constraints.periodsPerDay * constraints.daysPerWeek;
   const totalMapped = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
@@ -604,7 +616,7 @@ export default function TimetableWizard() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">Breakfast Break Length (mins)</label>
+                  <label className="text-sm font-bold text-foreground">Break Length (mins)</label>
                   <input 
                     type="number" 
                     value={constraints.breakLength}
@@ -878,7 +890,7 @@ export default function TimetableWizard() {
                   <div className="min-w-[1000px]">
                     <div 
                       className="grid border-b border-border bg-card"
-                      style={{ gridTemplateColumns: `120px repeat(${periods.length}, minmax(120px, 1fr))` }}
+                      style={{ gridTemplateColumns: getGridTemplateColumns() }}
                     >
                       <div className="p-4 border-r border-border flex items-center justify-center font-bold text-muted-foreground">
                         Grades
@@ -899,7 +911,7 @@ export default function TimetableWizard() {
                         <div 
                           key={grade} 
                           className="grid"
-                          style={{ gridTemplateColumns: `120px repeat(${periods.length}, minmax(120px, 1fr))` }}
+                          style={{ gridTemplateColumns: getGridTemplateColumns() }}
                         >
                           <div className="p-4 border-r border-border flex items-center justify-center bg-muted/50 font-bold text-foreground">
                             {grade}

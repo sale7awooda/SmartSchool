@@ -214,7 +214,14 @@ export function AddStudentModal({
                           const firstError = Object.values(result.errors)[0][0];
                           toast.error("Validation Error", { description: firstError });
                         } else {
-                          toast.error("Error", { description: result.message });
+                          // Handle PGRST204 specifically if possible or just show the message
+                          const isMissingColumn = result.message.includes('PGRST204') || result.message.includes('user_id');
+                          toast.error(isMissingColumn ? "External Sync Required" : "Error", { 
+                            description: isMissingColumn 
+                              ? "Database schema is out of sync. Please run the SQL fix in supabase_fix.sql." 
+                              : result.message,
+                            duration: 6000
+                          });
                         }
                         return;
                       }
@@ -262,7 +269,7 @@ export function AddStudentModal({
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">{t('full_name')}</label>
+                    <label className="text-sm font-bold text-foreground/80 mb-1 block">{t('full_name')}</label>
                     <input 
                       required 
                       type="text" 
@@ -272,23 +279,23 @@ export function AddStudentModal({
                         setFormData(prev => ({ ...prev, name: e.target.value }));
                         if (formErrors.name) setFormErrors(prev => ({ ...prev, name: '' }));
                       }}
-                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                     />
                     {formErrors.name && <p className="text-xs text-red-500 font-medium">{formErrors.name}</p>}
                   </div>
                   <div className={isEditing ? "space-y-2" : "hidden"}>
-                    <label className="text-sm font-bold text-foreground">{t('student_id_auto')}</label>
+                    <label className="text-sm font-bold text-foreground/80 mb-1 block">{t('student_id_auto')}</label>
                     <input 
                       type="text" 
                       placeholder="e.g., S26001" 
                       value={formData.studentId}
                       readOnly
-                      className="w-full px-4 py-3 rounded-xl border bg-muted/50 border-border font-medium text-muted-foreground cursor-not-allowed" 
+                      className="w-full px-4 py-3 rounded-xl border bg-muted/50 border-border font-medium text-foreground cursor-not-allowed opacity-80" 
                     />
                     {formErrors.studentId && <p className="text-xs text-red-500 font-medium">{formErrors.studentId}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">{t('grade')}</label>
+                    <label className="text-sm font-bold text-foreground/80 mb-1 block">{t('grade')}</label>
                     <select 
                       required 
                       value={formData.grade}
@@ -296,7 +303,7 @@ export function AddStudentModal({
                         setFormData(prev => ({ ...prev, grade: e.target.value }));
                         if (formErrors.grade) setFormErrors(prev => ({ ...prev, grade: '' }));
                       }}
-                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.grade ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`}
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.grade ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`}
                     >
                       <option value="">{t('select_grade')}</option>
                       {classesList.map(c => (
@@ -320,7 +327,7 @@ export function AddStudentModal({
                     {formErrors.dob && <p className="text-xs text-red-500 font-medium">{formErrors.dob}</p>}
                   </div>
                   <div className="space-y-2 text-foreground">
-                    <label className="text-sm font-bold">{t('email_address')}</label>
+                    <label className="text-sm font-bold text-foreground/80 mb-1 block">{t('email_address')}</label>
                     <input 
                       required 
                       type="email" 
@@ -330,7 +337,7 @@ export function AddStudentModal({
                         setFormData(prev => ({ ...prev, studentEmail: e.target.value }));
                         if (formErrors.studentEmail) setFormErrors(prev => ({ ...prev, studentEmail: '' }));
                       }}
-                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.studentEmail ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.studentEmail ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
                     />
                     {formErrors.studentEmail && <p className="text-xs text-red-500 font-medium">{formErrors.studentEmail}</p>}
                   </div>

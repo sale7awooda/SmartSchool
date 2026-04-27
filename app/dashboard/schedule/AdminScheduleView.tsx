@@ -25,7 +25,7 @@ const PERIODS = [
   { id: 1, time: '08:00 AM - 08:50 AM' },
   { id: 2, time: '09:00 AM - 09:50 AM' },
   { id: 3, time: '10:00 AM - 10:50 AM' },
-  { id: 'break', time: '10:50 AM - 11:20 AM', label: 'Breakfast Break' },
+  { id: 'break', time: '10:50 AM - 11:20 AM', label: 'Break' },
   { id: 4, time: '11:20 AM - 12:10 PM' },
   { id: 5, time: '12:20 PM - 01:10 PM' },
   { id: 6, time: '01:20 PM - 02:10 PM' },
@@ -206,8 +206,11 @@ export default function AdminScheduleView() {
               </div>
 
               <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden overflow-x-auto">
-                <div className="min-w-[1000px]">
-                  <div className="grid grid-cols-[120px_repeat(7,1fr)] border-b border-border bg-muted/80">
+                <div className="min-w-[1100px]">
+                  <div 
+                    className="grid border-b border-border bg-muted/80"
+                    style={{ gridTemplateColumns: '120px repeat(3, 1fr) 60px repeat(4, 1fr)' }}
+                  >
                     <div className="p-4 border-r border-border flex items-center justify-center font-bold text-muted-foreground">
                       Grades
                     </div>
@@ -227,7 +230,11 @@ export default function AdminScheduleView() {
 
                   <div className="divide-y divide-slate-100">
                     {grades.map(grade => (
-                      <div key={grade} className="grid grid-cols-[120px_repeat(7,1fr)]">
+                      <div 
+                        key={grade} 
+                        className="grid"
+                        style={{ gridTemplateColumns: '120px repeat(3, 1fr) 60px repeat(4, 1fr)' }}
+                      >
                         <div className="p-4 border-r border-border flex items-center justify-center bg-muted/30 font-bold text-foreground">
                           {grade}
                         </div>
@@ -287,8 +294,11 @@ export default function AdminScheduleView() {
               </div>
 
               <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden overflow-x-auto">
-                <div className="min-w-[1000px]">
-                  <div className="grid grid-cols-[120px_repeat(7,1fr)] border-b border-border bg-muted/80">
+                <div className="min-w-[1100px]">
+                  <div 
+                    className="grid border-b border-border bg-muted/80"
+                    style={{ gridTemplateColumns: '120px repeat(3, 1fr) 60px repeat(4, 1fr)' }}
+                  >
                     <div className="p-4 border-r border-border flex items-center justify-center font-bold text-muted-foreground">
                       Days
                     </div>
@@ -308,7 +318,11 @@ export default function AdminScheduleView() {
 
                   <div className="divide-y divide-slate-100">
                     {DAYS.map(day => (
-                      <div key={day} className="grid grid-cols-[120px_repeat(7,1fr)]">
+                      <div 
+                        key={day} 
+                        className="grid"
+                        style={{ gridTemplateColumns: '120px repeat(3, 1fr) 60px repeat(4, 1fr)' }}
+                      >
                         <div className="p-4 border-r border-border flex items-center justify-center bg-muted/30 font-bold text-foreground">
                           {day}
                         </div>
@@ -370,8 +384,11 @@ export default function AdminScheduleView() {
               )}
 
               <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden overflow-x-auto">
-                <div className="min-w-[1000px]">
-                  <div className="grid grid-cols-[120px_repeat(7,1fr)] border-b border-border bg-muted/80">
+                <div className="min-w-[1100px]">
+                  <div 
+                    className="grid border-b border-border bg-muted/80"
+                    style={{ gridTemplateColumns: '120px repeat(3, 1fr) 60px repeat(4, 1fr)' }}
+                  >
                     <div className="p-4 border-r border-border flex items-center justify-center font-bold text-muted-foreground">
                       Days
                     </div>
@@ -391,7 +408,11 @@ export default function AdminScheduleView() {
 
                   <div className="divide-y divide-slate-100">
                     {DAYS.map(day => (
-                      <div key={day} className="grid grid-cols-[120px_repeat(7,1fr)]">
+                      <div 
+                        key={day} 
+                        className="grid"
+                        style={{ gridTemplateColumns: '120px repeat(3, 1fr) 60px repeat(4, 1fr)' }}
+                      >
                         <div className="p-4 border-r border-border flex items-center justify-center bg-muted/30 font-bold text-foreground">
                           {day}
                         </div>

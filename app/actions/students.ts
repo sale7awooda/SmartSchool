@@ -181,14 +181,20 @@ export async function processCreateStudentAction(
 
     const { createdBy, ...studentData } = validatedFields.data;
     const adminClient = createAdminClient();
-    const supabase = await createClient();
+    
+    // Explicitly use adminClient for everything in this action to bypass RLS issues 
+    // that might occur during user/student registration (system management operation)
 
-    // 0. Check if student already exists in database (using admin client to bypass RLS)
+    // 0. Check if student already exists in database
     const { data: existingStudent, error: checkError } = await adminClient
       .from('students')
       .select('id')
       .eq('roll_number', studentData.studentId)
       .maybeSingle();
+    
+    if (checkError) {
+      console.error("Error checking existing student:", checkError);
+    }
 
     if (existingStudent) {
       return { success: false, message: "A student with this ID (Roll Number) already exists." };
@@ -199,6 +205,12 @@ export async function processCreateStudentAction(
     
     // Check if auth user exists first
     const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error("Error listing auth users:", listError);
+      return { success: false, message: "Auth service unavailable. Please check your Supabase configuration." };
+    }
+
     const authExists = listData?.users.find(u => u.email === studentEmail);
 
     if (authExists) {
@@ -206,7 +218,7 @@ export async function processCreateStudentAction(
     }
 
     // Check if user exists in public.users using admin client
-    const { data: existingPublicUser, error: publicUserError } = await adminClient
+    const { data: existingPublicUser } = await adminClient
       .from('users')
       .select('id')
       .eq('email', studentEmail)
@@ -270,10 +282,10 @@ export async function processCreateStudentAction(
       .single();
 
     if (studentError) {
-      console.error("Student record creation error detail:", studentError);
+      console.error("Student record creation error detail:", JSON.stringify(studentError, null, 2));
       return { 
         success: false, 
-        message: `Failed to create student record: ${studentError.message} ${studentError.details || ''} ${studentError.hint || ''}`.trim() 
+        message: `Failed to create student record: ${studentError.message} (Code: ${studentError.code}) ${studentError.details || ''}`.trim() 
       };
     }
 
@@ -287,7 +299,7 @@ export async function processCreateStudentAction(
     let parentId = null;
     if (studentData.parentName && studentData.parentPhone) {
       try {
-        let { data: parent } = await supabase
+        let { data: parent } = await adminClient
           .from('users')
           .select('*')
           .eq('phone', studentData.parentPhone)
@@ -305,7 +317,7 @@ export async function processCreateStudentAction(
           });
 
           if (!parentAuthError && parentAuthData?.user) {
-            const { data: newParent, error: parentCreateError } = await supabase
+            const { data: newParent, error: parentCreateError } = await adminClient
               .from('users')
               .insert([{
                 id: parentAuthData.user.id,
@@ -325,7 +337,7 @@ export async function processCreateStudentAction(
 
         if (parent) {
           parentId = parent.id;
-          await supabase
+          await adminClient
             .from('parent_student')
             .insert([{
               parent_id: parent.id,

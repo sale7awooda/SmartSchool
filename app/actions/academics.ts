@@ -109,16 +109,16 @@ export async function processSaveGradesAction(
 
   const supabase = await createClient();
 
-  const upsertPayload = validatedFields.data.records.map(record => ({
+    const upsertPayload = validatedFields.data.records.map(record => ({
     assessment_id: validatedFields.data.assessment_id,
     student_id: record.student_id,
     score: record.score,
-    feedback: record.feedback || '',
+    remarks: record.feedback || '',
     graded_by: validatedFields.data.gradedBy,
   }));
 
   const { error } = await supabase
-    .from('assessment_submissions')
+    .from('grades')
     .upsert(upsertPayload, { onConflict: 'assessment_id, student_id' });
 
   if (error) {
