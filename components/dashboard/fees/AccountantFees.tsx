@@ -38,14 +38,26 @@ export function AccountantFees() {
   const [isAddFeeItemOpen, setIsAddFeeItemOpen] = useState(false);
   const [editingFeeItem, setEditingFeeItem] = useState<any | null>(null);
   const [isSubmittingFeeItem, setIsSubmittingFeeItem] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [stats, setStats] = useState({ collected: 0, pending: 0, overdue: 0 });
   const [feeStructure, setFeeStructure] = useState<any[]>([]);
 
+  const fetchFeeData = async () => {
+    try {
+      const items = await getFeeItems();
+      setFeeStructure(items);
+      const feeStats = await getFeeStats(activeAcademicYear?.name);
+      setStats(feeStats);
+    } catch (error) {
+      console.error('Error fetching fee data:', error);
+    }
+  };
+
   useEffect(() => {
     getStudents(activeAcademicYear?.name).then(setStudents).catch(console.error);
-    getFeeStats(activeAcademicYear?.name).then(setStats).catch(console.error);
-    getFeeItems().then(setFeeStructure).catch(console.error);
+    fetchFeeData();
 
     // Real-time subscriptions
     const invoicesChannel = supabase
@@ -145,8 +157,8 @@ export function AccountantFees() {
         return;
       }
 
-      mutate(['invoices', page, debouncedSearch, activeTab]);
-      getFeeStats().then(setStats).catch(console.error);
+      mutate(['invoices', page, debouncedSearch, activeTab, activeAcademicYear?.name]);
+      getFeeStats(activeAcademicYear?.name).then(setStats).catch(console.error);
       toast.success("Payment recorded", {
         description: `Successfully recorded $${selectedInvoice.amount} for ${selectedInvoice.studentName}.`,
       });
@@ -180,7 +192,7 @@ export function AccountantFees() {
           toast.error("Error", { description: result.message });
           return;
         }
-        mutate('feeItems');
+        getFeeItems().then(setFeeStructure).catch(console.error);
         toast.success("Fee item updated");
       } else {
         formData.append('createdBy', user.id);
@@ -190,7 +202,7 @@ export function AccountantFees() {
           toast.error("Error", { description: result.message });
           return;
         }
-        mutate('feeItems');
+        getFeeItems().then(setFeeStructure).catch(console.error);
         toast.success("Fee item added to structure");
       }
       setIsAddFeeItemOpen(false);
@@ -207,6 +219,7 @@ export function AccountantFees() {
   const handleDeleteFeeItem = async (id: string) => {
     if (!user) return;
     try {
+      setIsDeleting(true);
       const formData = new FormData();
       formData.append('id', id);
       formData.append('deletedBy', user.id);
@@ -216,11 +229,14 @@ export function AccountantFees() {
         toast.error("Error", { description: result.message });
         return;
       }
-      mutate('feeItems');
+      await fetchFeeData();
       toast.success("Fee item deleted");
+      setDeleteConfirmId(null);
     } catch (error) {
       console.error('Error deleting fee item:', error);
       toast.error("Failed to delete fee item");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -247,8 +263,8 @@ export function AccountantFees() {
         return;
       }
 
-      mutate(['invoices', page, debouncedSearch, activeTab]);
-      getFeeStats().then(setStats).catch(console.error);
+      mutate(['invoices', page, debouncedSearch, activeTab, activeAcademicYear?.name]);
+      getFeeStats(activeAcademicYear?.name).then(setStats).catch(console.error);
       const studentName = students.find(s => s.id === newInvoiceData.studentId)?.name || 'Student';
       toast.success("Invoice created successfully", {
         description: `Invoice for ${studentName} created.`
@@ -277,8 +293,8 @@ export function AccountantFees() {
         return;
       }
 
-      mutate(['invoices', page, debouncedSearch, activeTab]);
-      getFeeStats().then(setStats).catch(console.error);
+      mutate(['invoices', page, debouncedSearch, activeTab, activeAcademicYear?.name]);
+      getFeeStats(activeAcademicYear?.name).then(setStats).catch(console.error);
       toast.error("Invoice voided", {
         description: "The invoice has been cancelled and removed from active tracking.",
       });
@@ -392,7 +408,7 @@ export function AccountantFees() {
                           {t('edit')}
                         </button>
                         <button 
-                          onClick={() => handleDeleteFeeItem(item.id)}
+                          onClick={() => setDeleteConfirmId(item.id)}
                           className="text-[10px] font-bold text-destructive hover:text-destructive/80"
                         >
                           {t('delete')}
@@ -605,6 +621,41 @@ export function AccountantFees() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden border border-border flex flex-col p-8 items-center text-center space-y-6"
+            >
+              <div className="p-4 bg-destructive/10 text-destructive rounded-full">
+                <AlertCircle size={40} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">{t('delete_confirmation')}</h3>
+                <p className="text-sm text-muted-foreground mt-2">{t('delete_fee_item_warning')}</p>
+              </div>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 rounded-xl font-bold text-muted-foreground bg-background border border-border hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  onClick={() => handleDeleteFeeItem(deleteConfirmId)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 rounded-xl font-bold text-destructive-foreground bg-destructive hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? <Loader2 size={18} className="animate-spin" /> : t('delete')}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

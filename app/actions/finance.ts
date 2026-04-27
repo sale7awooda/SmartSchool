@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
 const CreateInvoiceSchema = z.object({
@@ -42,8 +42,8 @@ export async function processCreateInvoiceAction(
 
   const data = validatedFields.data;
 
-  const supabase = await createClient();
-  const { data: newInvoice, error: invoiceError } = await supabase
+  const adminClient = createAdminClient();
+  const { data: newInvoice, error: invoiceError } = await adminClient
     .from('fee_invoices')
     .insert([
       {
@@ -103,8 +103,8 @@ export async function processVoidInvoiceAction(
 
   const data = validatedFields.data;
 
-  const supabase = await createClient();
-  const { error: invoiceError } = await supabase
+  const adminClient = createAdminClient();
+  const { error: invoiceError } = await adminClient
     .from('fee_invoices')
     .update({ status: 'void' })
     .eq('id', data.invoiceId)
@@ -164,10 +164,8 @@ export async function processPaymentAction(
   }
 
   const data = validatedFields.data;
-
-  // 2. Perform Backend DB Write (simulating server action boundary)
-  const supabase = await createClient();
-  const { data: invoice, error: invoiceError } = await supabase
+  const adminClient = createAdminClient();
+  const { data: invoice, error: invoiceError } = await adminClient
     .from('fee_invoices')
     .update({
       status: 'paid',
@@ -182,6 +180,18 @@ export async function processPaymentAction(
     console.error(invoiceError);
     return { success: false, message: "Database update failed: " + invoiceError.message };
   }
+
+  // Record the actual payment
+  const { error: paymentError } = await adminClient
+    .from('fee_payments')
+    .insert([{
+      invoice_id: data.invoiceId,
+      amount: data.amount,
+      payment_method: data.paymentMethod,
+      reference_number: data.referenceNumber,
+      recorded_by: data.recordedBy,
+      payment_date: new Date().toISOString()
+    }]);
 
   // 3. Write securely to Audit Logs
   await logAudit('FEE_PAYMENT_RECORDED', data.recordedBy, {
@@ -232,9 +242,9 @@ export async function processCreateFeeItemAction(
   }
 
   const data = validatedFields.data;
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
-  const { data: newFeeItem, error } = await supabase
+  const { data: newFeeItem, error } = await adminClient
     .from('fee_items')
     .insert([{
       name: data.name,
@@ -287,9 +297,9 @@ export async function processUpdateFeeItemAction(
   }
 
   const { id, createdBy, ...updateData } = validatedFields.data;
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
-  const { error } = await supabase
+  const { error } = await adminClient
     .from('fee_items')
     .update(updateData)
     .eq('id', id);
@@ -333,9 +343,9 @@ export async function processDeleteFeeItemAction(
   }
 
   const { id, deletedBy } = validatedFields.data;
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
-  const { error } = await supabase
+  const { error } = await adminClient
     .from('fee_items')
     .delete()
     .eq('id', id);

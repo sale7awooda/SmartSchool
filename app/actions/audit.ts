@@ -13,7 +13,7 @@ export async function logAudit(actionType: string, userId: string, details: Reco
     });
 
     if (error) {
-      if (error.code === '42P01') {
+      if (error.code === '42P01' || error.code === 'PGRST205') {
         // Table doesn't exist, we just mock the audit log
         console.warn(`[AUDIT LOG] ${actionType} by ${userId}:`, JSON.stringify(details));
       } else {

@@ -216,11 +216,11 @@ export function AddStudentModal({
                         } else {
                           // Handle PGRST204 specifically if possible or just show the message
                           const isMissingColumn = result.message.includes('PGRST204') || result.message.includes('user_id');
-                          toast.error(isMissingColumn ? "External Sync Required" : "Error", { 
+                          toast.error(isMissingColumn ? "Supabase Setup Required" : "Error", { 
                             description: isMissingColumn 
-                              ? "Database schema is out of sync. Please run the SQL fix in supabase_fix.sql." 
+                              ? "Please go to your Supabase Dashboard -> SQL Editor -> New Query. Copy the contents of the 'supabase_fix.sql' file we created, paste it there, and click RUN to fix the database schema." 
                               : result.message,
-                            duration: 6000
+                            duration: 10000
                           });
                         }
                         return;

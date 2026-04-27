@@ -181,20 +181,14 @@ export async function processCreateStudentAction(
 
     const { createdBy, ...studentData } = validatedFields.data;
     const adminClient = createAdminClient();
-    
-    // Explicitly use adminClient for everything in this action to bypass RLS issues 
-    // that might occur during user/student registration (system management operation)
+    const supabase = await createClient();
 
-    // 0. Check if student already exists in database
+    // 0. Check if student already exists in database (using admin client to bypass RLS)
     const { data: existingStudent, error: checkError } = await adminClient
       .from('students')
       .select('id')
       .eq('roll_number', studentData.studentId)
       .maybeSingle();
-    
-    if (checkError) {
-      console.error("Error checking existing student:", checkError);
-    }
 
     if (existingStudent) {
       return { success: false, message: "A student with this ID (Roll Number) already exists." };
@@ -205,12 +199,6 @@ export async function processCreateStudentAction(
     
     // Check if auth user exists first
     const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
-    
-    if (listError) {
-      console.error("Error listing auth users:", listError);
-      return { success: false, message: "Auth service unavailable. Please check your Supabase configuration." };
-    }
-
     const authExists = listData?.users.find(u => u.email === studentEmail);
 
     if (authExists) {
@@ -218,7 +206,7 @@ export async function processCreateStudentAction(
     }
 
     // Check if user exists in public.users using admin client
-    const { data: existingPublicUser } = await adminClient
+    const { data: existingPublicUser, error: publicUserError } = await adminClient
       .from('users')
       .select('id')
       .eq('email', studentEmail)
@@ -283,9 +271,14 @@ export async function processCreateStudentAction(
 
     if (studentError) {
       console.error("Student record creation error detail:", JSON.stringify(studentError, null, 2));
+      
+      const isSchemaCacheError = studentError.code === 'PGRST204' || studentError.message.includes('user_id');
+      
       return { 
         success: false, 
-        message: `Failed to create student record: ${studentError.message} (Code: ${studentError.code}) ${studentError.details || ''}`.trim() 
+        message: isSchemaCacheError 
+          ? "Database schema is out of sync. Please run the SQL fix in supabase_fix.sql to add the missing 'user_id' column and reload the schema cache."
+          : `Failed to create student record: ${studentError.message} (Code: ${studentError.code}) ${studentError.details || ''}`.trim() 
       };
     }
 
@@ -299,7 +292,7 @@ export async function processCreateStudentAction(
     let parentId = null;
     if (studentData.parentName && studentData.parentPhone) {
       try {
-        let { data: parent } = await adminClient
+        let { data: parent } = await supabase
           .from('users')
           .select('*')
           .eq('phone', studentData.parentPhone)
@@ -317,7 +310,7 @@ export async function processCreateStudentAction(
           });
 
           if (!parentAuthError && parentAuthData?.user) {
-            const { data: newParent, error: parentCreateError } = await adminClient
+            const { data: newParent, error: parentCreateError } = await supabase
               .from('users')
               .insert([{
                 id: parentAuthData.user.id,
@@ -337,7 +330,7 @@ export async function processCreateStudentAction(
 
         if (parent) {
           parentId = parent.id;
-          await adminClient
+          await supabase
             .from('parent_student')
             .insert([{
               parent_id: parent.id,
