@@ -10,7 +10,6 @@ const CreateStudentSchema = z.object({
   grade: z.string().min(1, "Grade is required"),
   dob: z.string().min(1, "Date of birth is required"),
   gender: z.enum(['Male', 'Female', 'Other']),
-  bloodGroup: z.string().optional(),
   address: z.string().optional(),
   
   // Parent details (optional)
@@ -50,7 +49,6 @@ export async function processUpdateStudentAction(
       grade: formData.get('grade') as string,
       dob: formData.get('dob') as string,
       gender: formData.get('gender') as string,
-      bloodGroup: formData.get('bloodGroup') as string,
       address: formData.get('address') as string,
       feeStructure: formData.get('feeStructure') as string,
       additionalInfo: formData.get('additionalInfo') as string,
@@ -78,7 +76,6 @@ export async function processUpdateStudentAction(
         roll_number: updateData.studentId,
         dob: updateData.dob,
         gender: updateData.gender,
-        blood_group: updateData.bloodGroup,
         address: updateData.address,
         fee_structure: updateData.feeStructure,
         additional_info: updateData.additionalInfo
@@ -161,7 +158,6 @@ export async function processCreateStudentAction(
       grade: formData.get('grade') as string,
       dob: formData.get('dob') as string,
       gender: formData.get('gender') as string,
-      bloodGroup: formData.get('bloodGroup') as string,
       address: formData.get('address') as string,
       parentName: formData.get('parentName') as string,
       parentPhone: formData.get('parentPhone') as string,
@@ -265,7 +261,6 @@ export async function processCreateStudentAction(
         roll_number: studentData.studentId,
         dob: studentData.dob,
         gender: studentData.gender,
-        blood_group: studentData.bloodGroup,
         address: studentData.address,
         academic_year: studentData.academicYear || '2025-2026',
         fee_structure: studentData.feeStructure,
@@ -275,9 +270,18 @@ export async function processCreateStudentAction(
       .single();
 
     if (studentError) {
-      console.error("Student record creation error:", studentError);
-      return { success: false, message: "Failed to create student record: " + studentError.message };
+      console.error("Student record creation error detail:", studentError);
+      return { 
+        success: false, 
+        message: `Failed to create student record: ${studentError.message} ${studentError.details || ''} ${studentError.hint || ''}`.trim() 
+      };
     }
+
+    // 2.1 Update user profile with student_id (redundancy for easier querying)
+    await adminClient
+      .from('users')
+      .update({ student_id: student.id })
+      .eq('id', user.id);
 
     // 3. Handle Parent Registration if provided
     let parentId = null;

@@ -218,14 +218,6 @@ export function StudentProfileModal({
                   <div className="space-y-6">
                     {selectedPerson.medical ? (
                       <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="p-2 bg-destructive/10 text-destructive rounded-lg"><Activity size={20} /></div>
-                              <h3 className="font-bold text-foreground">Blood Group</h3>
-                            </div>
-                            <p className="text-2xl font-bold text-foreground">{selectedPerson.medical.bloodGroup}</p>
-                          </div>
                           <div className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="p-2 bg-primary/10 text-primary rounded-lg"><Heart size={20} /></div>
@@ -241,7 +233,6 @@ export function StudentProfileModal({
                               )}
                             </div>
                           </div>
-                        </div>
 
                         <div className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
                           <div className="flex items-center gap-3 mb-3">

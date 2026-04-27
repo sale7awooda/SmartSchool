@@ -118,7 +118,6 @@ export async function createStudent(studentData: any) {
       roll_number: studentData.studentId,
       dob: studentData.dob,
       gender: studentData.gender,
-      blood_group: studentData.bloodGroup,
       address: studentData.address,
       academic_year: studentData.academicYear || '2025-2026',
       fee_structure: studentData.feeStructure,
@@ -128,6 +127,12 @@ export async function createStudent(studentData: any) {
     .single();
 
   if (studentError) throw studentError;
+
+  // 2.1 Update user profile with student_id
+  await supabase
+    .from('users')
+    .update({ student_id: student.id })
+    .eq('id', user.id);
 
   // 3. Handle Parent Registration if provided
   if (studentData.parentName && studentData.parentPhone) {

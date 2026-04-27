@@ -26,7 +26,6 @@ export interface User {
 export interface MedicalProfile {
   allergies: string[];
   conditions: string[];
-  bloodGroup: string;
   emergencyContact: {
     name: string;
     relation: string;
@@ -118,7 +117,6 @@ export interface Student {
   dob?: string;
   medical?: MedicalProfile;
   gender?: string;
-  blood_group?: string;
   fee_structure?: string;
   additional_info?: string;
   is_deleted?: boolean;

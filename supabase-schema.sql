@@ -50,6 +50,7 @@ CREATE TABLE public.users (
 -- Students Table
 CREATE TABLE IF NOT EXISTS public.students (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   grade TEXT NOT NULL,
   roll_number TEXT NOT NULL,
@@ -361,7 +362,7 @@ CREATE POLICY "Teachers can view students" ON public.students FOR SELECT USING (
 DROP POLICY IF EXISTS "Parents can view own children" ON public.students;
 CREATE POLICY "Parents can view own children" ON public.students FOR SELECT USING (EXISTS (SELECT 1 FROM public.parent_student WHERE parent_student.parent_id = auth.uid() AND parent_student.student_id = students.id));
 DROP POLICY IF EXISTS "Students can view own record" ON public.students;
-CREATE POLICY "Students can view own record" ON public.students FOR SELECT USING (id = (SELECT student_id FROM public.users WHERE id = auth.uid()));
+CREATE POLICY "Students can view own record" ON public.students FOR SELECT USING (user_id = auth.uid());
 
 -- Parent Student Policies
 DROP POLICY IF EXISTS "Admins can manage parent_student" ON public.parent_student;
@@ -525,9 +526,18 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.notices;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.attendance;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.schedules;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.fee_invoices;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.fee_payments;
+-- 7. Ensure schema migration for existing tables (in case DROP/CREATE didn't run)
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='students' AND column_name='user_id') THEN
+    ALTER TABLE public.students ADD COLUMN user_id UUID REFERENCES public.users(id) ON DELETE CASCADE;
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='student_id') THEN
+    ALTER TABLE public.users ADD COLUMN student_id UUID;
+  END IF;
+END $$;
 
--- 6. Functions for Business Logic
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -538,6 +548,7 @@ BEGIN
     NEW.email,
     CASE 
       WHEN NEW.email = 'sale7awooda@gmail.com' THEN 'admin'
+      WHEN NEW.raw_user_meta_data->>'role' IS NOT NULL THEN (NEW.raw_user_meta_data->>'role')::text
       ELSE 'parent'
     END
   );
@@ -638,7 +649,6 @@ CREATE TABLE IF NOT EXISTS public.visitors (
 CREATE TABLE IF NOT EXISTS public.medical_records (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
-  blood_group TEXT,
   allergies TEXT,
   conditions TEXT,
   emergency_contact TEXT,

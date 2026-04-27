@@ -24,7 +24,6 @@ interface FormData {
   dob: string;
   gender: string;
   studentEmail: string;
-  bloodGroup: string;
   address: string;
   parentName: string;
   parentPhone: string;
@@ -131,7 +130,6 @@ export function AddStudentModal({
                       actionFormData.append('grade', formData.grade);
                       actionFormData.append('dob', formData.dob);
                       actionFormData.append('gender', formData.gender);
-                      actionFormData.append('bloodGroup', formData.bloodGroup);
                       actionFormData.append('address', formData.address);
                       actionFormData.append('feeStructure', formData.feeStructure);
                       actionFormData.append('additionalInfo', formData.additionalInfo);
@@ -178,7 +176,6 @@ export function AddStudentModal({
                       actionFormData.append('grade', formData.grade);
                       actionFormData.append('dob', formData.dob);
                       actionFormData.append('gender', formData.gender);
-                      actionFormData.append('bloodGroup', formData.bloodGroup);
                       actionFormData.append('address', formData.address);
                       actionFormData.append('parentName', formData.parentName);
                       actionFormData.append('parentPhone', formData.parentPhone);
@@ -239,7 +236,6 @@ export function AddStudentModal({
                       dob: '',
                       gender: 'Male',
                       studentEmail: '',
-                      bloodGroup: 'A+',
                       address: '',
                       parentName: '',
                       parentPhone: '',
@@ -349,23 +345,6 @@ export function AddStudentModal({
                       <option value="Male">{t('male')}</option>
                       <option value="Female">{t('female')}</option>
                       <option value="Other">{t('other')}</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground">{t('blood_group')}</label>
-                    <select 
-                      value={formData.bloodGroup}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bloodGroup: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium"
-                    >
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
                     </select>
                   </div>
                 </div>
