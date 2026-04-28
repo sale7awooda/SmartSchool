@@ -113,7 +113,6 @@ export const MOCK_STUDENTS: Student[] = [
     medical: {
       allergies: ['Shrimp', 'Butterscotch'],
       conditions: ['ADHD'],
-      bloodGroup: 'O-',
       emergencyContact: {
         name: 'Homer Simpson',
         relation: 'Father',
@@ -149,7 +148,6 @@ export const MOCK_STUDENTS: Student[] = [
     medical: {
       allergies: [],
       conditions: ['Vegetarian (Dietary)'],
-      bloodGroup: 'A+',
       emergencyContact: {
         name: 'Marge Simpson',
         relation: 'Mother',
@@ -170,7 +168,7 @@ export const MOCK_STUDENTS: Student[] = [
       { id: 't3', date: '2023-10-05', title: 'Spelling Bee Winner', description: 'Won the regional spelling bee.', icon: 'award' },
     ]
   },
-  { id: 'STU003', name: 'Milhouse Van Houten', grade: 'Grade 4', rollNumber: '03', busRouteId: 'route1', stopId: 's2', medical: { allergies: ['Dairy', 'Soy', 'Wheat'], conditions: ['Asthma', 'Myopia'], bloodGroup: 'B+', emergencyContact: { name: 'Kirk Van Houten', relation: 'Father', phone: '555-0200' } } },
+  { id: 'STU003', name: 'Milhouse Van Houten', grade: 'Grade 4', rollNumber: '03', busRouteId: 'route1', stopId: 's2', medical: { allergies: ['Dairy', 'Soy', 'Wheat'], conditions: ['Asthma', 'Myopia'], emergencyContact: { name: 'Kirk Van Houten', relation: 'Father', phone: '555-0200' } } },
   { id: 'STU004', name: 'Nelson Muntz', grade: 'Grade 4', rollNumber: '04' },
   { id: 'STU005', name: 'Ralph Wiggum', grade: 'Grade 4', rollNumber: '05' },
   { id: 'STU006', name: 'Martin Prince', grade: 'Grade 4', rollNumber: '06' },

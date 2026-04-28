@@ -24,7 +24,6 @@ export interface User {
 }
 
 export interface MedicalProfile {
-  bloodGroup?: string;
   allergies: string[];
   conditions: string[];
   emergencyContact: {

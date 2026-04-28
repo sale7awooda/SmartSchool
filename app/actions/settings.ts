@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logAudit } from './audit';
 
 const MasterEntitySchema = z.object({
@@ -37,7 +37,7 @@ export async function processCreateMasterEntityAction(
   }
 
   const { type, name, createdBy } = validatedFields.data;
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   let tableName = '';
   let payload: any = { name };
@@ -51,7 +51,7 @@ export async function processCreateMasterEntityAction(
     tableName = 'subjects';
   }
 
-  const { error } = await supabase
+  const { error } = await adminClient
     .from(tableName)
     .insert([payload]);
 
@@ -100,7 +100,7 @@ export async function processUpdateMasterEntityAction(
   }
 
   const { type, id, name, payload, updatedBy } = validatedFields.data;
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   let tableName = '';
   let parsedPayload = {};
@@ -117,7 +117,7 @@ export async function processUpdateMasterEntityAction(
     
     // If activating a year, deactivate others first
     if (updateData.is_active) {
-      await supabase.from(tableName).update({ is_active: false }).neq('id', id);
+      await adminClient.from(tableName).update({ is_active: false }).neq('id', id);
     }
   } else if (type === 'class') {
     tableName = 'classes';
@@ -125,7 +125,7 @@ export async function processUpdateMasterEntityAction(
     tableName = 'subjects';
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(tableName)
     .update(updateData)
     .eq('id', id)
@@ -176,14 +176,14 @@ export async function processDeleteMasterEntityAction(
   }
 
   const { type, id, name, deletedBy } = validatedFields.data;
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   let tableName = '';
   if (type === 'year') tableName = 'academic_years';
   else if (type === 'class') tableName = 'classes';
   else if (type === 'subject') tableName = 'subjects';
 
-  const { error } = await supabase
+  const { error } = await adminClient
     .from(tableName)
     .delete()
     .eq('id', id);
