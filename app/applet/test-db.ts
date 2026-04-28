@@ -1,5 +1,5 @@
 
-import { createAdminClient } from './lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 async function checkSchema() {
   const adminClient = createAdminClient();
