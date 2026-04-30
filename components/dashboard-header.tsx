@@ -22,7 +22,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { motion, AnimatePresence } from 'motion/react';
 import useSWR from 'swr';
-import { getNotices } from '@/lib/supabase-db';
+import { getNotices, getAcademicYears } from '@/lib/supabase-db';
 import { Logo } from '@/components/logo';
 
 interface DashboardHeaderProps {
@@ -39,7 +39,10 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const { data: notices } = useSWR('notices', getNotices);
+  const { data: academicYears } = useSWR('academic_years', getAcademicYears);
   
+  const activeYear = academicYears?.find(y => y.is_active);
+
   const notifications = notices?.slice(0, 5).map(notice => ({
     id: notice.id,
     title: notice.title,
@@ -65,6 +68,22 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
       </div>
 
       <div className="flex items-center gap-1 sm:gap-4">
+        {/* Academic Year Banner */}
+        <div className="hidden sm:flex items-center">
+          {activeYear ? (
+            <span className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20 shrink-0">
+              {activeYear.name}
+            </span>
+          ) : (
+            <button 
+              onClick={() => router.push('/dashboard/settings')} 
+              className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold rounded-lg border border-destructive/20 shrink-0 transition-colors"
+            >
+              Config Academic Year
+            </button>
+          )}
+        </div>
+
         {/* Language Switcher */}
         <button
           onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}

@@ -13,13 +13,13 @@ const CreateStudentSchema = z.object({
   address: z.string().optional(),
   
   // Parent details (optional)
-  parentName: z.string().optional(),
-  parentPhone: z.string().optional(),
+  parentName: z.string().min(1, "Parent name is required"),
+  parentPhone: z.string().min(1, "Parent phone is required"),
+  parentEmail: z.string().email("Invalid email address"),
   parentRelation: z.string().optional(),
   
   // Fee & Academic info
   academicYear: z.string().min(1, "Academic year is required"),
-  studentEmail: z.string().email("Invalid email address"),
   feeStructure: z.string().optional(),
   additionalInfo: z.string().optional(),
 
@@ -161,6 +161,7 @@ export async function processCreateStudentAction(
       address: formData.get('address') as string,
       parentName: formData.get('parentName') as string,
       parentPhone: formData.get('parentPhone') as string,
+      parentEmail: formData.get('parentEmail') as string,
       parentRelation: formData.get('parentRelation') as string,
       academicYear: formData.get('academicYear') as string,
       studentEmail: formData.get('studentEmail') as string,
@@ -195,14 +196,16 @@ export async function processCreateStudentAction(
     }
 
     // 1. Create the student auth profile
-    const studentEmail = studentData.studentEmail;
+    const studentEmail = `student_${studentData.studentId.toLowerCase()}@school.com`;
+    const parentEmail = studentData.parentEmail;
     
     // Check if auth user exists first
     const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
+    
+    
     const authExists = listData?.users.find(u => u.email === studentEmail);
-
     if (authExists) {
-      return { success: false, message: "A system account for this email already exists." };
+      return { success: false, message: "A system account for this student ID already exists." };
     }
 
     // Check if user exists in public.users using admin client
@@ -213,14 +216,14 @@ export async function processCreateStudentAction(
       .maybeSingle();
 
     if (existingPublicUser) {
-      return { success: false, message: "A user profile with this email already exists in the system." };
+      return { success: false, message: "A user profile with this student ID already exists in the system." };
     }
 
     // Create the student auth profile
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: studentEmail,
       email_confirm: true,
-      password: 'password123',
+      password: studentData.studentId,
       user_metadata: { name: studentData.name, role: 'student' }
     });
 
@@ -255,7 +258,6 @@ export async function processCreateStudentAction(
     const { data: student, error: studentError } = await adminClient
       .from('students')
       .insert([{
-        user_id: user.id,
         name: studentData.name,
         grade: studentData.grade,
         roll_number: studentData.studentId,
@@ -292,25 +294,34 @@ export async function processCreateStudentAction(
     let parentId = null;
     if (studentData.parentName && studentData.parentPhone) {
       try {
-        let { data: parent } = await supabase
+        let { data: parent } = await adminClient
           .from('users')
           .select('*')
-          .eq('phone', studentData.parentPhone)
+          .eq('email', parentEmail)
           .eq('role', 'parent')
           .maybeSingle();
         
         if (!parent) {
-          const parentEmail = `parent_${studentData.parentPhone.replace(/\D/g, '')}@school.com`;
-          
+          const { data: parentPhoneUser } = await adminClient
+            .from('users')
+            .select('*')
+            .eq('phone', studentData.parentPhone)
+            .eq('role', 'parent')
+            .maybeSingle();
+          parent = parentPhoneUser;
+        }
+
+        if (!parent) {
+          const parentPassword = studentData.parentPhone.replace(/\D/g, '');
           const { data: parentAuthData, error: parentAuthError } = await adminClient.auth.admin.createUser({
             email: parentEmail,
             email_confirm: true,
-            password: 'password123',
+            password: parentPassword || 'password123',
             user_metadata: { name: studentData.parentName, role: 'parent' }
           });
 
           if (!parentAuthError && parentAuthData?.user) {
-            const { data: newParent, error: parentCreateError } = await supabase
+            const { data: newParent, error: parentCreateError } = await adminClient
               .from('users')
               .insert([{
                 id: parentAuthData.user.id,
@@ -330,7 +341,7 @@ export async function processCreateStudentAction(
 
         if (parent) {
           parentId = parent.id;
-          await supabase
+          await adminClient
             .from('parent_student')
             .insert([{
               parent_id: parent.id,

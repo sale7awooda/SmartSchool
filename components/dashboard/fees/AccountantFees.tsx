@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { FeeInvoice, FeeItem, Student, User } from '@/types';
 import { getPaginatedInvoices, createInvoice, updateInvoice, getStudents, getFeeStats, getFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, recordPayment, getActiveAcademicYear } from '@/lib/supabase-db';
+import { getPayslips } from '@/lib/api/hr';
 import { processPaymentAction, processVoidInvoiceAction, processCreateInvoiceAction, processCreateFeeItemAction, processUpdateFeeItemAction, processDeleteFeeItemAction } from '@/app/actions/finance';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
@@ -24,7 +25,7 @@ export function AccountantFees() {
   const [page, setPage] = useState(1);
   const limit = 10;
   
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'overdue' | 'structure'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'overdue' | 'structure' | 'payroll'>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<FeeInvoice | null>(null);
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<string | null>(null);
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
@@ -79,6 +80,7 @@ export function AccountantFees() {
       supabase.removeChannel(invoicesChannel);
       supabase.removeChannel(itemsChannel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, debouncedSearch, activeTab, activeAcademicYear?.name]);
 
   const [newInvoiceData, setNewInvoiceData] = useState({
@@ -109,6 +111,8 @@ export function AccountantFees() {
     ([_, p, s, tab, a]) => getPaginatedInvoices(p, limit, s, undefined, tab, a)
   );
 
+  const { data: payslips, mutate: mutatePayslips } = useSWR('payslips', getPayslips);
+
   const invoices = invoicesResponse?.data || [];
   const totalPages = invoicesResponse?.totalPages || 1;
   const totalCount = invoicesResponse?.count || 0;
@@ -125,7 +129,7 @@ export function AccountantFees() {
   }));
 
   const filteredInvoices = mappedInvoices.filter((inv: any) => {
-    const matchesTab = activeTab === 'all' ? true : activeTab === 'structure' ? false : inv.status === activeTab;
+    const matchesTab = activeTab === 'all' ? true : (activeTab === 'structure' || activeTab === 'payroll') ? false : inv.status === activeTab;
     return matchesTab;
   });
 
@@ -369,7 +373,7 @@ export function AccountantFees() {
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {(['all', 'pending', 'overdue', 'structure'] as const).map((tab) => (
+            {(['all', 'pending', 'overdue', 'payroll', 'structure'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -431,6 +435,46 @@ export function AccountantFees() {
                         </button>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : activeTab === 'payroll' ? (
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-lg">Staff Payroll Payments</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {payslips?.map((slip: any) => (
+                  <div key={slip.id} className="p-4 flex flex-col justify-between rounded-2xl border border-border bg-muted/30 group hover:border-primary/30 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-foreground text-lg">{slip.staffName}</p>
+                        <p className="text-xs text-muted-foreground">{slip.month} • {slip.status}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-xl text-foreground">${slip.amount}</p>
+                      </div>
+                    </div>
+                    {slip.status !== 'Paid' && (
+                      <div className="mt-4 flex justify-end">
+                        <button 
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase.from('payslips').update({ status: 'Paid', date: new Date().toISOString().split('T')[0] }).eq('id', slip.id);
+                              if (error) throw error;
+                              toast.success('Payslip paid successfully');
+                              mutatePayslips();
+                            } catch (e: any) {
+                              toast.error(e.message || 'Failed to pay payslip');
+                            }
+                          }}
+                          className="px-4 py-2 bg-emerald-500 rounded-xl text-white font-bold text-sm hover:bg-emerald-600 transition-colors"
+                        >
+                          Mark as Paid
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

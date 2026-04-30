@@ -13,6 +13,8 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
+import { lookupStudentEmailsByParentEmail } from '@/app/actions/auth';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -168,10 +170,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, isLoading, pathname, router]);
 
   const login = async (email: string, password = 'password123') => {
-    const { error } = await supabase.auth.signInWithPassword({
+    let { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    if (error && error.message.includes("Invalid login credentials")) {
+      try {
+        const studentEmails = await lookupStudentEmailsByParentEmail(email);
+        let studentSuccess = false;
+        
+        for (const studentEmail of studentEmails) {
+          const attempt = await supabase.auth.signInWithPassword({
+            email: studentEmail,
+            password
+          });
+          if (!attempt.error && attempt.data.user) {
+            studentSuccess = true;
+            error = null;
+            break;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to lookup student fallbacks", err);
+      }
+    }
 
     if (error) {
       throw new Error(error.message);

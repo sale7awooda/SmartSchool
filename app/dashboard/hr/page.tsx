@@ -68,12 +68,13 @@ import { LeaveTab } from "@/components/dashboard/hr/LeaveTab";
 import { PayrollTab } from "@/components/dashboard/hr/PayrollTab";
 import { FinancialsTab } from "@/components/dashboard/hr/FinancialsTab";
 import { DocumentsTab } from "@/components/dashboard/hr/DocumentsTab";
+import { StaffAttendanceTab } from "@/components/dashboard/hr/StaffAttendanceTab";
 
 export default function HRPage() {
   const { user } = useAuth();
   const { can, isAdmin: checkIsAdmin } = usePermissions();
   const { mutate } = useSWRConfig();
-  const [activeTab, setActiveTab] = useState<'directory' | 'leave' | 'payroll' | 'financials'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'leave' | 'payroll' | 'financials'>('directory');
   const [selectedStaff, setSelectedStaff] = useState<typeof MOCK_STAFF[0] | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'overview' | 'qualifications' | 'schedule' | 'leave' | 'payroll' | 'financials'>('overview');
 
@@ -163,6 +164,15 @@ export default function HRPage() {
             Staff Directory
           </button>
         )}
+        {isAdmin && (
+          <button 
+            onClick={() => setActiveTab('attendance')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'attendance' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+          >
+            <Clock size={18} />
+            Attendance
+          </button>
+        )}
         <button 
           onClick={() => setActiveTab('leave')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'leave' ? 'bg-primary/10 text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
@@ -189,6 +199,7 @@ export default function HRPage() {
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
         <AnimatePresence mode="wait">
           {activeTab === 'directory' && isAdmin && <DirectoryTab key="directory" onSelectStaff={setSelectedStaff} onAddEmployee={() => setIsAddEmployeeOpen(true)} />}
+          {activeTab === 'attendance' && isAdmin && <StaffAttendanceTab key="attendance" />}
           {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} />}
           {activeTab === 'payroll' && <PayrollTab key="payroll" isAdmin={isAdmin} userName={user.name} />}
           {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} />}
@@ -234,23 +245,17 @@ export default function HRPage() {
                   <input name="email" required type="email" placeholder="john.doe@school.edu" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Role</label>
                     <select name="role" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                      <option value="admin">Admin</option>
                       <option value="teacher">Teacher</option>
                       <option value="staff">Staff</option>
-                      <option value="admin">Administrator</option>
                       <option value="accountant">Accountant</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Department</label>
-                    <select name="department" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
-                      <option value="Academics">Academics</option>
-                      <option value="Administration">Administration</option>
-                      <option value="Maintenance">Maintenance</option>
-                      <option value="Finance">Finance</option>
+                      <option value="driver">Driver</option>
+                      <option value="cleaner">Cleaner</option>
+                      <option value="guard">Guard</option>
                     </select>
                   </div>
                 </div>

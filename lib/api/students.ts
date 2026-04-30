@@ -112,7 +112,6 @@ export async function createStudent(studentData: any) {
   const { data: student, error: studentError } = await supabase
     .from('students')
     .insert([{
-      user_id: user.id,
       name: studentData.name,
       grade: studentData.grade,
       roll_number: studentData.studentId,

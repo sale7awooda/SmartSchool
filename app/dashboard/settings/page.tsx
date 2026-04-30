@@ -220,7 +220,6 @@ export default function SettingsPage() {
               { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
               { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
               { id: 'roles', label: 'Roles & Permissions', icon: Shield, show: isAdmin() },
-              { id: 'staff', label: 'Staff Management', icon: Users, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
               { id: 'data', label: 'Data Management', icon: RefreshCw, show: isAdmin() },
               { id: 'configurations', label: 'Advanced Configurations', icon: Globe, show: user.role === 'admin' },
@@ -628,61 +627,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {activeTab === 'staff' && (
-                <div className="p-6 sm:p-8 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground mb-1">Staff Management</h3>
-                      <p className="text-sm text-muted-foreground">Manage staff roles and assignments.</p>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setIsAddStaffOpen(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
-                    >
-                      <Plus size={16} />
-                      Add Staff
-                    </button>
-                  </div>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Name</th>
-                          <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Role</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {staff.map(member => (
-                          <tr key={member.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                            <td className="py-4 px-4 text-sm font-medium text-foreground">{member.name}</td>
-                            <td className="py-4 px-4 text-sm text-muted-foreground">
-                              <select 
-                                value={member.role}
-                                onChange={async (e) => {
-                                  const newRole = e.target.value;
-                                  await updateUserRole(member.id, newRole);
-                                  setStaff(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
-                                }}
-                                className="bg-transparent border-none text-sm font-medium text-primary focus:ring-0"
-                              >
-                                <option value="admin">Admin</option>
-                                <option value="teacher">Teacher</option>
-                                <option value="staff">Staff</option>
-                                <option value="accountant">Accountant</option>
-                                <option value="driver">Driver</option>
-                                <option value="cleaner">Cleaner</option>
-                                <option value="guard">Guard</option>
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+
 
               {/* System & Preferences Tab */}
               {activeTab === 'admin' && (

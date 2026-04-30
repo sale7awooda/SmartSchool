@@ -23,7 +23,7 @@ interface FormData {
   grade: string;
   dob: string;
   gender: string;
-  studentEmail: string;
+  parentEmail: string;
   address: string;
   parentName: string;
   parentPhone: string;
@@ -181,7 +181,7 @@ export function AddStudentModal({
                       actionFormData.append('parentPhone', formData.parentPhone);
                       actionFormData.append('parentRelation', formData.parentRelation);
                       actionFormData.append('academicYear', activeAcademicYear?.name || '2025-2026');
-                      actionFormData.append('studentEmail', formData.studentEmail);
+                      actionFormData.append('parentEmail', formData.parentEmail);
                       actionFormData.append('createdBy', user.id);
 
                       // If manual fee, we might want to create a fee item first or just save the string
@@ -212,14 +212,12 @@ export function AddStudentModal({
                       if (!result.success) {
                         if (result.errors) {
                           const firstError = Object.values(result.errors)[0][0];
-                          toast.error("Validation Error", { description: firstError });
+                          toast.error("Validation Error", { description: firstError as string });
                         } else {
                           // Handle PGRST204 specifically if possible or just show the message
                           const isMissingColumn = result.message.includes('PGRST204') || result.message.includes('user_id');
-                          toast.error(isMissingColumn ? "Supabase Setup Required" : "Error", { 
-                            description: isMissingColumn 
-                              ? "Please go to your Supabase Dashboard -> SQL Editor -> New Query. Copy the contents of the 'supabase_fix.sql' file we created, paste it there, and click RUN to fix the database schema." 
-                              : result.message,
+                          toast.error(isMissingColumn ? "Database Schema Error" : "Registration Failed", { 
+                            description: result.message,
                             duration: 10000
                           });
                         }
@@ -242,7 +240,7 @@ export function AddStudentModal({
                       grade: '',
                       dob: '',
                       gender: 'Male',
-                      studentEmail: '',
+                      parentEmail: '',
                       address: '',
                       parentName: '',
                       parentPhone: '',
@@ -326,21 +324,6 @@ export function AddStudentModal({
                     />
                     {formErrors.dob && <p className="text-xs text-red-500 font-medium">{formErrors.dob}</p>}
                   </div>
-                  <div className="space-y-2 text-foreground">
-                    <label className="text-sm font-bold text-foreground/80 mb-1 block">{t('email_address')}</label>
-                    <input 
-                      required 
-                      type="email" 
-                      placeholder="student@example.com" 
-                      value={formData.studentEmail}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, studentEmail: e.target.value }));
-                        if (formErrors.studentEmail) setFormErrors(prev => ({ ...prev, studentEmail: '' }));
-                      }}
-                      className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.studentEmail ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
-                    />
-                    {formErrors.studentEmail && <p className="text-xs text-red-500 font-medium">{formErrors.studentEmail}</p>}
-                  </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-foreground">{t('gender')}</label>
                     <select 
@@ -397,7 +380,8 @@ export function AddStudentModal({
                                 setFormData(prev => ({ 
                                   ...prev, 
                                   parentName: p.name, 
-                                  parentPhone: p.phone || '' 
+                                  parentPhone: p.phone || '',
+                                  parentEmail: p.email || ''
                                 }));
                                 setParentSearch('');
                               }}
@@ -426,7 +410,7 @@ export function AddStudentModal({
                         <option value="Other">{t('other')}</option>
                       </select>
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2">
                       <label className="text-sm font-bold text-foreground">{t('parent_phone')}</label>
                       <input 
                         required 
@@ -435,6 +419,19 @@ export function AddStudentModal({
                         value={formData.parentPhone}
                         onChange={(e) => setFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
                         className={`w-full px-4 py-3 rounded-xl border bg-muted/50 focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.parentPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`} 
+                      />
+                    </div>
+                    <div className="space-y-2 text-foreground">
+                      <label className="text-sm font-bold text-foreground/80 mb-1 block">Parent Email Address</label>
+                      <input 
+                        required 
+                        type="email" 
+                        placeholder="parent@example.com" 
+                        value={formData.parentEmail}
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, parentEmail: e.target.value }));
+                        }}
+                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium border-border focus:border-primary focus:ring-primary/20`} 
                       />
                     </div>
                   </div>
