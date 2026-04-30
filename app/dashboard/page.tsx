@@ -225,7 +225,11 @@ function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-card border border-border rounded-xl shadow-sm">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('academics')}</p>
-            <p className="text-sm font-bold text-foreground">{activeAcademicYear?.name || t('loading')}</p>
+            <p className="text-sm font-bold text-foreground">
+              {activeAcademicYear === undefined ? t('loading') : 
+               activeAcademicYear ? activeAcademicYear.name : 
+               <span className="text-destructive">Please configure in Settings &gt; Academics</span>}
+            </p>
           </div>
         </div>
       </div>

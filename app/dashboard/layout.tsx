@@ -88,7 +88,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const getNavItems = () => {
     const items = [
       { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard, show: true },
-      { name: t('academics'), href: '/dashboard/academics', icon: BookOpen, show: can('view', 'academics') },
       { name: t('students'), href: '/dashboard/students', icon: Users, show: can('view', 'students') },
       { name: t('exams'), href: '/dashboard/assessments', icon: FileText, show: can('view', 'assessments') },
       { name: t('schedule'), href: '/dashboard/schedule', icon: CalendarDays, show: can('view', 'schedule') },

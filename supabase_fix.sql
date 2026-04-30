@@ -329,7 +329,4 @@ CREATE POLICY "Allow all operations" ON assessments FOR ALL USING (true);
 CREATE POLICY "Allow all operations" ON submissions FOR ALL USING (true);
 CREATE POLICY "Allow all operations" ON attendance FOR ALL USING (true);
 
--- Insert Default Academic Year
-INSERT INTO academic_years (id, name, start_date, end_date, is_active)
-VALUES ('00000000-0000-0000-0000-000000000000', '2025-2026', '2025-08-01', '2026-05-31', true)
-ON CONFLICT DO NOTHING;
+-- Academic year should be added manually in settings.

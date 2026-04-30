@@ -86,7 +86,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
   const { settings, updateSettings } = useSettings();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'general' | 'admin' | 'configurations' | 'data' | 'master' | 'staff'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'roles' | 'general' | 'admin' | 'configurations' | 'data' | 'academics' | 'staff'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
@@ -218,7 +218,7 @@ export default function SettingsPage() {
               { id: 'security', label: 'Security & Password', icon: Lock, show: true },
               { id: 'notifications', label: 'Notifications', icon: Bell, show: true },
               { id: 'general', label: 'General Settings', icon: Building, show: isAdmin() },
-              { id: 'master', label: 'Master Data', icon: Database, show: isAdmin() },
+              { id: 'academics', label: 'Academics', icon: BookOpen, show: isAdmin() },
               { id: 'roles', label: 'Roles & Permissions', icon: Shield, show: isAdmin() },
               { id: 'staff', label: 'Staff Management', icon: Users, show: isAdmin() },
               { id: 'admin', label: 'System & Preferences', icon: Settings, show: true },
@@ -396,12 +396,12 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Master Data Tab */}
-              {activeTab === 'master' && isAdmin() && (
+              {/* Academics Data Tab */}
+              {activeTab === 'academics' && isAdmin() && (
                 <div className="p-6 sm:p-8 space-y-8">
                   <div>
-                    <h3 className="text-lg font-bold text-foreground mb-1">Master Data Management</h3>
-                    <p className="text-sm text-muted-foreground">Manage core system entities used across all modules.</p>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Academics Data</h3>
+                    <p className="text-sm text-muted-foreground">Manage core system entities like grades, subjects, and academic years.</p>
                   </div>
                   
                   <div className="space-y-6">
@@ -491,19 +491,38 @@ export default function SettingsPage() {
                                 {year.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </div>
-                            <button 
-                              type="button"
-                              onClick={async () => {
-                                if (confirm(`Delete ${year.name}?`)) {
-                                  await deleteAcademicYear(year.id);
-                                  mutateAcademicYears();
-                                  toast.success('Academic year deleted');
-                                }
-                              }}
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <X size={14} />
-                            </button>
+                            <div className="flex items-center gap-3">
+                              {!year.is_active && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await setActiveAcademicYear(year.id);
+                                      mutateAcademicYears();
+                                      toast.success('Set as active year');
+                                    } catch (e) {
+                                      toast.error('Failed to set active year');
+                                    }
+                                  }}
+                                  className="text-[10px] font-bold uppercase px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors"
+                                >
+                                  Set Active
+                                </button>
+                              )}
+                              <button 
+                                type="button"
+                                onClick={async () => {
+                                  if (confirm(`Delete ${year.name}?`)) {
+                                    await deleteAcademicYear(year.id);
+                                    mutateAcademicYears();
+                                    toast.success('Academic year deleted');
+                                  }
+                                }}
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>

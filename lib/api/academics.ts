@@ -214,11 +214,7 @@ export async function getClasses() {
   try {
     const { data, error } = await supabase
       .from('classes')
-      .select(`
-        *,
-        academic_year:academic_year_id(name),
-        teacher:class_teacher_id(name)
-      `)
+      .select('*')
       .eq('is_deleted', false)
       .order('name');
     if (error) throw error;
@@ -322,7 +318,7 @@ export async function getActiveAcademicYear() {
 
 export async function setActiveAcademicYear(id: string) {
   // First, set all to false
-  await supabase.from('academic_years').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+  await supabase.from('academic_years').update({ is_active: false }).eq('is_active', true);
   
   // Then set the selected one to true
   const { data, error } = await supabase
@@ -339,7 +335,7 @@ export async function setActiveAcademicYear(id: string) {
 
 export async function createAcademicYear(year: any) {
   if (year.is_active) {
-    await supabase.from('academic_years').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('academic_years').update({ is_active: false }).eq('is_active', true);
   }
   const { data, error } = await supabase
     .from('academic_years')
@@ -375,7 +371,7 @@ export async function createSubject(subject: any) {
 
 export async function updateAcademicYear(id: string, year: any) {
   if (year.is_active) {
-    await supabase.from('academic_years').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('academic_years').update({ is_active: false }).eq('is_active', true);
   }
   const { data, error } = await supabase
     .from('academic_years')

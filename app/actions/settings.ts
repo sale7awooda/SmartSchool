@@ -7,6 +7,8 @@ import { logAudit } from './audit';
 const MasterEntitySchema = z.object({
   type: z.enum(['year', 'class', 'subject']),
   name: z.string().min(1, "Name is required"),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
   createdBy: z.string().uuid("Invalid user ID")
 });
 
@@ -23,6 +25,8 @@ export async function processCreateMasterEntityAction(
   const rawData = {
     type: formData.get('type') as string,
     name: formData.get('name') as string,
+    startDate: formData.get('startDate') as string | undefined,
+    endDate: formData.get('endDate') as string | undefined,
     createdBy: formData.get('createdBy') as string,
   };
 
@@ -36,7 +40,7 @@ export async function processCreateMasterEntityAction(
     };
   }
 
-  const { type, name, createdBy } = validatedFields.data;
+  const { type, name, startDate, endDate, createdBy } = validatedFields.data;
   const adminClient = createAdminClient();
 
   let tableName = '';
@@ -45,6 +49,8 @@ export async function processCreateMasterEntityAction(
   if (type === 'year') {
     tableName = 'academic_years';
     payload.is_active = false;
+    if (startDate) payload.start_date = startDate;
+    if (endDate) payload.end_date = endDate;
   } else if (type === 'class') {
     tableName = 'classes';
   } else if (type === 'subject') {

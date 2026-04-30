@@ -82,6 +82,8 @@ import {
 export function AddMasterModal({ type, onClose, onSuccess }: { type: 'year' | 'class' | 'subject', onClose: () => void, onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const { user } = useAuth();
   
@@ -91,27 +93,29 @@ export function AddMasterModal({ type, onClose, onSuccess }: { type: 'year' | 'c
     setIsSubmitting(true);
     
     try {
-      const formData = new FormData();
-      formData.append('type', type);
-      formData.append('name', name);
-      formData.append('createdBy', user.id);
-
-      const result = await processCreateMasterEntityAction({ success: false, message: '' }, formData);
-      
-      if (!result.success) {
-        if (result.errors) {
-          const firstError = Object.values(result.errors)[0][0] as string;
-          toast.error("Validation Error", { description: firstError });
-        } else {
-          toast.error("Error", { description: result.message });
+      if (type === 'year') {
+        if (!startDate || !endDate) {
+          toast.error("Please provide both start and end dates.");
+          setIsSubmitting(false);
+          return;
         }
-        return;
+        await createAcademicYear({
+          name,
+          start_date: startDate,
+          end_date: endDate,
+          is_active: false
+        });
+      } else if (type === 'class') {
+        await createClass({ name, grade: name });
+      } else if (type === 'subject') {
+        await createSubject({ name, code: name.substring(0, 3).toUpperCase() });
       }
       
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully`);
       onSuccess();
-    } catch (error) {
-      toast.error(`Failed to add ${type}`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Failed to add ${type}: ${error.message || String(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -141,6 +145,31 @@ export function AddMasterModal({ type, onClose, onSuccess }: { type: 'year' | 'c
               className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
             />
           </div>
+
+          {type === 'year' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-foreground mb-2">Start Date</label>
+                <input 
+                  required 
+                  type="date" 
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-foreground mb-2">End Date</label>
+                <input 
+                  required 
+                  type="date" 
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-6">
             <button 
