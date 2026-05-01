@@ -107,9 +107,9 @@ export function StaffAttendanceTab() {
             <div className="flex items-center gap-2 bg-background border border-border rounded-xl p-1">
               <button 
                 onClick={() => {
-                  const d = new Date(date);
-                  d.setDate(d.getDate() - 1);
-                  setDate(d.toISOString().split('T')[0]);
+                  const [y, m, d] = date.split('-').map(Number);
+                  const newDate = new Date(y, m - 1, d - 1);
+                  setDate(newDate.toLocaleDateString('en-CA')); // YYYY-MM-DD local
                 }}
                 className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                 title="Previous Day"
@@ -127,9 +127,9 @@ export function StaffAttendanceTab() {
               </div>
               <button 
                 onClick={() => {
-                  const d = new Date(date);
-                  d.setDate(d.getDate() + 1);
-                  setDate(d.toISOString().split('T')[0]);
+                  const [y, m, d] = date.split('-').map(Number);
+                  const newDate = new Date(y, m - 1, d + 1);
+                  setDate(newDate.toLocaleDateString('en-CA'));
                 }}
                 className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                 title="Next Day"

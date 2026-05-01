@@ -42,31 +42,12 @@ export async function createPayslip(payslipData: any) {
   return data;
 }
 
-export async function getFinancials() {
-  const { data, error } = await supabase
-    .from('financials')
-    .select('*, staff:users(name)')
-    .order('created_at', { ascending: false });
-  if (error) {
-    if (error.code === 'PGRST205' || error.code === '42P01') return [];
-    throw error;
-  }
-  return data.map((f: any) => ({ ...f, staffName: f.staff?.name }));
-}
-
-export async function createFinancial(financialData: any) {
-  const { data, error } = await supabase.from('financials').insert(financialData).select().single();
-  if (error) throw error;
-  return data;
-}
-
 export async function runPayrollForMonth(monthStr: string) {
   // get all active staff (users not student/parent)
   const { data: staffList, error: err } = await supabase
     .from('users')
     .select('id, role')
-    .in('role', ['teacher', 'accountant', 'staff', 'admin', 'driver', 'cleaner', 'guard'])
-    .eq('is_active', true);
+    .in('role', ['teacher', 'accountant', 'staff', 'admin', 'driver', 'cleaner', 'guard']);
 
   if (err) throw err;
   

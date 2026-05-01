@@ -47,7 +47,9 @@ export function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: 
     e.preventDefault();
     setIsRunningPayroll(true);
     try {
-      await runPayrollForMonth(currentMonthString);
+      const form = e.target as HTMLFormElement;
+      const selectedMonth = form.payPeriod.value;
+      await runPayrollForMonth(selectedMonth);
       toast.success("Payroll processed successfully. Payments are pending.");
       setIsRunPayrollOpen(false);
       mutate();
@@ -166,9 +168,10 @@ export function PayrollTab({ isAdmin, userName }: { isAdmin: boolean, userName: 
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Pay Period</label>
-                  <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                  <select name="payPeriod" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
                     {[...Array(6)].map((_, i) => {
                       const d = new Date();
+                      d.setDate(1); // Prevents month overflow skip on 31st
                       d.setMonth(d.getMonth() - i);
                       const monthName = d.toLocaleString('default', { month: 'long', year: 'numeric' });
                       return <option key={i} value={monthName}>{monthName}</option>;

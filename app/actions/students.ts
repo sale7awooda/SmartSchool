@@ -202,37 +202,25 @@ export async function processCreateStudentAction(
     // Check if auth user exists first
     const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
     
+    let authUser = listData?.users.find(u => u.email === studentEmail);
     
-    const authExists = listData?.users.find(u => u.email === studentEmail);
-    if (authExists) {
-      return { success: false, message: "A system account for this student ID already exists." };
+    if (!authUser) {
+      // Create the student auth profile
+      const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+        email: studentEmail,
+        email_confirm: true,
+        password: studentData.studentId,
+        user_metadata: { name: studentData.name, role: 'student' }
+      });
+
+      if (authError) {
+        console.error("Auth creation error:", authError);
+        return { success: false, message: "Failed to create student auth profile: " + authError.message };
+      }
+      authUser = authData?.user || undefined;
     }
 
-    // Check if user exists in public.users using admin client
-    const { data: existingPublicUser, error: publicUserError } = await adminClient
-      .from('users')
-      .select('id')
-      .eq('email', studentEmail)
-      .maybeSingle();
-
-    if (existingPublicUser) {
-      return { success: false, message: "A user profile with this student ID already exists in the system." };
-    }
-
-    // Create the student auth profile
-    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-      email: studentEmail,
-      email_confirm: true,
-      password: studentData.studentId,
-      user_metadata: { name: studentData.name, role: 'student' }
-    });
-
-    if (authError) {
-      console.error("Auth creation error:", authError);
-      return { success: false, message: "Failed to create student auth profile: " + authError.message };
-    }
-
-    if (!authData?.user) {
+    if (!authUser) {
       return { success: false, message: "Auth profile created but no user data returned." };
     }
 
@@ -240,7 +228,7 @@ export async function processCreateStudentAction(
     const { data: user, error: userError } = await adminClient
       .from('users')
       .upsert([{
-        id: authData.user.id,
+        id: authUser.id,
         email: studentEmail,
         name: studentData.name,
         role: 'student',
@@ -313,18 +301,28 @@ export async function processCreateStudentAction(
 
         if (!parent) {
           const parentPassword = studentData.parentPhone.replace(/\D/g, '');
-          const { data: parentAuthData, error: parentAuthError } = await adminClient.auth.admin.createUser({
-            email: parentEmail,
-            email_confirm: true,
-            password: parentPassword || 'password123',
-            user_metadata: { name: studentData.parentName, role: 'parent' }
-          });
+          
+          let parentAuthUser = listData?.users.find(u => u.email === parentEmail);
+          
+          if (!parentAuthUser) {
+            const { data: parentAuthData, error: parentAuthError } = await adminClient.auth.admin.createUser({
+              email: parentEmail,
+              email_confirm: true,
+              password: parentPassword || 'password123',
+              user_metadata: { name: studentData.parentName, role: 'parent' }
+            });
+            
+            if (parentAuthError) {
+              console.error("Parent auth creation error:", parentAuthError);
+            }
+            parentAuthUser = parentAuthData?.user || undefined;
+          }
 
-          if (!parentAuthError && parentAuthData?.user) {
+          if (parentAuthUser) {
             const { data: newParent, error: parentCreateError } = await adminClient
               .from('users')
-              .insert([{
-                id: parentAuthData.user.id,
+              .upsert([{
+                id: parentAuthUser.id,
                 email: parentEmail,
                 name: studentData.parentName,
                 role: 'parent',
@@ -334,8 +332,6 @@ export async function processCreateStudentAction(
               .single();
             
             if (!parentCreateError) parent = newParent;
-          } else {
-            console.error("Parent auth creation error:", parentAuthError);
           }
         }
 

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { getLeaveRequests, createLeaveRequest, updateLeaveRequestStatus } from '@/lib/api/hr';
+import { getPaginatedStaff } from '@/lib/supabase-db';
+import { supabase } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -10,7 +12,8 @@ import {
   XCircle, 
   Clock, 
   Plus,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,15 +24,55 @@ export function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: st
   const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
 
+  // Staff search state
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [isStaffSearchOpen, setIsStaffSearchOpen] = useState(false);
+
+  const { data: staffData } = useSWR(
+    staffSearchQuery.length >= 2 ? ['staff_search', staffSearchQuery] : null,
+    () => getPaginatedStaff(1, 10, staffSearchQuery)
+  );
+
+  const foundStaff = staffData?.data || [];
+
   const handleApplyLeave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let targetStaffId = selectedStaffId;
+    if (!isAdmin) {
+      // Find own staff ID
+      const { data: userRec } = await supabase.from('users').select('id').eq('name', userName).single();
+      if (userRec) targetStaffId = userRec.id;
+    }
+
+    if (!targetStaffId) {
+       toast.error("Please select a staff member");
+       return;
+    }
+
     setIsSubmittingLeave(true);
-    // Real API integration assumes we have user info
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsSubmittingLeave(false);
-    toast.success("Leave request submitted successfully");
-    setIsApplyLeaveOpen(false);
-    mutate();
+    const form = e.target as HTMLFormElement;
+    
+    try {
+      await createLeaveRequest({
+        staff_id: targetStaffId,
+        type: form.leaveType.value,
+        start_date: form.startDate.value,
+        end_date: form.endDate.value,
+        reason: form.reason.value,
+        status: 'Pending'
+      });
+      toast.success("Leave request submitted successfully");
+      setIsApplyLeaveOpen(false);
+      setStaffSearchQuery('');
+      setSelectedStaffId('');
+      mutate();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit leave request');
+    } finally {
+      setIsSubmittingLeave(false);
+    }
   };
 
   const handleUpdateStatus = async (id: string, status: string) => {
@@ -53,7 +96,7 @@ export function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: st
           <div className="flex gap-2">
             {isAdmin && (
               <button 
-                onClick={() => toast.info("Add Leave functionality coming soon")}
+                onClick={() => setIsApplyLeaveOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl font-bold text-sm hover:bg-secondary/80 transition-colors shadow-sm whitespace-nowrap"
               >
                 <Plus size={16} />
@@ -157,9 +200,55 @@ export function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: st
               </div>
               
               <form onSubmit={handleApplyLeave} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                {isAdmin && (
+                  <div className="relative">
+                    <label className="block text-sm font-bold text-foreground mb-2">Staff Name</label>
+                    <div className="relative">
+                      <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <input 
+                        type="text" 
+                        placeholder="Search staff by name..." 
+                        value={staffSearchQuery}
+                        onChange={(e) => {
+                          setStaffSearchQuery(e.target.value);
+                          setSelectedStaffId('');
+                          setIsStaffSearchOpen(true);
+                        }}
+                        onFocus={() => setIsStaffSearchOpen(true)}
+                        className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                      />
+                    </div>
+                    {isStaffSearchOpen && staffSearchQuery.length >= 2 && foundStaff.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                        {foundStaff.map((s: any) => (
+                          <div
+                            key={s.id}
+                            className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 cursor-pointer"
+                            onClick={() => {
+                              setStaffSearchQuery(s.name);
+                              setSelectedStaffId(s.id);
+                              setIsStaffSearchOpen(false);
+                            }}
+                          >
+                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">{s.name.charAt(0)}</div>
+                            <div>
+                              <span className="font-bold text-sm block">{s.name}</span>
+                              <span className="text-xs text-muted-foreground capitalize">{s.role}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isStaffSearchOpen && staffSearchQuery.length >= 2 && foundStaff.length === 0 && (
+                       <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-xl p-4 text-center text-sm text-muted-foreground">
+                          No staff found.
+                       </div>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Leave Type</label>
-                  <select required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
+                  <select name="leaveType" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
                     <option value="sick">Sick Leave</option>
                     <option value="annual">Annual Leave</option>
                     <option value="personal">Personal Leave</option>
@@ -170,17 +259,17 @@ export function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: st
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Start Date</label>
-                    <input required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                    <input name="startDate" required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">End Date</label>
-                    <input required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
+                    <input name="endDate" required type="date" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Reason</label>
-                  <textarea required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <textarea name="reason" required rows={3} placeholder="Please provide a brief reason..." className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
 
                 <div className="flex gap-3 pt-6">

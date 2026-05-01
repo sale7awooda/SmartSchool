@@ -42,6 +42,7 @@ CREATE TABLE users (
   phone TEXT,
   address TEXT,
   department TEXT,
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -228,11 +229,12 @@ CREATE TABLE notices (
 
 CREATE TABLE payslips (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id),
+  staff_id UUID REFERENCES users(id) ON DELETE CASCADE,
   month TEXT,
-  year TEXT,
   amount NUMERIC,
-  status TEXT
+  status TEXT,
+  date TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE schedules (
@@ -330,3 +332,17 @@ CREATE POLICY "Allow all operations" ON submissions FOR ALL USING (true);
 CREATE POLICY "Allow all operations" ON attendance FOR ALL USING (true);
 
 -- Academic year should be added manually in settings.
+
+-- Staff Attendance missing table
+CREATE TABLE IF NOT EXISTS staff_attendance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  staff_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  status TEXT NOT NULL,
+  time_in TEXT,
+  time_out TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(staff_id, date)
+);
+ALTER TABLE staff_attendance ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all operations" ON staff_attendance FOR ALL USING (true);

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import useSWR from 'swr';
-import { getFinancials, createFinancial } from '@/lib/api/hr';
+import { getFinancials, createFinancial } from '@/lib/api/finance';
+import { getPaginatedStaff } from '@/lib/supabase-db';
 import { supabase } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,7 +11,8 @@ import {
   Plus,
   ChevronRight,
   ChevronLeft,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +30,19 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
   const [isApplyLoanOpen, setIsApplyLoanOpen] = useState(false);
   const [isAddFineOpen, setIsAddFineOpen] = useState(false);
   const [isSubmittingLoan, setIsSubmittingLoan] = useState(false);
+
+  // Staff search state
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [isStaffSearchOpen, setIsStaffSearchOpen] = useState(false);
+  
+  const { data: staffData } = useSWR(
+    staffSearchQuery.length >= 2 ? ['staff_search', staffSearchQuery] : null,
+    () => getPaginatedStaff(1, 10, staffSearchQuery)
+  );
+  
+  const foundStaff = staffData?.data || [];
+
 
   const handlePrevMonth = () => {
     setCurrentMonth(prev => {
@@ -76,23 +91,20 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
 
   const handleAddFineBonus = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedStaffId) {
+      toast.error("Please select a staff member first");
+      return;
+    }
+    
     setIsSubmittingLoan(true);
     const form = e.target as HTMLFormElement;
     const amount = form.amount.value;
     const description = form.description.value;
     const type = form.type.value;
-    const staffName = form.staffName.value;
 
     try {
-      const { data: userRecord } = await supabase.from('users').select('id').eq('name', staffName).single();
-      if (!userRecord) {
-        toast.error("Could not find staff by that name");
-        setIsSubmittingLoan(false);
-        return;
-      }
-
       await createFinancial({
-        staff_id: userRecord.id,
+        staff_id: selectedStaffId,
         type: type as any,
         amount: parseFloat(amount),
         description: description,
@@ -101,6 +113,8 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
       });
       toast.success(`${type} added successfully`);
       setIsAddFineOpen(false);
+      setStaffSearchQuery('');
+      setSelectedStaffId('');
       mutate();
     } catch (err: any) {
       toast.error(err.message || `Failed to submit ${type.toLowerCase()}`);
@@ -169,7 +183,7 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {displayFinancials.length > 0 ? displayFinancials.map((item) => (
+              {displayFinancials.length > 0 ? displayFinancials.map((item: any) => (
                 <tr key={item.id} className="hover:bg-accent/50 transition-colors">
                   {isAdmin && (
                     <td className="p-4">
@@ -267,9 +281,49 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
               </div>
               
               <form onSubmit={handleAddFineBonus} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-bold text-foreground mb-2">Staff Name</label>
-                  <input name="staffName" required type="text" placeholder="John Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                  <div className="relative">
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input 
+                      type="text" 
+                      placeholder="Search staff by name..." 
+                      value={staffSearchQuery}
+                      onChange={(e) => {
+                        setStaffSearchQuery(e.target.value);
+                        setSelectedStaffId('');
+                        setIsStaffSearchOpen(true);
+                      }}
+                      onFocus={() => setIsStaffSearchOpen(true)}
+                      className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                    />
+                  </div>
+                  {isStaffSearchOpen && staffSearchQuery.length >= 2 && foundStaff.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                      {foundStaff.map((s: any) => (
+                        <div
+                          key={s.id}
+                          className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 cursor-pointer"
+                          onClick={() => {
+                            setStaffSearchQuery(s.name);
+                            setSelectedStaffId(s.id);
+                            setIsStaffSearchOpen(false);
+                          }}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">{s.name.charAt(0)}</div>
+                          <div>
+                            <span className="font-bold text-sm block">{s.name}</span>
+                            <span className="text-xs text-muted-foreground capitalize">{s.role}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {isStaffSearchOpen && staffSearchQuery.length >= 2 && foundStaff.length === 0 && (
+                     <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-xl p-4 text-center text-sm text-muted-foreground">
+                        No staff found.
+                     </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
