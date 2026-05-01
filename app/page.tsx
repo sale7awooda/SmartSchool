@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Logo } from '@/components/logo';
-import { GraduationCap, UserCircle, Users, ArrowRight, Loader2, ShieldCheck, BookOpen, Calculator, ScanFace, Fingerprint } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { GraduationCap, UserCircle, Users, ArrowRight, Loader2, ShieldCheck, BookOpen, Calculator } from 'lucide-react';
+import { motion } from 'motion/react';
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -12,15 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const { login } = useAuth();
-
-  useEffect(() => {
-    // Check if WebAuthn / Passkeys are supported for Biometric Edge Auth
-    if (window.PublicKeyCredential) {
-      setIsBiometricSupported(true);
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,26 +23,6 @@ export default function LoginPage() {
       await login(email, password);
     } catch (err: any) {
       setError(err.message || 'Failed to login');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleBiometricLogin = async () => {
-    setError('');
-    setIsLoading(true);
-    try {
-      // 2026 PWA Paradigm: using navigator.credentials alias via Supabase
-      // const { data, error } = await supabase.auth.signInWithPasskey();
-      
-      // Simulating biometric prompt delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Biometric scan successful. Authenticated.");
-      
-      // Standard demo fallback for MVP
-      await handleQuickLogin('teacher'); 
-    } catch (err: any) {
-      setError('Biometric login failed or not registered for this device.');
     } finally {
       setIsLoading(false);
     }
@@ -181,25 +153,6 @@ export default function LoginPage() {
                   </>
                 )}
               </button>
-
-              <AnimatePresence>
-                {isBiometricSupported && !isLoading && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="pt-2"
-                  >
-                    <button
-                      type="button"
-                      onClick={handleBiometricLogin}
-                      className="w-full bg-card hover:bg-muted text-foreground border border-border font-semibold py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-sm"
-                    >
-                      <Fingerprint size={22} className="text-primary" />
-                      Sign In with Passkey / Face ID
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </form>
           </div>
         </motion.div>
