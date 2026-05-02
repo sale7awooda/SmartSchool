@@ -112,9 +112,9 @@ export default function AssessmentsPage() {
     return {
       id: assessment.id,
       title: assessment.title,
-      subject: assessment.subject,
-      grade: assessment.grade || 'All Grades',
-      date: assessment.due_date || 'TBD',
+      subject: assessment.subject?.name || assessment.subject || 'Unknown Subject',
+      grade: assessment.class?.name || assessment.grade || 'All Grades',
+      date: assessment.date || assessment.due_date || 'TBD',
       duration: assessment.duration || 60,
       status: submission ? 'completed' : (assessment.status || 'upcoming'),
       totalMarks: assessment.total_marks || 100,
