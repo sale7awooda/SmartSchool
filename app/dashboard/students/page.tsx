@@ -68,7 +68,7 @@ export default function StudentsPage() {
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
 
   const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
-    ['students', page, debouncedSearch, activeAcademicYear?.name, mainTab === 'history'], 
+    ['students', page, debouncedSearch, activeAcademicYear?.id, mainTab === 'history'], 
     ([_, p, s, a, isDeleted]) => getPaginatedStudents(p, limit, s, a, isDeleted)
   );
 
@@ -249,9 +249,7 @@ export default function StudentsPage() {
             grade: formData.grade,
             dob: formData.dob,
             gender: formData.gender,
-            address: formData.address,
-            fee_structure: formData.feeStructure,
-            additional_info: formData.additionalInfo
+            address: formData.address
           })
           .eq('id', editingStudent.id);
         if (error) throw error;
@@ -327,8 +325,8 @@ export default function StudentsPage() {
     
     if (activeAcademicYear) {
       try {
-        const count = await getStudentCountForAcademicYear(activeAcademicYear.name);
-        const yearSuffix = activeAcademicYear.name.split('-')[0].slice(-2); // e.g., "2025-2026" -> "25"
+        const count = await getStudentCountForAcademicYear(activeAcademicYear.id || activeAcademicYear.name);
+        const yearSuffix = (activeAcademicYear.name || '2025-2026').split('-')[0].slice(-2); // e.g., "2025-2026" -> "25"
         const nextNumber = String(count + 1).padStart(3, '0');
         const generatedId = `S${yearSuffix}${nextNumber}`;
         

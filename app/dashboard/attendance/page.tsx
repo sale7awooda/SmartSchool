@@ -342,7 +342,7 @@ function TeacherAttendance() {
             <p className="text-sm font-bold text-foreground">
               {Object.keys(attendance).length} / {students.length} {t('marked')}
             </p>
-            {!allMarked && <p className="text-xs font-semibold text-amber-500 mt-0.5">{t('please_mark_all')}</p>}
+            {!allMarked && <p className="text-xs font-bold text-orange-600 mt-0.5">{t('please_mark_all')}</p>}
           </div>
           
           <button

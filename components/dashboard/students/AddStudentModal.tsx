@@ -197,8 +197,14 @@ export function AddStudentModal({
                               frequency: formData.manualFeeItem.frequency,
                               category: formData.manualFeeItem.category
                             });
-                          } catch (e) {
+                          } catch (e: any) {
                             console.error("Error creating manual fee item:", e);
+                            if (e.message?.includes('PGRST204') || e.message?.includes('frequency')) {
+                              toast.error("Database Schema Error", {
+                                description: "The 'frequency' column is missing from 'fee_items'. Please run the SQL fix in your Supabase SQL Editor.",
+                                duration: 10000
+                              });
+                            }
                           }
                         }
                       } else {

@@ -39,18 +39,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border shadow-lg font-sans",
-          description: "group-[.toast]:text-current opacity-90 whitespace-pre-wrap",
+            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster.info]:text-white group-[.toaster.success]:text-white group-[.toaster.error]:text-white group-[.toaster.warning]:text-white group-[.toaster]:border-border shadow-lg font-sans border-2",
+          title: "font-bold",
+          description: "opacity-100 whitespace-pre-wrap font-medium",
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground font-bold",
           cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-          error: "group-[.toaster]:bg-rose-500 group-[.toaster]:text-white group-[.toaster]:border-rose-500",
-          success: "group-[.toaster]:bg-emerald-500 group-[.toaster]:text-white group-[.toaster]:border-emerald-500",
-          warning: "group-[.toaster]:bg-amber-500 group-[.toaster]:text-white group-[.toaster]:border-amber-500",
-          info: "group-[.toaster]:bg-blue-500 group-[.toaster]:text-white group-[.toaster]:border-blue-500",
+            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground font-bold",
+          error: "group-[.toaster]:bg-rose-600 group-[.toaster]:text-white group-[.toaster]:border-rose-700",
+          success: "group-[.toaster]:bg-emerald-600 group-[.toaster]:text-white group-[.toaster]:border-emerald-700",
+          warning: "group-[.toaster]:bg-amber-600 group-[.toaster]:text-white group-[.toaster]:border-amber-700",
+          info: "group-[.toaster]:bg-sky-600 group-[.toaster]:text-white group-[.toaster]:border-sky-700",
         },
       }}
+      richColors
+      expand
       {...props}
     />
   )

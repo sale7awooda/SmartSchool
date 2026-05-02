@@ -1,11 +1,21 @@
--- Main Database Schema for School Management System
+-- =================================================================================
+-- COMPREHENSIVE SUPABASE FIX SCRIPT
+-- This script reconstructs the full schema with all required tables and 
+-- fixes for RLS policy collisions and missing columns.
+-- =================================================================================
 
--- Drop existing tables if they exist to start fresh (WARNING: This will delete all data)
-DROP TABLE IF EXISTS "academic_years" cascade;
-DROP TABLE IF EXISTS "classes" cascade;
-DROP TABLE IF EXISTS "subjects" cascade;
-DROP TABLE IF EXISTS "students" cascade;
-DROP TABLE IF EXISTS "users" cascade;
+-- 1. CLEANUP: Drop all existing policies first to avoid collisions
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'public') 
+    LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON ' || quote_ident(r.tablename);
+    END LOOP;
+END $$;
+
+-- 2. DROP TABLES (Ordered to handle dependencies)
 DROP TABLE IF EXISTS "assessment_questions" cascade;
 DROP TABLE IF EXISTS "assessments" cascade;
 DROP TABLE IF EXISTS "attendance" cascade;
@@ -28,16 +38,25 @@ DROP TABLE IF EXISTS "submissions" cascade;
 DROP TABLE IF EXISTS "system_settings" cascade;
 DROP TABLE IF EXISTS "timeline_events" cascade;
 DROP TABLE IF EXISTS "visitors" cascade;
+DROP TABLE IF EXISTS "staff_attendance" cascade;
+DROP TABLE IF EXISTS "students" cascade;
+DROP TABLE IF EXISTS "subjects" cascade;
+DROP TABLE IF EXISTS "classes" cascade;
+DROP TABLE IF EXISTS "academic_years" cascade;
+DROP TABLE IF EXISTS "users" cascade;
 
 -- Ensure UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Table: users (Matches Supabase Auth)
+-- 3. CREATE TABLES
+
+-- Table: users
 CREATE TABLE users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('admin', 'teacher', 'parent', 'student', 'staff', 'accountant')),
+  student_id UUID,
   avatar_url TEXT,
   phone TEXT,
   address TEXT,
@@ -50,7 +69,7 @@ CREATE TABLE users (
 -- Table: academic_years
 CREATE TABLE academic_years (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   is_active BOOLEAN DEFAULT false,
@@ -59,7 +78,6 @@ CREATE TABLE academic_years (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Basic Master Data Tables
 CREATE TABLE classes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -76,21 +94,20 @@ CREATE TABLE subjects (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Core tables
 CREATE TABLE students (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  first_name TEXT NOT NULL,
-  last_name TEXT NOT NULL,
+  name TEXT NOT NULL,
   grade TEXT NOT NULL,
   roll_number TEXT,
-  academic_year UUID REFERENCES academic_years(id),
+  academic_year TEXT,
   gender TEXT,
-  date_of_birth DATE,
-  allergies TEXT[],
-  conditions TEXT[],
-  emergency_contact JSONB,
+  dob DATE,
+  address TEXT,
+  fee_structure TEXT,
+  additional_info TEXT,
   is_deleted BOOLEAN DEFAULT false,
+  deleted_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -102,7 +119,6 @@ CREATE TABLE parent_student (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add missing tables
 CREATE TABLE assessment_questions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   assessment_id UUID,
@@ -170,9 +186,12 @@ CREATE TABLE bus_stops (
 CREATE TABLE fee_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
-  amount NUMERIC,
+  amount NUMERIC NOT NULL,
   type TEXT,
-  due_date DATE
+  category TEXT,
+  frequency TEXT,
+  due_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE financials (
@@ -288,53 +307,7 @@ CREATE TABLE visitors (
   status TEXT
 );
 
-
--- =================================================================================
--- RLS POLICIES (Development Mode)
--- To avoid issues with missing policies, we'll enable RLS but add very permissive
--- policies for early development. In a real environment, you'd lock this down.
--- =================================================================================
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE academic_years ENABLE ROW LEVEL SECURITY;
-ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE parent_student ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE assessments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow all read" ON users FOR SELECT USING (true);
-CREATE POLICY "Allow all write" ON users FOR ALL USING (true);
-
-CREATE POLICY "Allow all read" ON academic_years FOR SELECT USING (true);
-CREATE POLICY "Allow all write" ON academic_years FOR ALL USING (true);
-
-CREATE POLICY "Allow all read" ON classes FOR SELECT USING (true);
-CREATE POLICY "Allow all write" ON classes FOR ALL USING (true);
-
-CREATE POLICY "Allow all read" ON subjects FOR SELECT USING (true);
-CREATE POLICY "Allow all write" ON subjects FOR ALL USING (true);
-
-CREATE POLICY "Allow all read" ON students FOR SELECT USING (true);
-CREATE POLICY "Allow all write" ON students FOR ALL USING (true);
-
-CREATE POLICY "Allow all read" ON parent_student FOR SELECT USING (true);
-CREATE POLICY "Allow all write" ON parent_student FOR ALL USING (true);
-
-CREATE POLICY "Allow all operations" ON notices FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON messages FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON schedules FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON assessments FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON submissions FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON attendance FOR ALL USING (true);
-
--- Academic year should be added manually in settings.
-
--- Staff Attendance missing table
-CREATE TABLE IF NOT EXISTS staff_attendance (
+CREATE TABLE staff_attendance (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   staff_id UUID REFERENCES users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
@@ -344,5 +317,56 @@ CREATE TABLE IF NOT EXISTS staff_attendance (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(staff_id, date)
 );
+
+-- 4. ENABLE RLS
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_years ENABLE ROW LEVEL SECURITY;
+ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE parent_student ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fee_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE financials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bus_routes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bus_stops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE timeline_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE behavior_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assessments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff_attendance ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all operations" ON staff_attendance FOR ALL USING (true);
+
+-- 5. CREATE POLICIES (Development Permissive Mode)
+CREATE POLICY "permissive_all" ON users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON academic_years FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON classes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON subjects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON students FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON parent_student FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON fee_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON financials FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON invoices FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON inventory FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON visitors FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON bus_routes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON bus_stops FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON timeline_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON behavior_records FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON attendance FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON notices FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON messages FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON schedules FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON assessments FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON submissions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON staff_attendance FOR ALL USING (true) WITH CHECK (true);
+
+-- 6. SEED DATA
+INSERT INTO academic_years (name, start_date, end_date, is_active)
+VALUES ('2025-2026', '2025-09-01', '2026-06-30', true)
+ON CONFLICT (name) DO NOTHING;

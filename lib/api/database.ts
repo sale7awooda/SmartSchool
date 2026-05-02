@@ -73,8 +73,6 @@ export async function seedDatabase(demoData: any) {
   await safeUpsert('classes', MOCK_CLASSES.map((c: any) => ({
     id: toUUID(c.id),
     name: c.name,
-    grade: c.grade,
-    section: c.section,
     academic_year_id: toUUID(MOCK_ACADEMIC_YEARS[0].id)
   })));
 

@@ -68,21 +68,6 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
       </div>
 
       <div className="flex items-center gap-1 sm:gap-4">
-        {/* Academic Year Banner */}
-        <div className="hidden sm:flex items-center">
-          {activeYear ? (
-            <span className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20 shrink-0">
-              {activeYear.name}
-            </span>
-          ) : (
-            <button 
-              onClick={() => router.push('/dashboard/settings')} 
-              className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold rounded-lg border border-destructive/20 shrink-0 transition-colors"
-            >
-              Config Academic Year
-            </button>
-          )}
-        </div>
 
         {/* Language Switcher */}
         <button

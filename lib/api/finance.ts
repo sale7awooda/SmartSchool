@@ -12,7 +12,7 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
       student:students!inner(user:users!inner(name), academic_year)
     `, { count: 'exact' });
 
-  if (academicYear) {
+  if (academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(academicYear)) {
     query = query.eq('student.academic_year', academicYear);
   }
 
@@ -127,7 +127,7 @@ export async function getFeeStats(academicYear?: string) {
       student:students!inner(academic_year)
     `);
   
-  if (academicYear) {
+  if (academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(academicYear)) {
     query = query.eq('student.academic_year', academicYear);
   }
 
@@ -159,7 +159,7 @@ export async function getFeeItems() {
   const { data, error } = await supabase
     .from('fee_items')
     .select('*')
-    .order('created_at', { ascending: true });
+    .order('name', { ascending: true });
   
   if (error) throw error;
   return data;
@@ -220,8 +220,7 @@ export async function getFinancialStats(academicYear?: string) {
 export async function getFinancials() {
   const { data, error } = await supabase
     .from('financials')
-    .select('*, staff:users(name)')
-    .order('created_at', { ascending: false });
+    .select('*, staff:users(name)');
   if (error) {
     if (error.code === 'PGRST205') return [];
     throw error;

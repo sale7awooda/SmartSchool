@@ -106,7 +106,7 @@ export function AddMasterModal({ type, onClose, onSuccess }: { type: 'year' | 'c
           is_active: false
         });
       } else if (type === 'class') {
-        await createClass({ name, grade: name });
+        await createClass({ name });
       } else if (type === 'subject') {
         await createSubject({ name, code: name.substring(0, 3).toUpperCase() });
       }
