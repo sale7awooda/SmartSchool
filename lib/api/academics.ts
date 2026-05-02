@@ -218,6 +218,22 @@ export async function getClasses() {
       .eq('is_deleted', false)
       .order('name');
     if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      // Seed default grades
+      const defaults = Array.from({ length: 10 }, (_, i) => ({
+        name: `Grade ${i + 1}`,
+        is_deleted: false
+      }));
+      const { data: inserted, error: insertError } = await supabase
+        .from('classes')
+        .insert(defaults)
+        .select('*')
+        .order('name');
+        
+      if (!insertError && inserted) return inserted;
+    }
+    
     return data;
   } catch (error: any) {
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
@@ -237,6 +253,23 @@ export async function getSubjects() {
       .eq('is_deleted', false)
       .order('name');
     if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      // Seed default subjects
+      const defaultSubjects = ['Arabic', 'Art', 'Biology', 'Chemistry', 'English', 'Ext Math', 'ICT', 'Math', 'P.E', 'Physics', 'Religion', 'Science', 'Social Studies'].map(name => ({
+        name,
+        code: name.substring(0, 3).toUpperCase(),
+        is_deleted: false
+      }));
+      const { data: inserted, error: insertError } = await supabase
+        .from('subjects')
+        .insert(defaultSubjects)
+        .select('*')
+        .order('name');
+        
+      if (!insertError && inserted) return inserted;
+    }
+    
     return data;
   } catch (error: any) {
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
@@ -256,6 +289,17 @@ export async function getAcademicYears() {
       .eq('is_deleted', false)
       .order('name');
     if (error) throw error;
+    
+    if (!data || data.length === 0) {
+       const defaults = [{ name: '2025-2026', is_active: true, is_deleted: false }];
+       const { data: inserted, error: insertError } = await supabase
+        .from('academic_years')
+        .insert(defaults)
+        .select('*')
+        .order('name');
+      if (!insertError && inserted) return inserted;
+    }
+    
     return data;
   } catch (error: any) {
     if (error instanceof TypeError && error.message === 'Failed to fetch') {

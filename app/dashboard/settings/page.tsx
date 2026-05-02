@@ -421,12 +421,23 @@ export default function SettingsPage() {
                             {cls.name}
                             <button 
                               type="button"
-                              onClick={async () => {
-                                if (confirm(`Delete ${cls.name}?`)) {
-                                  await deleteClass(cls.id);
-                                  mutateClasses();
-                                  toast.success('Grade deleted');
-                                }
+                              onClick={() => {
+                                setModalConfig({
+                                  show: true,
+                                  title: 'Delete Grade',
+                                  message: `Are you sure you want to delete ${cls.name}? This action cannot be undone.`,
+                                  type: 'danger',
+                                  onConfirm: async () => {
+                                    setModalConfig(prev => ({ ...prev, show: false }));
+                                    try {
+                                      await deleteClass(cls.id);
+                                      mutateClasses();
+                                      toast.success('Grade deleted');
+                                    } catch (err) {
+                                      toast.error('Failed to delete grade');
+                                    }
+                                  }
+                                });
                               }}
                               className="text-muted-foreground hover:text-destructive"
                             >
@@ -454,12 +465,23 @@ export default function SettingsPage() {
                             {subject.name}
                             <button 
                               type="button"
-                              onClick={async () => {
-                                if (confirm(`Delete ${subject.name}?`)) {
-                                  await deleteSubject(subject.id);
-                                  mutateSubjects();
-                                  toast.success('Subject deleted');
-                                }
+                              onClick={() => {
+                                setModalConfig({
+                                  show: true,
+                                  title: 'Delete Subject',
+                                  message: `Are you sure you want to delete ${subject.name}? This action cannot be undone.`,
+                                  type: 'danger',
+                                  onConfirm: async () => {
+                                    setModalConfig(prev => ({ ...prev, show: false }));
+                                    try {
+                                      await deleteSubject(subject.id);
+                                      mutateSubjects();
+                                      toast.success('Subject deleted');
+                                    } catch (err) {
+                                      toast.error('Failed to delete subject');
+                                    }
+                                  }
+                                });
                               }}
                               className="text-muted-foreground hover:text-destructive"
                             >
@@ -510,12 +532,23 @@ export default function SettingsPage() {
                               )}
                               <button 
                                 type="button"
-                                onClick={async () => {
-                                  if (confirm(`Delete ${year.name}?`)) {
-                                    await deleteAcademicYear(year.id);
-                                    mutateAcademicYears();
-                                    toast.success('Academic year deleted');
-                                  }
+                                onClick={() => {
+                                  setModalConfig({
+                                    show: true,
+                                    title: 'Delete Academic Year',
+                                    message: `Are you sure you want to delete ${year.name}? This action cannot be undone.`,
+                                    type: 'danger',
+                                    onConfirm: async () => {
+                                      setModalConfig(prev => ({ ...prev, show: false }));
+                                      try {
+                                        await deleteAcademicYear(year.id);
+                                        mutateAcademicYears();
+                                        toast.success('Academic year deleted');
+                                      } catch (err) {
+                                        toast.error('Failed to delete academic year');
+                                      }
+                                    }
+                                  });
                                 }}
                                 className="text-muted-foreground hover:text-destructive"
                               >
