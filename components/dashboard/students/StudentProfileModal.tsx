@@ -156,14 +156,14 @@ export function StudentProfileModal({
                             <div className="p-3 bg-muted rounded-xl text-muted-foreground"><GraduationCap size={20} /></div>
                             <div>
                               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('grade')}</p>
-                              <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.grade}</p>
+                              <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.grade || 'N/A'}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                             <div className="p-3 bg-muted rounded-xl text-muted-foreground"><UserCircle size={20} /></div>
                             <div>
                               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('roll_no')}</p>
-                              <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.rollNumber}</p>
+                              <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.rollNumber || selectedPerson.roll_number || 'N/A'}</p>
                             </div>
                           </div>
                           {selectedPerson.dob && (
@@ -175,6 +175,22 @@ export function StudentProfileModal({
                               </div>
                             </div>
                           )}
+                          {selectedPerson.gender && (
+                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
+                              <div className="p-3 bg-muted rounded-xl text-muted-foreground"><UserCircle size={20} /></div>
+                              <div>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Gender</p>
+                                <p className="text-sm font-bold text-foreground mt-0.5 capitalize">{selectedPerson.gender}</p>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm sm:col-span-2">
+                            <div className="p-3 bg-muted rounded-xl text-muted-foreground"><UserPlus size={20} /></div>
+                            <div>
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Parent/Guardian</p>
+                              <p className="text-sm font-bold text-foreground mt-0.5">{(selectedPerson as any).parentNames || 'N/A'}</p>
+                            </div>
+                          </div>
                         </>
                       )}
                     </div>

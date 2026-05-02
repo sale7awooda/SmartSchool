@@ -23,7 +23,7 @@ import { PromotionModal } from '@/components/dashboard/students/PromotionModal';
 import { DeleteModal } from '@/components/dashboard/students/DeleteModal';
 import { AddStudentModal } from '@/components/dashboard/students/AddStudentModal';
 import { StudentProfileModal } from '@/components/dashboard/students/StudentProfileModal';
-
+import { PromotionsTab } from '@/components/dashboard/students/PromotionsTab';
 
 type DirectoryTab = 'students' | 'parents';
 type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
@@ -325,7 +325,7 @@ export default function StudentsPage() {
     
     if (activeAcademicYear) {
       try {
-        const count = await getStudentCountForAcademicYear(activeAcademicYear.id || activeAcademicYear.name);
+        const count = await getStudentCountForAcademicYear(activeAcademicYear.name);
         const yearSuffix = (activeAcademicYear.name || '2025-2026').split('-')[0].slice(-2); // e.g., "2025-2026" -> "25"
         const nextNumber = String(count + 1).padStart(3, '0');
         const generatedId = `S${yearSuffix}${nextNumber}`;
@@ -350,7 +350,7 @@ export default function StudentsPage() {
       address: student.address || '',
       parentName: student.parents?.[0]?.parent?.name || '',
       parentPhone: student.parents?.[0]?.parent?.phone || '',
-      parentRelation: student.parents?.[0]?.relationship || 'Father',
+      parentRelation: student.parents?.[0]?.relation || 'Father',
       feeType: student.fee_structure?.includes('$') ? 'manual' : 'predefined',
       feeStructure: student.fee_structure || '',
       manualFeeItem: {
@@ -562,9 +562,6 @@ export default function StudentsPage() {
                                   </button>
                                 </>
                               )}
-                              <button className="p-2 text-muted-foreground hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-500/10">
-                                <ChevronRight size={20} className="rtl:rotate-180" />
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -699,65 +696,11 @@ export default function StudentsPage() {
       )}
 
       {mainTab === 'promotions' && (
-        <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
-          <div className="bg-card dark:bg-slate-900 p-6 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm">
-            <h2 className="text-2xl font-bold text-foreground">{t('student_promotions')}</h2>
-            <p className="text-muted-foreground mt-1">{t('student_promotions_desc')}</p>
-            
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                <div 
-                  onClick={() => {
-                    setPromotionType('grade');
-                    setIsPromotionModalOpen(true);
-                  }}
-                  className="p-6 bg-muted/50 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group"
-                >
-                  <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <GraduationCap size={24} />
-                  </div>
-                  <h3 className="font-bold text-lg text-foreground">{t('promote_by_grade')}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{t('promote_by_grade_desc')}</p>
-                  <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
-                    {t('start_promotion')} <ChevronRight size={16} className="rtl:rotate-180" />
-                  </button>
-                </div>
-                
-                <div 
-                  onClick={() => {
-                    setPromotionType('class');
-                    setIsPromotionModalOpen(true);
-                  }}
-                  className="p-6 bg-muted/50 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group"
-                >
-                  <div className="w-12 h-12 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <UserCircle size={24} />
-                  </div>
-                  <h3 className="font-bold text-lg text-foreground">{t('promote_by_class')}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{t('promote_by_class_desc')}</p>
-                  <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
-                    {t('start_promotion')} <ChevronRight size={16} className="rtl:rotate-180" />
-                  </button>
-                </div>
-                
-                <div 
-                  onClick={() => {
-                    setPromotionType('manual');
-                    setIsPromotionModalOpen(true);
-                  }}
-                  className="p-6 bg-muted/50 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group"
-                >
-                  <div className="w-12 h-12 bg-accent/10 text-accent-foreground rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Search size={24} />
-                  </div>
-                  <h3 className="font-bold text-lg text-foreground">{t('manual_promotion')}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{t('manual_promotion_desc')}</p>
-                  <button className="mt-4 text-sm font-bold text-primary flex items-center gap-1">
-                    {t('start_promotion')} <ChevronRight size={16} className="rtl:rotate-180" />
-                  </button>
-                </div>
-              </div>
-          </div>
-        </div>
+        <PromotionsTab 
+          activeAcademicYear={activeAcademicYear} 
+          mutateStudents={mutateStudents} 
+          t={t} 
+        />
       )}
 
       <PromotionModal isPromotionModalOpen={isPromotionModalOpen} setIsPromotionModalOpen={setIsPromotionModalOpen} promotionType={promotionType} setPromotionType={setPromotionType} promotionValue={promotionValue} setPromotionValue={setPromotionValue} targetGrade={targetGrade} setTargetGrade={setTargetGrade} isSubmitting={isSubmitting} handlePromoteStudents={handlePromoteStudents} classesList={classesList} t={t} />

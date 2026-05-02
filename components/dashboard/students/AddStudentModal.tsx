@@ -131,14 +131,30 @@ export function AddStudentModal({
                       actionFormData.append('dob', formData.dob);
                       actionFormData.append('gender', formData.gender);
                       actionFormData.append('address', formData.address);
-                      actionFormData.append('feeStructure', formData.feeStructure);
+                      actionFormData.append('parentName', formData.parentName);
+                      actionFormData.append('parentPhone', formData.parentPhone);
+                      actionFormData.append('parentRelation', formData.parentRelation);
+                      actionFormData.append('parentEmail', formData.parentEmail);
+                      
+                      if (formData.feeType === 'manual' && formData.manualFeeItem.name) {
+                        actionFormData.append('feeStructure', `${formData.manualFeeItem.name} ($${formData.manualFeeItem.amount})`);
+                      } else {
+                        actionFormData.append('feeStructure', formData.feeStructure);
+                      }
+                      
                       actionFormData.append('additionalInfo', formData.additionalInfo);
                       actionFormData.append('updatedBy', user.id);
 
                       const result = await processUpdateStudentAction({ success: false, message: '' }, actionFormData);
                       
                       if (!result.success) {
-                        toast.error("Error", { description: result.message });
+                        if (result.errors) {
+                          const firstError = Object.values(result.errors)[0][0];
+                          toast.error("Validation Error", { description: firstError as string });
+                        } else {
+                          toast.error("Error", { description: result.message });
+                        }
+                        setIsSubmitting(false);
                         return;
                       }
 

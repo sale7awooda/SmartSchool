@@ -1,83 +1,125 @@
 import { supabase } from '@/lib/supabase/client';
 import { Student, User, Parent } from '@/types';
+import { MOCK_STUDENTS } from '@/lib/demo-data';
 
 export async function getStudents(academicYear?: string, includeDeleted = false, grade?: string) {
-  let query = supabase
-    .from('students')
-    .select(`
-      *,
-      user:users(*)
-    `);
-  
-  if (academicYear) {
-    query = query.eq('academic_year', academicYear);
-  }
+  try {
+    let query = supabase
+      .from('students')
+      .select(`
+        *,
+        user:users(*)
+      `);
+    
+    if (academicYear) {
+      query = query.eq('academic_year', academicYear);
+    }
 
-  if (grade) {
-    query = query.eq('grade', grade);
-  }
+    if (grade) {
+      query = query.eq('grade', grade);
+    }
 
-  if (!includeDeleted) {
-    query = query.eq('is_deleted', false);
-  }
+    if (!includeDeleted) {
+      query = query.eq('is_deleted', false);
+    }
 
-  const { data, error } = await query;
-  
-  if (error) throw error;
-  
-  return data.map((s: any) => ({
-    ...s.user,
-    ...s,
-    name: `${s.first_name} ${s.last_name}`.trim(),
-    userId: s.user_id,
-    id: s.id // Use student UUID as the main ID
-  })) as Student[];
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    return data.map((s: any) => ({
+      ...s.user,
+      ...s,
+      name: s.name || (s.user ? `${s.user.first_name || ''} ${s.user.last_name || ''}`.trim() : 'Unknown'),
+      userId: s.user_id,
+      rollNumber: s.roll_number,
+      dob: s.date_of_birth || s.dob,
+      address: s.address,
+      gender: s.gender,
+      id: s.id // Use student UUID as the main ID
+    })) as Student[];
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      let filtered = MOCK_STUDENTS;
+      if (grade) {
+        filtered = filtered.filter(s => s.grade === grade);
+      }
+      return filtered;
+    }
+    throw error;
+  }
 }
 
 
 export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, isDeleted: boolean = false) {
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+  try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
-  let query = supabase
-    .from('students')
-    .select(`
-      *,
-      user:users!inner(*),
-      parents:parent_student(
-        parent:users(*)
-      )
-    `, { count: 'exact' });
+    let query = supabase
+      .from('students')
+      .select(`
+        *,
+        user:users(*),
+        parents:parent_student(
+          parent:users(*)
+        )
+      `, { count: 'exact' });
 
-  if (academicYear) {
-    query = query.eq('academic_year', academicYear);
+    if (academicYear) {
+      query = query.eq('academic_year', academicYear);
+    }
+
+    query = query.eq('is_deleted', isDeleted);
+
+    if (search) {
+      // Since we removed inner join, we'll try searching without it or catch the error if it fails
+      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,roll_number.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query.range(from, to);
+    
+    if (error) throw error;
+    
+    const students = data.map((s: any) => ({
+      ...s.user,
+      ...s,
+      name: s.name || (s.user ? `${s.user.first_name || ''} ${s.user.last_name || ''}`.trim() : 'Unknown'),
+      id: s.id, // Better to use student id not user_id
+      userId: s.user_id,
+      rollNumber: s.roll_number,
+      dob: s.date_of_birth || s.dob,
+      address: s.address,
+      gender: s.gender,
+      parentNames: s.parents?.map((p: any) => p.parent?.name || (p.parent ? `${p.parent.first_name || ''} ${p.parent.last_name || ''}`.trim() : 'Unknown')).join(', ') || 'N/A'
+    })) as (Student & { parentNames: string })[];
+
+    return {
+      data: students,
+      count: count || 0,
+      totalPages: Math.ceil((count || 0) / limit)
+    };
+  } catch (error: any) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      let filtered = MOCK_STUDENTS;
+      if (search) {
+        const lowerSearch = search.toLowerCase();
+        filtered = filtered.filter(s => 
+          s.name.toLowerCase().includes(lowerSearch) || 
+          s.rollNumber?.toLowerCase().includes(lowerSearch)
+        );
+      }
+      const count = filtered.length;
+      return {
+        data: filtered.slice((page - 1) * limit, page * limit),
+        count,
+        totalPages: Math.ceil(count / limit)
+      };
+    }
+    throw error;
   }
-
-  query = query.eq('is_deleted', isDeleted);
-
-  if (search) {
-    // Search by student name or roll number
-    query = query.or(`name.ilike.%${search}%,roll_number.ilike.%${search}%`, { foreignTable: 'users' });
-  }
-
-  const { data, error, count } = await query.range(from, to);
-  
-  if (error) throw error;
-  
-  const students = data.map((s: any) => ({
-    ...s.user,
-    ...s,
-    name: `${s.first_name} ${s.last_name}`.trim(),
-    id: s.user_id,
-    parentNames: s.parents?.map((p: any) => p.parent?.name).join(', ') || 'N/A'
-  })) as (Student & { parentNames: string })[];
-
-  return {
-    data: students,
-    count: count || 0,
-    totalPages: Math.ceil((count || 0) / limit)
-  };
 }
+
 
 
 export async function getStudentCountForAcademicYear(academicYearIdRef: string) {

@@ -13,9 +13,9 @@ const CreateStudentSchema = z.object({
   address: z.string().optional(),
   
   // Parent details (optional)
-  parentName: z.string().min(1, "Parent name is required"),
-  parentPhone: z.string().min(1, "Parent phone is required"),
-  parentEmail: z.string().email("Invalid email address"),
+  parentName: z.string().optional().or(z.literal('')),
+  parentPhone: z.string().optional().or(z.literal('')),
+  parentEmail: z.string().email("Invalid email address").optional().or(z.literal('')),
   parentRelation: z.string().optional(),
   
   // Fee & Academic info
@@ -50,6 +50,10 @@ export async function processUpdateStudentAction(
       dob: formData.get('dob') as string,
       gender: formData.get('gender') as string,
       address: formData.get('address') as string,
+      parentName: formData.get('parentName') as string,
+      parentPhone: formData.get('parentPhone') as string,
+      parentEmail: formData.get('parentEmail') as string,
+      parentRelation: formData.get('parentRelation') as string,
       feeStructure: formData.get('feeStructure') as string,
       additionalInfo: formData.get('additionalInfo') as string,
       updatedBy: formData.get('updatedBy') as string,
@@ -91,6 +95,89 @@ export async function processUpdateStudentAction(
 
     if (updateData.name) {
       await supabase.from('users').update({ name: updateData.name }).eq('id', student.user_id);
+    }
+
+    // Handle Parent
+    if (updateData.parentName && updateData.parentPhone) {
+      const parentEmailToUse = updateData.parentEmail || `parent_${updateData.parentPhone.replace(/\D/g, '')}@school.com`;
+      const adminClient = createAdminClient();
+      let parentId = null;
+      try {
+        let { data: parent } = await adminClient
+          .from('users')
+          .select('*')
+          .eq('email', parentEmailToUse)
+          .eq('role', 'parent')
+          .maybeSingle();
+        
+        if (!parent) {
+          const { data: parentPhoneUser } = await adminClient
+            .from('users')
+            .select('*')
+            .eq('phone', updateData.parentPhone)
+            .eq('role', 'parent')
+            .maybeSingle();
+          parent = parentPhoneUser;
+        }
+
+        if (!parent) {
+          const parentPassword = updateData.parentPhone.replace(/\D/g, '');
+          const { data: listData } = await adminClient.auth.admin.listUsers();
+          let parentAuthUser = listData?.users.find(u => u.email === parentEmailToUse);
+          
+          if (!parentAuthUser) {
+            const { data: parentAuthData, error: parentAuthError } = await adminClient.auth.admin.createUser({
+              email: parentEmailToUse,
+              email_confirm: true,
+              password: parentPassword || 'password123',
+              user_metadata: { name: updateData.parentName, role: 'parent' }
+            });
+            
+            if (parentAuthError) console.error("Parent auth creation error:", parentAuthError);
+            parentAuthUser = parentAuthData?.user || undefined;
+          }
+
+          if (parentAuthUser) {
+            const { data: newParent, error: parentCreateError } = await adminClient
+              .from('users')
+              .upsert([{
+                id: parentAuthUser.id,
+                email: parentEmailToUse,
+                name: updateData.parentName,
+                role: 'parent',
+                phone: updateData.parentPhone
+              }])
+              .select()
+              .single();
+            if (!parentCreateError) parent = newParent;
+          }
+        } else {
+          // Update existing parent if needed
+          await adminClient.from('users').update({
+            name: updateData.parentName,
+            phone: updateData.parentPhone
+          }).eq('id', parent.id);
+        }
+
+        if (parent) {
+          parentId = parent.id;
+          
+          await adminClient
+            .from('parent_student')
+            .delete()
+            .eq('student_id', student.id);
+            
+          await adminClient
+            .from('parent_student')
+            .insert([{
+              parent_id: parent.id,
+              student_id: student.id,
+              relation: updateData.parentRelation || 'Father'
+            }]);
+        }
+      } catch (err) {
+        console.error('Error linking parent in update:', err);
+      }
     }
 
     await logAudit('STUDENT_UPDATED', updatedBy, {
@@ -197,7 +284,7 @@ export async function processCreateStudentAction(
 
     // 1. Create the student auth profile
     const studentEmail = `student_${studentData.studentId.toLowerCase()}@school.com`;
-    const parentEmail = studentData.parentEmail;
+    const parentEmail = studentData.parentEmail || `parent_${studentData.parentPhone?.replace(/\D/g, '')}@school.com`;
     
     // Check if auth user exists first
     const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
@@ -342,7 +429,7 @@ export async function processCreateStudentAction(
             .insert([{
               parent_id: parent.id,
               student_id: student.id,
-              relationship: studentData.parentRelation || 'Parent'
+              relation: studentData.parentRelation || 'Parent'
             }]);
         }
       } catch (err) {
