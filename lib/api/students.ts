@@ -9,7 +9,7 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
       user:users(*)
     `);
   
-  if (academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(academicYear)) {
+  if (academicYear) {
     query = query.eq('academic_year', academicYear);
   }
 
@@ -49,7 +49,7 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
       )
     `, { count: 'exact' });
 
-  if (academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(academicYear)) {
+  if (academicYear) {
     query = query.eq('academic_year', academicYear);
   }
 
@@ -85,7 +85,7 @@ export async function getStudentCountForAcademicYear(academicYearIdRef: string) 
     .from('students')
     .select('*', { count: 'exact', head: true });
     
-  if (academicYearIdRef && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(academicYearIdRef)) {
+  if (academicYearIdRef) {
     query = query.eq('academic_year', academicYearIdRef);
   }
   
@@ -136,9 +136,7 @@ export async function createStudent(studentData: any) {
       roll_number: studentData.studentId,
       date_of_birth: studentData.dob,
       gender: studentData.gender,
-      academic_year: (studentData.academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentData.academicYear)) 
-        ? studentData.academicYear 
-        : null
+      academic_year: studentData.academicYear || null
     }])
     .select()
     .single();

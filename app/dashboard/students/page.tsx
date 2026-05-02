@@ -68,7 +68,7 @@ export default function StudentsPage() {
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
 
   const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
-    ['students', page, debouncedSearch, activeAcademicYear?.id, mainTab === 'history'], 
+    ['students', page, debouncedSearch, activeAcademicYear?.name, mainTab === 'history'], 
     ([_, p, s, a, isDeleted]) => getPaginatedStudents(p, limit, s, a, isDeleted)
   );
 
