@@ -49,18 +49,30 @@ export default function EditAssessmentPage() {
   const [defaultsSet, setDefaultsSet] = useState(false);
 
   useEffect(() => {
-    if (!defaultsSet && subjectsData && subjectsData.length > 0 && classesData && classesData.length > 0) {
-      const timer = setTimeout(() => {
-        setExamDetails(prev => ({
-          ...prev,
-          subject: prev.subject || subjectsData[0].name,
-          grade: prev.grade || classesData[0].name
+    if (assessmentData && subjectsData && classesData && !defaultsSet) {
+      setExamDetails({
+        title: assessmentData.title || '',
+        subject: assessmentData.subject?.name || assessmentData.subject || subjectsData[0]?.name || '',
+        grade: assessmentData.class?.name || assessmentData.grade || classesData[0]?.name || '',
+        date: assessmentData.date || assessmentData.due_date || '',
+        duration: assessmentData.duration || 60,
+        type: assessmentData.type || 'exam',
+        description: assessmentData.description || '',
+      });
+      if (assessmentData.questions && assessmentData.questions.length > 0) {
+        const loadedQuestions = assessmentData.questions.map((q: any) => ({
+          id: q.id,
+          text: q.question || q.text,
+          type: q.type,
+          options: q.options || [],
+          correctAnswers: q.correct_answers || [],
+          marks: q.points || q.marks || 1
         }));
-        setDefaultsSet(true);
-      }, 0);
-      return () => clearTimeout(timer);
+        setQuestions(loadedQuestions);
+      }
+      setDefaultsSet(true);
     }
-  }, [subjectsData, classesData, defaultsSet]);
+  }, [assessmentData, subjectsData, classesData, defaultsSet]);
 
   // Questions
   const [questions, setQuestions] = useState([

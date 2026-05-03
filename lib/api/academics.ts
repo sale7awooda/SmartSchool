@@ -93,7 +93,7 @@ export async function createAssessment(assessmentData: any) {
   if (questions && questions.length > 0) {
     const questionsWithId = questions.map((q: any, idx: number) => ({
       assessment_id: assessment.id,
-      text: q.text || q.question,
+      question: q.text || q.question,
       type: q.type,
       options: q.options ? JSON.stringify(q.options) : null,
       correct_answer: q.correct_answers ? JSON.stringify(q.correct_answers) : q.correct_answer,
@@ -579,7 +579,7 @@ export async function updateAssessment(id: string, assessmentData: any) {
     if (questions.length > 0) {
       const questionsWithId = questions.map((q: any, idx: number) => ({
         assessment_id: assessment.id,
-        text: q.text || q.question,
+        question: q.text || q.question,
         type: q.type,
         options: q.options ? JSON.stringify(q.options) : null,
         correct_answer: q.correct_answers ? JSON.stringify(q.correct_answers) : q.correct_answer,

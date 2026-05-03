@@ -263,81 +263,83 @@ export default function AssessmentsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredAssessments.map((assessment: any) => (
-            <div key={assessment.id} className="bg-white dark:bg-slate-900 rounded-[1.25rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col relative group">
+            <div key={assessment.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col relative group text-sm">
             
             {isTeacherOrAdmin && (
-              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
                 {assessment.status === 'upcoming' && (
                   <button 
                     onClick={() => setActivateConfirmId(assessment.id)}
                     className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
                     title="Activate Assessment"
                   >
-                    <PlayCircle size={14} />
+                    <PlayCircle size={12} />
                   </button>
                 )}
                 <Link href={`/dashboard/assessments/${assessment.id}/edit`} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors" title="Edit Assessment">
-                   <Edit size={14} />
+                   <Edit size={12} />
                 </Link>
                 <button 
                    onClick={() => setDeleteConfirmId(assessment.id)}
                    className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" title="Delete Assessment">
-                   <Trash2 size={14} />
+                   <Trash2 size={12} />
                 </button>
               </div>
             )}
 
-            <div className="p-4 flex-1">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex flex-col gap-2">
-                  <div className="p-2 bg-primary/10 text-primary rounded-xl w-fit">
-                    <FileText size={18} />
+            <div className="p-3.5 flex-1 relative">
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex flex-col gap-1.5">
+                  <div className="p-1.5 bg-primary/10 text-primary rounded-lg w-fit">
+                    <FileText size={14} />
                   </div>
-                  {getTypeBadge(assessment.type)}
                 </div>
-                <div className="mr-6">
+                <div className="mr-5">
                   {getStatusBadge(assessment.status)}
                 </div>
               </div>
               
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 leading-tight">{assessment.title}</h3>
-              <p className="text-sm font-medium text-primary mb-4">{assessment.subject} • {assessment.grade}</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-0.5 leading-tight pr-5">{assessment.title}</h3>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 font-medium">
+                <BookOpen size={12} className="text-primary/70" />
+                <span className="text-primary/90">{assessment.subject} • {assessment.grade}</span>
+              </div>
               
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <Calendar size={16} className="text-muted-foreground" />
-                  <span className="font-medium">{new Date(assessment.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <div className="grid grid-cols-2 gap-2 mt-auto">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 p-1.5 rounded-md">
+                  <Calendar size={12} className="text-muted-foreground" />
+                  <span className="font-semibold">{new Date(assessment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <Clock size={16} className="text-muted-foreground" />
-                  <span className="font-medium">{assessment.duration} Minutes</span>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 p-1.5 rounded-md">
+                  <Clock size={12} className="text-muted-foreground" />
+                  <span className="font-semibold">{assessment.duration} Min</span>
                 </div>
               </div>
             </div>
             
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
               {assessment.status === 'active' && isStudent && (
-                <Link href={`/dashboard/assessments/${assessment.id}/take`} className="w-full py-2.5 bg-emerald-500 text-primary-foreground rounded-xl font-bold text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
-                  <PlayCircle size={18} />
-                  Start Assessment
+                <Link href={`/dashboard/assessments/${assessment.id}/take`} className="w-full py-2 bg-emerald-500 text-primary-foreground rounded-lg font-bold text-xs hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                  <PlayCircle size={14} />
+                  Start
                 </Link>
               )}
               {assessment.status === 'active' && isTeacherOrAdmin && (
-                <Link href={`/dashboard/assessments/${assessment.id}/monitor`} className="w-full py-2.5 bg-primary/10 text-primary rounded-xl font-bold text-sm hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
-                  <BarChart size={18} />
-                  Monitor Live
+                <Link href={`/dashboard/assessments/${assessment.id}/monitor`} className="w-full py-2 bg-primary/10 text-primary rounded-lg font-bold text-xs hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5">
+                  <BarChart size={14} />
+                  Monitor
                 </Link>
               )}
               {assessment.status === 'upcoming' && (
-                <button disabled className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed">
-                  <Clock size={18} />
+                <button disabled className="w-full py-2 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed">
+                  <Clock size={14} />
                   Starts Soon
                 </button>
               )}
               {assessment.status === 'completed' && (
-                <Link href={`/dashboard/assessments/${assessment.id}/results`} className="w-full py-2.5 bg-card border border-border text-foreground rounded-xl font-bold text-sm hover:bg-muted transition-colors flex items-center justify-center gap-2">
-                  <BarChart size={18} />
-                  {isStudent ? `View Results (${assessment.score}/${assessment.totalMarks})` : 'View Analytics'}
+                <Link href={`/dashboard/assessments/${assessment.id}/results`} className="w-full py-2 bg-card border border-border text-foreground rounded-lg font-bold text-xs hover:bg-muted transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                  <BarChart size={14} />
+                  {isStudent ? `Results: ${assessment.score}/${assessment.totalMarks}` : 'Analytics'}
                 </Link>
               )}
             </div>
