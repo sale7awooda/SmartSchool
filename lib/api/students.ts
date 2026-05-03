@@ -305,7 +305,7 @@ export async function getStudentById(id: string) {
 export async function getStudentByUserId(userId: string) {
   const { data, error } = await supabase
     .from('students')
-    .select('id, first_name, last_name, roll_number')
+    .select('id, first_name, last_name, roll_number, grade')
     .eq('user_id', userId)
     .single();
   

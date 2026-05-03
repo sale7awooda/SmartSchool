@@ -57,19 +57,23 @@ export async function createAssessment(assessmentData: any) {
   let class_id = null;
   
   if (subject) {
-    const { data: sData } = await supabase.from('subjects').select('id').eq('name', subject).maybeSingle();
+    const { data: sData } = await supabase.from('subjects').select('id').ilike('name', subject).maybeSingle();
     if (sData) subject_id = sData.id;
   }
   
   if (grade) {
-    const { data: cData } = await supabase.from('classes').select('id').eq('name', grade).maybeSingle();
+    const { data: cData } = await supabase.from('classes').select('id').ilike('name', grade).maybeSingle();
     if (cData) class_id = cData.id;
   }
+
+  const computedTotalMarks = questions ? questions.reduce((acc: number, q: any) => acc + (Number(q.marks) || Number(q.points) || 1), 0) : (total_marks || 0);
 
   const payload = {
     ...mainData,
     subject_id,
     class_id,
+    
+    
     date: due_date || date, // Use date instead of due_date
   };
   
@@ -89,7 +93,7 @@ export async function createAssessment(assessmentData: any) {
   if (questions && questions.length > 0) {
     const questionsWithId = questions.map((q: any, idx: number) => ({
       assessment_id: assessment.id,
-      question: q.text || q.question,
+      text: q.text || q.question,
       type: q.type,
       options: q.options ? JSON.stringify(q.options) : null,
       correct_answer: q.correct_answers ? JSON.stringify(q.correct_answers) : q.correct_answer,
@@ -356,23 +360,40 @@ export async function getAcademicYears() {
 export async function getAssessmentWithQuestions(id: string) {
   const { data: assessment, error: assessmentError } = await supabase
     .from('assessments')
-    .select('*')
+    .select('*, subject:subjects(name), class:classes(name)')
     .eq('id', id)
     .single();
     
   if (assessmentError) throw assessmentError;
   
-  const { data: questions, error: questionsError } = await supabase
-    .from('questions')
+  let { data: questions, error: questionsError } = await supabase
+    .from('assessment_questions')
     .select('*')
     .eq('assessment_id', id)
-    .order('created_at', { ascending: true });
+    .order('order', { ascending: true });
+    
+  if (questionsError && questionsError.code === '42P01') {
+    const res = await supabase.from('questions').select('*').eq('assessment_id', id).order('id', { ascending: true });
+    questions = res.data;
+    questionsError = res.error as any;
+  }
     
   if (questionsError) throw questionsError;
   
+  const mappedQuestions = (questions || []).map((q: any) => ({
+    ...q,
+    id: q.id,
+    text: q.question || q.text,
+    marks: q.points || q.marks,
+    options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
+    correct_answers: typeof q.correct_answer === 'string' && q.correct_answer.startsWith('[') ? JSON.parse(q.correct_answer) : null,
+    correct_answer: typeof q.correct_answer === 'string' && q.correct_answer.startsWith('[') ? null : q.correct_answer,
+    type: q.type,
+  }));
+  
   return {
     ...assessment,
-    questions: questions || []
+    questions: mappedQuestions
   };
 }
 
@@ -512,3 +533,80 @@ export async function deleteSubject(id: string) {
 }
 
 
+
+
+export async function updateAssessment(id: string, assessmentData: any) {
+  const { questions, subject, grade, due_date, date, total_marks, type, teacher_id, ...mainData } = assessmentData;
+  
+  let subject_id = null;
+  let class_id = null;
+  
+  if (subject) {
+    const { data: sData } = await supabase.from('subjects').select('id').ilike('name', subject).maybeSingle();
+    if (sData) subject_id = sData.id;
+  }
+  
+  if (grade) {
+    const { data: cData } = await supabase.from('classes').select('id').ilike('name', grade).maybeSingle();
+    if (cData) class_id = cData.id;
+  }
+
+  const computedTotalMarks = questions ? questions.reduce((acc: number, q: any) => acc + (Number(q.marks) || Number(q.points) || 1), 0) : (total_marks || 0);
+
+  const payload = {
+    ...mainData,
+    subject_id: subject_id || mainData.subject_id,
+    class_id: class_id || mainData.class_id,
+    
+    
+    date: due_date || date, 
+  };
+  
+  const { data: assessment, error: assessmentError } = await supabase
+    .from('assessments')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (assessmentError) throw assessmentError;
+  
+  if (questions) {
+    // Delete existing
+    await supabase.from('questions').delete().eq('assessment_id', id);
+    await supabase.from('assessment_questions').delete().eq('assessment_id', id);
+    
+    if (questions.length > 0) {
+      const questionsWithId = questions.map((q: any, idx: number) => ({
+        assessment_id: assessment.id,
+        text: q.text || q.question,
+        type: q.type,
+        options: q.options ? JSON.stringify(q.options) : null,
+        correct_answer: q.correct_answers ? JSON.stringify(q.correct_answers) : q.correct_answer,
+        points: q.marks || q.points,
+        order: idx + 1
+      }));
+      
+      let { error: questionsError } = await supabase
+        .from('assessment_questions')
+        .insert(questionsWithId);
+        
+      if (questionsError && questionsError.code === '42P01') {
+        await supabase.from('questions').insert(questionsWithId);
+      }
+    }
+  }
+  return assessment;
+}
+
+export async function deleteAssessment(id: string) {
+  const { error } = await supabase.from('assessments').delete().eq('id', id);
+  if (error) throw error;
+  return true;
+}
+
+export async function activateAssessment(id: string) {
+  const { error } = await supabase.from('assessments').update({ status: 'active' }).eq('id', id);
+  if (error) throw error;
+  return true;
+}

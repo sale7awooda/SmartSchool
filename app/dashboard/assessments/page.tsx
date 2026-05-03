@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { getPaginatedAssessments, getActiveAcademicYear, getStudentByUserId, getStudentSubmissions } from '@/lib/supabase-db';
+import { getPaginatedAssessments, getActiveAcademicYear, getStudentByUserId, getStudentSubmissions, deleteAssessment, activateAssessment } from '@/lib/supabase-db';
 import { motion } from 'motion/react';
 import { 
   FileText, 
@@ -15,7 +16,12 @@ import {
   Search,
   Filter,
   PlayCircle,
-  BarChart
+  BarChart,
+  Trash2,
+  Edit,
+  X,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -66,7 +72,11 @@ export default function AssessmentsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const limit = 9; // 3 columns, so 9 is a good number
+  const limit = 12; // 4 columns now
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [activateConfirmId, setActivateConfirmId] = useState<string | null>(null);
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -76,15 +86,19 @@ export default function AssessmentsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: assessmentsResponse, isLoading } = useSWR(
+  const { data: assessmentsResponse, isLoading, mutate: mutateAssessments } = useSWR(
     ['assessments', page, debouncedSearch, statusFilter, activeAcademicYear?.name],
     ([_, p, s, status, a]) => getPaginatedAssessments(p, limit, s, status)
   );
 
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [studentRecord, setStudentRecord] = useState<any>(null);
   useEffect(() => {
     if (user?.id && isRole('student')) {
-      getStudentByUserId(user.id).then(s => setStudentId(s.id));
+      getStudentByUserId(user.id).then(s => {
+        setStudentId(s.id);
+        setStudentRecord(s);
+      });
     }
   }, [user, isRole]);
 
@@ -93,7 +107,7 @@ export default function AssessmentsPage() {
     () => getStudentSubmissions(studentId!)
   );
 
-  const assessments = assessmentsResponse?.data || [];
+  const rawAssessments = assessmentsResponse?.data || [];
   const totalPages = assessmentsResponse?.totalPages || 1;
   const totalCount = assessmentsResponse?.count || 0;
 
@@ -106,6 +120,23 @@ export default function AssessmentsPage() {
   const isStudent = isRole('student');
   const isTeacherOrAdmin = can('manage', 'assessments') || can('create', 'assessments');
 
+  const todayDateString = new Date().toLocaleDateString('en-CA'); 
+
+  // Filter based on roles and dates
+  const assessments = rawAssessments.filter((a: any) => {
+    const assessmentGrade = a.class?.name || a.grade || '';
+    if (isStudent && studentRecord) {
+      if (assessmentGrade !== studentRecord.grade) return false;
+      const intendedDate = a.date.split('T')[0];
+      if (todayDateString !== intendedDate) return false;
+      if (a.status !== 'active') return false;
+    }
+    // if student record hasn't loaded yet, default to false so they don't see wrong ones
+    if (isStudent && !studentRecord) return false;
+    
+    return true;
+  });
+
   const filteredAssessments = assessments.map((assessment: any) => {
     const submission = studentSubmissions?.find((s: any) => s.assessment_id === assessment.id);
     
@@ -117,7 +148,7 @@ export default function AssessmentsPage() {
       date: assessment.date || assessment.due_date || 'TBD',
       duration: assessment.duration || 60,
       status: submission ? 'completed' : (assessment.status || 'upcoming'),
-      totalMarks: assessment.total_marks || 100,
+      totalMarks: assessment.total_marks || 0,
       questionsCount: assessment.questions_count || 0,
       type: assessment.type || 'exam',
       score: submission?.score,
@@ -205,9 +236,9 @@ export default function AssessmentsPage() {
 
       {/* Exams Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col h-[280px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="bg-card p-5 rounded-[1.25rem] border border-border shadow-sm flex flex-col h-[230px]">
               <div className="flex justify-between items-start mb-4">
                 <Skeleton className="w-12 h-12 rounded-2xl" />
                 <Skeleton className="w-20 h-6 rounded-full" />
@@ -230,21 +261,46 @@ export default function AssessmentsPage() {
           <div className="text-center text-muted-foreground font-medium">No assessments found.</div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredAssessments.map((assessment: any) => (
-            <div key={assessment.id} className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-            <div className="p-6 flex-1">
-              <div className="flex justify-between items-start mb-4">
+            <div key={assessment.id} className="bg-white dark:bg-slate-900 rounded-[1.25rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col relative group">
+            
+            {isTeacherOrAdmin && (
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                {assessment.status === 'upcoming' && (
+                  <button 
+                    onClick={() => setActivateConfirmId(assessment.id)}
+                    className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                    title="Activate Assessment"
+                  >
+                    <PlayCircle size={14} />
+                  </button>
+                )}
+                <Link href={`/dashboard/assessments/${assessment.id}/edit`} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors" title="Edit Assessment">
+                   <Edit size={14} />
+                </Link>
+                <button 
+                   onClick={() => setDeleteConfirmId(assessment.id)}
+                   className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" title="Delete Assessment">
+                   <Trash2 size={14} />
+                </button>
+              </div>
+            )}
+
+            <div className="p-4 flex-1">
+              <div className="flex justify-between items-start mb-3">
                 <div className="flex flex-col gap-2">
-                  <div className="p-3 bg-primary/10 text-primary rounded-2xl w-fit">
-                    <FileText size={24} />
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl w-fit">
+                    <FileText size={18} />
                   </div>
                   {getTypeBadge(assessment.type)}
                 </div>
-                {getStatusBadge(assessment.status)}
+                <div className="mr-6">
+                  {getStatusBadge(assessment.status)}
+                </div>
               </div>
               
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{assessment.title}</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 leading-tight">{assessment.title}</h3>
               <p className="text-sm font-medium text-primary mb-4">{assessment.subject} • {assessment.grade}</p>
               
               <div className="space-y-3">
@@ -255,10 +311,6 @@ export default function AssessmentsPage() {
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Clock size={16} className="text-muted-foreground" />
                   <span className="font-medium">{assessment.duration} Minutes</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <CheckCircle2 size={16} className="text-muted-foreground" />
-                  <span className="font-medium">{assessment.questionsCount} Questions • {assessment.totalMarks} Marks</span>
                 </div>
               </div>
             </div>
@@ -319,6 +371,108 @@ export default function AssessmentsPage() {
           >
             Next
           </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-background rounded-2xl shadow-xl overflow-hidden"
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                <AlertTriangle className="text-red-500" size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-center mb-2">Delete Assessment</h3>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Are you sure you want to delete this assessment? This action cannot be undone and will remove all questions and student submissions.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={isSubmittingAction}
+                  className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={async () => {
+                    setIsSubmittingAction(true);
+                    try {
+                      await deleteAssessment(deleteConfirmId);
+                      toast.success('Assessment deleted successfully!');
+                      mutateAssessments();
+                      setDeleteConfirmId(null);
+                    } catch (error) {
+                      toast.error('Failed to delete assessment');
+                    } finally {
+                      setIsSubmittingAction(false);
+                    }
+                  }}
+                  disabled={isSubmittingAction}
+                  className="flex items-center justify-center gap-2 flex-1 px-4 py-2 bg-red-500 text-white font-bold text-sm rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {isSubmittingAction ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  Delete
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Activate Confirmation Modal */}
+      {activateConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-background rounded-2xl shadow-xl overflow-hidden"
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto mb-4">
+                <PlayCircle className="text-emerald-500" size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-center mb-2">Activate Assessment</h3>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Are you sure you want to activate this assessment? Students will be able to start taking it immediately.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setActivateConfirmId(null)}
+                  disabled={isSubmittingAction}
+                  className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={async () => {
+                    setIsSubmittingAction(true);
+                    try {
+                      await activateAssessment(activateConfirmId);
+                      toast.success('Assessment activated successfully!');
+                      mutateAssessments();
+                      setActivateConfirmId(null);
+                    } catch (error) {
+                      toast.error('Failed to activate assessment');
+                    } finally {
+                      setIsSubmittingAction(false);
+                    }
+                  }}
+                  disabled={isSubmittingAction}
+                  className="flex items-center justify-center gap-2 flex-1 px-4 py-2 bg-emerald-500 text-white font-bold text-sm rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                >
+                  {isSubmittingAction ? <Loader2 size={16} className="animate-spin" /> : <PlayCircle size={16} />}
+                  Activate
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       )}
     </motion.div>

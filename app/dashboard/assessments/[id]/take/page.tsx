@@ -129,9 +129,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
   };
 
   const handleSubmit = () => {
-    if (window.confirm('Are you sure you want to submit your assessment? You cannot change your answers after submitting.')) {
-      handleAutoSubmit();
-    }
+    setShowSubmitConfirm(true);
   };
 
   if (isFinished) {
@@ -391,6 +389,49 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
+    
+      {/* Submit Confirmation Modal */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-background rounded-2xl shadow-xl overflow-hidden"
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto mb-4">
+                <CheckCircle2 className="text-emerald-500" size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-center mb-2">Submit Assessment?</h3>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Are you sure you want to submit your assessment? You cannot change your answers after submitting.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowSubmitConfirm(false)}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowSubmitConfirm(false);
+                    handleAutoSubmit();
+                  }}
+                  disabled={isSubmitting}
+                  className="flex items-center justify-center gap-2 flex-1 px-4 py-2 bg-emerald-500 text-white font-bold text-sm rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  Submit
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
+
 }
