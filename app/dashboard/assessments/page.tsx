@@ -21,7 +21,8 @@ import {
   Edit,
   X,
   AlertTriangle,
-  Loader2
+  Loader2,
+  BookOpen
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
