@@ -49,8 +49,14 @@ export async function getSystemSettings() {
       };
     }
     
-    return data;
-  } catch (error: any) {
+      const mappedData = {
+        ...data,
+        school_address: data.address || data.school_address,
+        school_phone: data.phone || data.school_phone,
+        school_email: data.email || data.school_email,
+      };
+      return mappedData;
+    } catch (error: any) {
     // Handle "Failed to fetch" which happens when the Supabase URL is invalid/placeholder
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       console.warn('Supabase connection failed. Falling back to local settings.');
@@ -79,8 +85,21 @@ export async function getSystemSettings() {
 
 
 export async function updateSystemSettings(settings: any) {
-  // Use a fixed ID for single row settings
-  const { data, error } = await supabase.from('system_settings').upsert({ id: 1, ...settings }).select().single();
+  // Map JS keys to DB keys if needed
+  const dbData = {
+    ...settings,
+    address: settings.school_address,
+    phone: settings.school_phone,
+    email: settings.school_email
+  };
+  
+  // Clean up keys not in DB if desired, but passing them is fine if DB ignores or accepts them.
+  // Actually, Supabase upsert might error if we pass columns that don't exist. Let's delete the frontend-only keys.
+  delete dbData.school_address;
+  delete dbData.school_phone;
+  delete dbData.school_email;
+
+  const { data, error } = await supabase.from('system_settings').upsert({ id: 1, ...dbData }).select().maybeSingle();
   
   if (error && (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message.includes('relation "system_settings" does not exist'))) {
     // Fallback to localStorage
