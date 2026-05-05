@@ -27,14 +27,11 @@ export default function DashboardHome() {
 
     try {
       if (isRole(['admin', 'accountant'])) {
-        // Filter students by academic year
+        // Get all active students across all years
         let studentQuery = supabase
           .from('students')
-          .select('*', { count: 'exact', head: true });
-        
-        if (activeAcademicYear) {
-          studentQuery = studentQuery.eq('academic_year', activeAcademicYear.name);
-        }
+          .select('*', { count: 'exact', head: true })
+          .eq('is_deleted', false);
 
         const { count: studentCount } = await studentQuery;
         
@@ -122,7 +119,8 @@ export default function DashboardHome() {
     async () => {
       const { count: studentCount } = await supabase
         .from('students')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('is_deleted', false);
       
       const { data: attendanceData } = await supabase
         .from('attendance')

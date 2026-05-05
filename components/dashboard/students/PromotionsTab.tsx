@@ -18,7 +18,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
   // For 'all' scope, practically we might need a lot 
   const { data: studentsResponse, isLoading } = useSWR(
     ['students_for_promotion', activeAcademicYear?.name],
-    ([_, year]) => getPaginatedStudents(1, 1000, '', year, false) // Fetching up to 1000 for bulk promotion
+    ([_, year]) => getPaginatedStudents(1, 1000, '', undefined, false) // Fetching up to 1000 for bulk promotion, passing undefined for year so all active show
   );
 
   const { data: classesData } = useSWR('classes', getClasses);
