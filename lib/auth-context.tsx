@@ -137,8 +137,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error("Error getting session:", error);
+        if (error.message?.includes("Refresh Token") || error.message?.includes("Failed to fetch")) {
+          supabase.auth.signOut().catch(console.error);
+        }
       }
       loadProfile(session);
+    }).catch((err) => {
+      console.error("Session fetch caught error:", err);
+      loadProfile(null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
