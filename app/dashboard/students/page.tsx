@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent, BehaviorRecord, TimelineEvent } from '@/types';
-import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getNextStudentIdForAcademicYear, getFeeItems, createFeeItem } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getFeeItems, createFeeItem } from '@/lib/supabase-db';
 import { processDeleteStudentAction } from '@/app/actions/students';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
@@ -326,7 +326,10 @@ export default function StudentsPage() {
     
     if (activeAcademicYear) {
       try {
-        const generatedId = await getNextStudentIdForAcademicYear(activeAcademicYear.name);
+        const count = await getStudentCountForAcademicYear(activeAcademicYear.name);
+        const yearSuffix = (activeAcademicYear.name || '2025-2026').split('-')[0].slice(-2); // e.g., "2025-2026" -> "25"
+        const nextNumber = String(count + 1).padStart(3, '0');
+        const generatedId = `S${yearSuffix}${nextNumber}`;
         
         setFormData(prev => ({ ...prev, studentId: generatedId }));
       } catch (error) {
