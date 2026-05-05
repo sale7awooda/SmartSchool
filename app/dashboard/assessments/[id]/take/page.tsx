@@ -35,6 +35,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
   const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const initializedRef = useRef(false);
 
   useEffect(() => {
