@@ -12,8 +12,8 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
       student:students!inner(user:users!inner(name), academic_year)
     `, { count: 'exact' });
 
-  if (academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(academicYear)) {
-    query = query.eq('student.academic_year', academicYear);
+  if (academicYear) {
+    query = query.eq('students.academic_year', academicYear);
   }
 
   if (studentId) {
@@ -127,8 +127,8 @@ export async function getFeeStats(academicYear?: string) {
       student:students!inner(academic_year)
     `);
   
-  if (academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(academicYear)) {
-    query = query.eq('student.academic_year', academicYear);
+  if (academicYear) {
+    query = query.eq('students.academic_year', academicYear);
   }
 
   const { data, error } = await query;

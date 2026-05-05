@@ -168,10 +168,9 @@ export function AddStudentModal({
                       // Fallback generation if ID is somehow missing
                       if (!finalStudentId && activeAcademicYear) {
                         try {
-                          const count = await getStudentCountForAcademicYear(activeAcademicYear.name);
-                          const yearSuffix = activeAcademicYear.name.split('-')[0].slice(-2);
-                          const nextNumber = String(count + 1).padStart(3, '0');
-                          finalStudentId = `S${yearSuffix}${nextNumber}`;
+                          const yearSuffix = activeAcademicYear.name.split('-')[0].slice(-2) || '25';
+                          const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+                          finalStudentId = `S${yearSuffix}${randomStr}`;
                         } catch (e) {
                           console.error("Failed to generate fallback ID:", e);
                           toast.error("Failed to generate Student ID. Please try again.");

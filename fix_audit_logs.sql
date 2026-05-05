@@ -70,3 +70,12 @@ CREATE POLICY "permissive_all" ON fee_payments FOR ALL USING (true) WITH CHECK (
 INSERT INTO system_settings (id, school_name, email)
 SELECT 1, 'Smart School', 'info@smartschool.edu'
 WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE id = 1);
+
+-- 6. Ensure fee_items has frequency and category
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'fee_items') THEN
+    ALTER TABLE fee_items ADD COLUMN IF NOT EXISTS frequency TEXT DEFAULT 'Per Term';
+    ALTER TABLE fee_items ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Academic';
+  END IF;
+END $$;
