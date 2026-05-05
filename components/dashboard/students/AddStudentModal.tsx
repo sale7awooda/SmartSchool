@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
-import { createStudent, createFeeItem, getStudentCountForAcademicYear } from '@/lib/supabase-db';
+import { createStudent, createFeeItem, getNextStudentIdForAcademicYear } from '@/lib/supabase-db';
 import { processCreateStudentAction, processUpdateStudentAction } from '@/app/actions/students';
 import { useAuth } from '@/lib/auth-context';
 
@@ -168,9 +168,7 @@ export function AddStudentModal({
                       // Fallback generation if ID is somehow missing
                       if (!finalStudentId && activeAcademicYear) {
                         try {
-                          const yearSuffix = activeAcademicYear.name.split('-')[0].slice(-2) || '25';
-                          const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-                          finalStudentId = `S${yearSuffix}${randomStr}`;
+                          finalStudentId = await getNextStudentIdForAcademicYear(activeAcademicYear.name);
                         } catch (e) {
                           console.error("Failed to generate fallback ID:", e);
                           toast.error("Failed to generate Student ID. Please try again.");

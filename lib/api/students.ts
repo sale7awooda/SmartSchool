@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
 import { Student, User, Parent } from '@/types';
-import { MOCK_STUDENTS } from '@/lib/demo-data';
 
 export async function getStudents(academicYear?: string, includeDeleted = false, grade?: string) {
   try {
@@ -39,17 +38,10 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
       id: s.id // Use student UUID as the main ID
     })) as Student[];
   } catch (error: any) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      let filtered = MOCK_STUDENTS;
-      if (grade) {
-        filtered = filtered.filter(s => s.grade === grade);
-      }
-      return filtered;
-    }
+    console.error("Error in getStudents:", error);
     throw error;
   }
 }
-
 
 export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, isDeleted: boolean = false) {
   try {
@@ -100,22 +92,7 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
       totalPages: Math.ceil((count || 0) / limit)
     };
   } catch (error: any) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      let filtered = MOCK_STUDENTS;
-      if (search) {
-        const lowerSearch = search.toLowerCase();
-        filtered = filtered.filter(s => 
-          s.name.toLowerCase().includes(lowerSearch) || 
-          s.rollNumber?.toLowerCase().includes(lowerSearch)
-        );
-      }
-      const count = filtered.length;
-      return {
-        data: filtered.slice((page - 1) * limit, page * limit),
-        count,
-        totalPages: Math.ceil(count / limit)
-      };
-    }
+    console.error("Error in getPaginatedStudents:", error);
     throw error;
   }
 }
@@ -135,6 +112,29 @@ export async function getStudentCountForAcademicYear(academicYearIdRef: string) 
     
   if (error) throw error;
   return count || 0;
+}
+
+export async function getNextStudentIdForAcademicYear(academicYearIdRef: string) {
+  const yearSuffix = (academicYearIdRef || '2025-2026').split('-')[0].slice(-2);
+  const prefix = `S${yearSuffix}`;
+
+  const { data, error } = await supabase
+    .from('students')
+    .select('roll_number')
+    .eq('academic_year', academicYearIdRef)
+    .ilike('roll_number', `${prefix}%`)
+    .order('roll_number', { ascending: false })
+    .limit(1);
+
+  let nextNumber = 1;
+  if (!error && data && data.length > 0 && data[0].roll_number) {
+    const match = data[0].roll_number.match(/\d+$/);
+    if (match) {
+      nextNumber = parseInt(match[0], 10) + 1;
+    }
+  }
+
+  return `${prefix}${String(nextNumber).padStart(3, '0')}`;
 }
 
 

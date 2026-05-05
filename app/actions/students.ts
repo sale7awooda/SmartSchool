@@ -292,7 +292,7 @@ export async function processCreateStudentAction(
       .maybeSingle();
 
     if (existingStudent) {
-      return { success: false, message: `A student with this ID (${studentData.studentId}) already exists.` };
+      return { success: false, message: "A student with this ID (Roll Number) already exists." };
     }
 
     // 1. Create the student auth profile
