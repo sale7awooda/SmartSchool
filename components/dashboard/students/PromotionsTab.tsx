@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { supabase } from '@/lib/supabase/client';
 import { getPaginatedStudents, getClasses } from '@/lib/supabase-db';
 import { Search, GraduationCap } from 'lucide-react';
@@ -11,6 +11,8 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { mutate } = useSWRConfig();
 
   // We fetch a large number of students for this view, or we can use pagination.
   // For 'all' scope, practically we might need a lot 
@@ -111,8 +113,10 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
       }
 
       toast.success(`Successfully promoted ${selectedStudents.size} students`);
-      mutateStudents();
+      mutateStudents(); // Update main directory
+      mutate(['students_for_promotion', activeAcademicYear?.name]); // Update promotions list specifically
       setSelectedStudents(new Set());
+      setNextGrades({});
     } catch (error) {
       console.error(error);
       toast.error('Failed to promote students');

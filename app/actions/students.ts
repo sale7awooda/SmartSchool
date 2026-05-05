@@ -133,8 +133,21 @@ export async function processUpdateStudentAction(
               user_metadata: { name: updateData.parentName, role: 'parent' }
             });
             
-            if (parentAuthError) console.error("Parent auth creation error:", parentAuthError);
-            parentAuthUser = parentAuthData?.user || undefined;
+            if (parentAuthError) {
+              console.warn("Parent auth creation error, attempting fallback:", parentAuthError);
+              const { data: fallbackAuthData, error: fallbackError } = await adminClient.auth.signUp({
+                email: parentEmailToUse,
+                password: parentPassword || 'password123',
+                options: {
+                  data: { name: updateData.parentName, role: 'parent' }
+                }
+              });
+              if (!fallbackError) {
+                parentAuthUser = fallbackAuthData?.user || undefined;
+              }
+            } else {
+              parentAuthUser = parentAuthData?.user || undefined;
+            }
           }
 
           if (parentAuthUser) {
@@ -301,10 +314,24 @@ export async function processCreateStudentAction(
       });
 
       if (authError) {
-        console.error("Auth creation error:", authError);
-        return { success: false, message: "Failed to create student auth profile: " + authError.message };
+        console.warn("Admin createUser failed, attempting standard signUp fallback...", authError);
+        // Fallback: Use standard signUp if service_role key is missing
+        const { data: fallbackAuthData, error: fallbackError } = await adminClient.auth.signUp({
+          email: studentEmail,
+          password: studentData.studentId,
+          options: {
+            data: { name: studentData.name, role: 'student' }
+          }
+        });
+
+        if (fallbackError) {
+          console.error("Auth creation fallback error:", fallbackError);
+          return { success: false, message: "Failed to create student auth profile: " + (authError.message || fallbackError.message) };
+        }
+        authUser = fallbackAuthData?.user || undefined;
+      } else {
+        authUser = authData?.user || undefined;
       }
-      authUser = authData?.user || undefined;
     }
 
     if (!authUser) {
@@ -400,9 +427,22 @@ export async function processCreateStudentAction(
             });
             
             if (parentAuthError) {
-              console.error("Parent auth creation error:", parentAuthError);
+              console.warn("Parent admin createUser failed, attempting fallback...", parentAuthError);
+              const { data: fallbackAuthData, error: fallbackError } = await adminClient.auth.signUp({
+                email: parentEmail,
+                password: parentPassword || 'password123',
+                options: {
+                  data: { name: studentData.parentName, role: 'parent' }
+                }
+              });
+              if (fallbackError) {
+                console.error("Parent auth creation fallback error:", fallbackError);
+              } else {
+                parentAuthUser = fallbackAuthData?.user || undefined;
+              }
+            } else {
+              parentAuthUser = parentAuthData?.user || undefined;
             }
-            parentAuthUser = parentAuthData?.user || undefined;
           }
 
           if (parentAuthUser) {
