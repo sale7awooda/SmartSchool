@@ -79,9 +79,6 @@ export function GradeCardsTab() {
     if (!selectedStudent) return;
     setIsSaving(true);
     try {
-      const userRes = await supabase.auth.getUser();
-      const userId = userRes.data.user?.id;
-
       const payload = studentGrades
         .filter(g => g.marks !== '')
         .map(g => ({
@@ -93,7 +90,7 @@ export function GradeCardsTab() {
           score_max: parseFloat(g.max_marks),
           assessment_id: g.linked_assessment_id || null,
           remarks: g.remarks || '',
-          graded_by: userId
+          graded_by: (await supabase.auth.getUser()).data.user?.id
         }));
 
       if (payload.length === 0) {
