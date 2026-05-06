@@ -22,9 +22,9 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
   );
 
   const { data: classesData } = useSWR('classes', getClasses);
-  const classesList = classesData?.map((c: any) => c.name) || [];
+  const classesList = useMemo(() => classesData?.map((c: any) => c.name) || [], [classesData]);
 
-  const students = studentsResponse?.data || [];
+  const students = useMemo(() => studentsResponse?.data || [], [studentsResponse?.data]);
 
   const { data: allGrades } = useSWR(
     students.length > 0 ? ['all-grades-promotions'] : null,

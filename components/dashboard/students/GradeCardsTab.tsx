@@ -26,10 +26,10 @@ export function GradeCardsTab() {
   const { data: subjectsData } = useSWR('subjects', () => getSubjects());
   const { data: assessmentsData } = useSWR('assessments', () => getPaginatedAssessments(1, 200));
 
-  const students = studentsData?.data || [];
-  const classes = classesData || [];
-  const subjects = subjectsData || [];
-  const assessments = assessmentsData?.data || [];
+  const students = useMemo(() => studentsData?.data || [], [studentsData?.data]);
+  const classes = useMemo(() => classesData || [], [classesData]);
+  const subjects = useMemo(() => subjectsData || [], [subjectsData]);
+  const assessments = useMemo(() => assessmentsData?.data || [], [assessmentsData?.data]);
 
   const [studentGrades, setStudentGrades] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +79,7 @@ export function GradeCardsTab() {
     if (!selectedStudent) return;
     setIsSaving(true);
     try {
+      const authUser = (await supabase.auth.getUser()).data.user?.id;
       const payload = studentGrades
         .filter(g => g.marks !== '')
         .map(g => ({
@@ -90,7 +91,7 @@ export function GradeCardsTab() {
           score_max: parseFloat(g.max_marks),
           assessment_id: g.linked_assessment_id || null,
           remarks: g.remarks || '',
-          graded_by: (await supabase.auth.getUser()).data.user?.id
+          graded_by: authUser
         }));
 
       if (payload.length === 0) {
