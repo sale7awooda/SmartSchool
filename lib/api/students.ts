@@ -39,13 +39,6 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
       id: s.id // Use student UUID as the main ID
     })) as Student[];
   } catch (error: any) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      let filtered = MOCK_STUDENTS;
-      if (grade) {
-        filtered = filtered.filter(s => s.grade === grade);
-      }
-      return filtered;
-    }
     throw error;
   }
 }
@@ -100,22 +93,6 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
       totalPages: Math.ceil((count || 0) / limit)
     };
   } catch (error: any) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      let filtered = MOCK_STUDENTS;
-      if (search) {
-        const lowerSearch = search.toLowerCase();
-        filtered = filtered.filter(s => 
-          s.name.toLowerCase().includes(lowerSearch) || 
-          s.rollNumber?.toLowerCase().includes(lowerSearch)
-        );
-      }
-      const count = filtered.length;
-      return {
-        data: filtered.slice((page - 1) * limit, page * limit),
-        count,
-        totalPages: Math.ceil(count / limit)
-      };
-    }
     throw error;
   }
 }
@@ -137,6 +114,45 @@ export async function getStudentCountForAcademicYear(academicYearIdRef: string) 
   return count || 0;
 }
 
+
+export async function getNextStudentId(academicYear: string) {
+  try {
+    const yearSuffix = academicYear.split('-')[0].substring(2); // e.g., '25' from '2025-2026'
+    const prefix = `S${yearSuffix}`;
+    
+    const { data, error } = await supabase
+      .from('students')
+      .select('roll_number')
+      .ilike('roll_number', `${prefix}%`)
+      .order('roll_number', { ascending: false })
+      .limit(1);
+      
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      return `${prefix}001`;
+    }
+    
+    const lastId = data[0].roll_number;
+    // Extract the numeric part (after 'S25')
+    const lastNumMatch = lastId.match(/\d+$/);
+    if (!lastNumMatch) return `${prefix}001`;
+    
+    // The prefix might be S25, and lastId might be S25001
+    // We want the part after S25. 
+    // If prefix is S25 (3 chars), then lastNum is from index 3.
+    const lastNumStr = lastId.substring(prefix.length);
+    const lastNum = parseInt(lastNumStr, 10);
+    const nextNum = (lastNum + 1).toString().padStart(3, '0');
+    
+    return `${prefix}${nextNum}`;
+  } catch (error) {
+    console.error('Error generating student ID:', error);
+    // Fallback to a random-ish but format-compliant ID if anything fails
+    const yearSuffix = new Date().getFullYear().toString().substring(2);
+    return `S${yearSuffix}${Math.floor(Math.random() * 900 + 100)}`;
+  }
+}
 
 export async function createStudent(studentData: any) {
   // 1. Create the student user profile
@@ -318,13 +334,9 @@ export async function getStudentByUserId(userId: string) {
 
 
 export async function getAtRiskStudents(academicYear?: string) {
-  // In a real app, this would query students with low grades or high absenteeism
-  return [
-    { id: 1, student: 'Milhouse Van Houten', grade: 'Grade 4', risk: 'High', factor: 'Academic Drop', reason: 'Math score dropped by 18% over last 3 weeks. Missed 2 assignments.', action: 'Schedule parent-teacher meeting.' },
-    { id: 2, student: 'Nelson Muntz', grade: 'Grade 4', risk: 'High', factor: 'Attendance', reason: 'Absent for 4 consecutive days without medical note. Historical pattern of mid-term absenteeism.', action: 'Initiate wellness check.' },
-    { id: 3, student: 'Ralph Wiggum', grade: 'Grade 2', risk: 'Medium', factor: 'Engagement', reason: 'Decreased participation in class activities. Reading comprehension below benchmark.', action: 'Assign reading specialist.' },
-    { id: 4, student: 'Jimbo Jones', grade: 'Grade 6', risk: 'Medium', factor: 'Behavioral', reason: '3 minor incidents reported in the last 10 days.', action: 'Counselor check-in.' },
-  ];
+  // Return empty for now as requested by user to use only real data
+  // Real implementation would look at grades/attendance
+  return [];
 }
 
 

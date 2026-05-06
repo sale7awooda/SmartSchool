@@ -202,18 +202,17 @@ export async function deleteFeeItem(id: string) {
 
 
 export async function getFinancialStats(academicYear?: string) {
-  // In a real app, this would aggregate data from fee_invoices and fee_payments tables
-  return {
-    ytdRevenue: 768000,
-    health: [
-      { month: 'Sep', revenue: 120000, expenses: 95000 },
-      { month: 'Oct', revenue: 125000, expenses: 98000 },
-      { month: 'Nov', revenue: 118000, expenses: 92000 },
-      { month: 'Dec', revenue: 130000, expenses: 105000 },
-      { month: 'Jan', revenue: 140000, expenses: 96000 },
-      { month: 'Feb', revenue: 135000, expenses: 99000 },
-    ]
-  };
+  try {
+    const { data: invoices } = await supabase.from('fee_invoices').select('amount').eq('status', 'paid');
+    const revenue = invoices?.reduce((acc, inv) => acc + Number(inv.amount), 0) || 0;
+
+    return {
+      ytdRevenue: revenue,
+      health: [] // Trends would require monthly grouping
+    };
+  } catch (e) {
+    return { ytdRevenue: 0, health: [] };
+  }
 }
 
 

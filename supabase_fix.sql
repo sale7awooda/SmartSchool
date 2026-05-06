@@ -39,6 +39,7 @@ DROP TABLE IF EXISTS "system_settings" cascade;
 DROP TABLE IF EXISTS "timeline_events" cascade;
 DROP TABLE IF EXISTS "visitors" cascade;
 DROP TABLE IF EXISTS "staff_attendance" cascade;
+DROP TABLE IF EXISTS "grades" cascade;
 DROP TABLE IF EXISTS "students" cascade;
 DROP TABLE IF EXISTS "subjects" cascade;
 DROP TABLE IF EXISTS "classes" cascade;
@@ -318,6 +319,22 @@ CREATE TABLE staff_attendance (
   UNIQUE(staff_id, date)
 );
 
+CREATE TABLE grades (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  academic_year TEXT NOT NULL,
+  term TEXT NOT NULL,
+  score NUMERIC NOT NULL,
+  score_max NUMERIC NOT NULL DEFAULT 100,
+  assessment_id UUID REFERENCES assessments(id),
+  remarks TEXT,
+  graded_by UUID REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(student_id, subject_id, academic_year, term)
+);
+
 -- 4. ENABLE RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE academic_years ENABLE ROW LEVEL SECURITY;
@@ -341,6 +358,7 @@ ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff_attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
 
 -- 5. CREATE POLICIES (Development Permissive Mode)
 CREATE POLICY "permissive_all" ON users FOR ALL USING (true) WITH CHECK (true);
@@ -365,6 +383,7 @@ CREATE POLICY "permissive_all" ON schedules FOR ALL USING (true) WITH CHECK (tru
 CREATE POLICY "permissive_all" ON assessments FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "permissive_all" ON submissions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "permissive_all" ON staff_attendance FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permissive_all" ON grades FOR ALL USING (true) WITH CHECK (true);
 
 -- 6. SEED DATA
 INSERT INTO academic_years (name, start_date, end_date, is_active)

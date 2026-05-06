@@ -240,19 +240,19 @@ export async function getSubmissionByAssessmentAndStudent(assessmentId: string, 
 
 
 export async function getAcademicStats(academicYear?: string) {
-  // In a real app, this would aggregate data from grades and students tables
-  // Returning mock structure for now to match the UI expectations
-  return {
-    avgGrade: 86.4,
-    trends: [
-      { month: 'Sep', math: 78, science: 82, english: 85, avg: 81.6 },
-      { month: 'Oct', math: 80, science: 81, english: 86, avg: 82.3 },
-      { month: 'Nov', math: 82, science: 85, english: 84, avg: 83.6 },
-      { month: 'Dec', math: 85, science: 88, english: 87, avg: 86.6 },
-      { month: 'Jan', math: 84, science: 86, english: 88, avg: 86.0 },
-      { month: 'Feb', math: 88, science: 89, english: 90, avg: 89.0 },
-    ]
-  };
+  try {
+    const { data: grades } = await supabase.from('grades').select('score');
+    const avg = grades && grades.length > 0 
+      ? grades.reduce((acc, g) => acc + Number(g.score), 0) / grades.length 
+      : 0;
+
+    return {
+      avgGrade: Math.round(avg * 10) / 10,
+      trends: [] // Real trends would require date-grouped aggregation
+    };
+  } catch (e) {
+    return { avgGrade: 0, trends: [] };
+  }
 }
 
 

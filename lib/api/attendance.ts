@@ -106,18 +106,19 @@ export async function saveAttendance(attendanceData: any[]) {
 
 
 export async function getAttendanceStats(academicYear?: string) {
-  // In a real app, this would aggregate data from attendance table
-  return {
-    avgAttendance: 94.8,
-    patterns: [
-      { week: 'Week 1', present: 95, absent: 5, late: 2 },
-      { week: 'Week 2', present: 94, absent: 6, late: 3 },
-      { week: 'Week 3', present: 92, absent: 8, late: 4 },
-      { week: 'Week 4', present: 96, absent: 4, late: 1 },
-      { week: 'Week 5', present: 97, absent: 3, late: 2 },
-      { week: 'Week 6', present: 93, absent: 7, late: 5 },
-    ]
-  };
+  try {
+    const { data: records } = await supabase.from('attendance').select('status');
+    const total = records?.length || 0;
+    const present = records?.filter(r => r.status === 'present' || r.status === 'late').length || 0;
+    const avg = total > 0 ? (present / total) * 100 : 0;
+
+    return {
+      avgAttendance: Math.round(avg * 10) / 10,
+      patterns: [] // Weekly patterns would require group by week
+    };
+  } catch (e) {
+    return { avgAttendance: 0, patterns: [] };
+  }
 }
 
 

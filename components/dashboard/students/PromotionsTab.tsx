@@ -26,6 +26,34 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
 
   const students = studentsResponse?.data || [];
 
+  const { data: allGrades } = useSWR(
+    students.length > 0 ? ['all-grades-promotions'] : null,
+    async () => {
+      try {
+        const { data, error } = await supabase.from('grades').select('*');
+        if (error) return [];
+        return data;
+      } catch (e) {
+        return [];
+      }
+    }
+  );
+
+  const getExamStatus = (studentId: string) => {
+    const studentResults = allGrades?.filter((g: any) => g.student_id === studentId) || [];
+    if (studentResults.length === 0) return 'Not Applicable';
+    
+    // We expect grades for roughly 5-8 subjects
+    if (studentResults.length < 3) return 'Not Yet Promoted';
+
+    const average = studentResults.reduce((acc: number, g: any) => acc + (g.score || 0), 0) / studentResults.length;
+    const hasFail = studentResults.some((g: any) => (g.score || 0) < 40);
+
+    if (hasFail && average < 50) return 'Demoted';
+    if (average >= 50) return 'Passed';
+    return 'Not Yet Promoted';
+  };
+
   const filteredStudents = useMemo(() => {
     let list = [...students];
     if (scope === 'grade' && selectedGrade) {
@@ -218,20 +246,23 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                   <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No students found.</td></tr>
                 ) : (
                   filteredStudents.map((student: any) => {
-                    const isPassed = true; // Simulating passed exams for now
+                    const status = getExamStatus(student.id);
+                    const canPromote = status === 'Passed' || status === 'Not Applicable';
+                    
                     return (
                       <tr key={student.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                         <td className="px-6 py-4">
                           <input
                             type="checkbox"
                             checked={selectedStudents.has(student.id)}
+                            disabled={!canPromote && status !== 'Not Applicable'} // Allow overrides if needed or strictly block
                             onChange={(e) => handleCheckStudent(student.id, e.target.checked)}
-                            className="rounded border-border text-primary focus:ring-primary"
+                            className="rounded border-border text-primary focus:ring-primary disabled:opacity-30"
                           />
                         </td>
                         <td className="px-6 py-4">
                           <div className="font-bold text-foreground">{student.name}</div>
-                          <div className="text-xs text-muted-foreground">{student.roll_number}</div>
+                          <div className="text-xs text-muted-foreground">{student.roll_number || student.rollNumber}</div>
                         </td>
                         <td className="px-6 py-4">
                           <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-foreground border border-border">
@@ -239,13 +270,18 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${isPassed ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                            {isPassed ? 'Passed' : 'Failed'}
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+                            status === 'Passed' ? 'bg-emerald-500/10 text-emerald-500' : 
+                            status === 'Demoted' ? 'bg-amber-500/10 text-amber-500' :
+                            status === 'Not Applicable' ? 'bg-muted text-muted-foreground' :
+                            'bg-red-500/10 text-red-500'
+                          }`}>
+                            {status}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <select
-                            value={nextGrades[student.id] || suggestNextGrade(student.grade)}
+                            value={nextGrades[student.id] || (status === 'Demoted' ? student.grade : suggestNextGrade(student.grade))}
                             onChange={(e) => setNextGrades({ ...nextGrades, [student.id]: e.target.value })}
                             className="px-3 py-1.5 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-32"
                           >

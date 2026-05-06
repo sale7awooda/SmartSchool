@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent, BehaviorRecord, TimelineEvent } from '@/types';
-import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getFeeItems, createFeeItem } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getNextStudentId, getFeeItems, createFeeItem } from '@/lib/supabase-db';
 import { processDeleteStudentAction } from '@/app/actions/students';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
@@ -28,6 +28,8 @@ import { PromotionsTab } from '@/components/dashboard/students/PromotionsTab';
 type DirectoryTab = 'students' | 'parents';
 type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
 
+import { GradeCardsTab } from '@/components/dashboard/students/GradeCardsTab';
+
 const isStudent = (person: User | Student | Parent | null): person is Student => {
   return !!(person && 'grade' in person);
 };
@@ -43,7 +45,7 @@ export default function StudentsPage() {
   
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('overview');
-  const [mainTab, setMainTab] = useState<'directory' | 'history' | 'promotions'>('directory');
+  const [mainTab, setMainTab] = useState<'directory' | 'gradecards' | 'promotions' | 'history'>('directory');
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -326,11 +328,7 @@ export default function StudentsPage() {
     
     if (activeAcademicYear) {
       try {
-        const count = await getStudentCountForAcademicYear(activeAcademicYear.name);
-        const yearSuffix = (activeAcademicYear.name || '2025-2026').split('-')[0].slice(-2); // e.g., "2025-2026" -> "25"
-        const nextNumber = String(count + 1).padStart(3, '0');
-        const generatedId = `S${yearSuffix}${nextNumber}`;
-        
+        const generatedId = await getNextStudentId(activeAcademicYear.name);
         setFormData(prev => ({ ...prev, studentId: generatedId }));
       } catch (error) {
         console.error("Failed to generate student ID:", error);
@@ -431,7 +429,7 @@ export default function StudentsPage() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide shrink-0">
-        {(["directory", "history", "promotions"] as const)
+        {(["directory", "gradecards", "promotions", "history"] as const)
           .filter(tab => tab === 'directory' || isAdmin)
           .map((tab) => (
           <button
@@ -443,7 +441,7 @@ export default function StudentsPage() {
                 : "bg-card text-muted-foreground hover:bg-muted border border-border"
             }`}
           >
-            {t(tab)}
+            {tab === 'gradecards' ? t('grade_cards') || 'Grade Cards' : t(tab)}
           </button>
         ))}
       </div>
@@ -694,6 +692,10 @@ export default function StudentsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {mainTab === 'gradecards' && (
+        <GradeCardsTab />
       )}
 
       {mainTab === 'promotions' && (
