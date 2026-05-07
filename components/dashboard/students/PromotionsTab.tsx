@@ -6,12 +6,13 @@ import { Search, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
-  const [scope, setScope] = useState<'all' | 'grade' | 'manual'>('all');
+  const [scope, setScope] = useState<'all' | 'grade'>('all');
   const [selectedGradeScope, setSelectedGradeScope] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [forcePromote, setForcePromote] = useState(false);
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -29,7 +30,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
 
   const { mutate } = useSWRConfig();
 
-  const queryFilter = scope === 'manual' ? debouncedSearch : '';
+  const queryFilter = debouncedSearch;
   const gradeFilter = scope === 'grade' ? selectedGradeScope : undefined;
 
   const { data: studentsResponse, isLoading } = useSWR(
@@ -186,40 +187,40 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
           </button>
         </div>
 
-        <div className="mt-6 flex flex-col sm:flex-row gap-4 border-b border-border pb-4">
-          <div className="flex gap-2">
-            {(['all', 'grade', 'manual'] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setScope(s);
-                  setSelectedStudents(new Set());
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-colors ${
-                  scope === s
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                {s === 'all' ? 'All School' : s === 'grade' ? 'By Grade' : 'Manual'}
-              </button>
-            ))}
-          </div>
-
-          {scope === 'grade' && (
-            <select
-              value={selectedGradeScope}
-              onChange={(e) => setSelectedGradeScope(e.target.value)}
-              className="px-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="">Select Grade</option>
-              {classesList.map((g: string) => (
-                <option key={g} value={g}>{g}</option>
+        <div className="mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex gap-2">
+              {(['all', 'grade'] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setScope(s);
+                    setSelectedStudents(new Set());
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-colors ${
+                    scope === s
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {s === 'all' ? 'All School' : 'By Grade'}
+                </button>
               ))}
-            </select>
-          )}
+            </div>
 
-          {scope === 'manual' && (
+            {scope === 'grade' && (
+              <select
+                value={selectedGradeScope}
+                onChange={(e) => setSelectedGradeScope(e.target.value)}
+                className="px-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="">Select Grade</option>
+                {classesList.map((g: string) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            )}
+
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -230,7 +231,16 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                 className="pl-9 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
               />
             </div>
-          )}
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={forcePromote}
+              onChange={(e) => setForcePromote(e.target.checked)}
+              className="rounded border-border text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+            />
+            Force Promotions Override
+          </label>
         </div>
       </div>
 
@@ -270,7 +280,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                            <input
                             type="checkbox"
                             checked={selectedStudents.has(student.id)}
-                            disabled={!canPromote} 
+                            disabled={!canPromote && !forcePromote} 
                             onChange={(e) => handleCheckStudent(student.id, e.target.checked)}
                             className="rounded border-border text-primary focus:ring-primary disabled:opacity-30"
                           />

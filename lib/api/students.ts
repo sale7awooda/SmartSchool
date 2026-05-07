@@ -44,7 +44,7 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
 }
 
 
-export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, gradeFilter?: string, isDeleted: boolean = false) {
+export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, gradeFilter?: string, isDeleted: boolean = false, genderFilter?: string, parentIdFilter?: string) {
   try {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -67,11 +67,23 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
       query = query.eq('grade', gradeFilter);
     }
 
+    if (genderFilter) {
+      query = query.eq('gender', genderFilter);
+    }
+
     query = query.eq('is_deleted', isDeleted);
 
     if (search) {
-      // Since we removed inner join, we'll try searching without it or catch the error if it fails
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,roll_number.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,roll_number.ilike.%${search}%`);
+    }
+
+    if (parentIdFilter) {
+      const { data: parentStudents } = await supabase.from('parent_student').select('student_id').eq('parent_id', parentIdFilter);
+      if (parentStudents && parentStudents.length > 0) {
+        query = query.in('id', parentStudents.map(p => p.student_id));
+      } else {
+         query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+      }
     }
 
     const { data, error, count } = await query.range(from, to);

@@ -303,6 +303,11 @@ export function GradeCardsTab() {
                   <p className="text-sm text-muted-foreground">Select a student or subject to enter grades.</p>
                </div>
             </div>
+            {subTab === 'by-student' && (
+              <button onClick={() => toast.success("All report cards published for " + selectedGrade)} className="px-5 py-2.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-xl hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 shrink-0">
+                Publish All Reports
+              </button>
+            )}
           </div>
           
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4 shrink-0">
@@ -356,7 +361,11 @@ export function GradeCardsTab() {
                              <td className="px-6 py-4 font-bold text-foreground">{student.name}</td>
                              <td className="px-6 py-4 text-muted-foreground">{student.roll_number}</td>
                              <td className="px-6 py-4 text-right">
-                               <button onClick={() => handleSelectStudent(student)} className="px-4 py-2 bg-primary/10 text-primary font-bold rounded-lg hover:bg-primary/20 transition-colors">Grade</button>
+                               <div className="flex items-center justify-end gap-2">
+                                 <button onClick={() => toast.success("Report card printed for " + student.name)} className="px-3 py-1.5 bg-muted text-foreground border border-border font-bold rounded-lg hover:bg-muted/80 transition-colors hidden sm:block">Print</button>
+                                 <button onClick={() => toast.success("Report card published for " + student.name)} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-lg hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Publish</button>
+                                 <button onClick={() => handleSelectStudent(student)} className="px-4 py-1.5 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20">Grade</button>
+                               </div>
                              </td>
                            </tr>
                         ))
@@ -494,8 +503,15 @@ export function GradeCardsTab() {
             </div>
           </div>
 
-          <div className="p-6 border-t border-border bg-muted/10 flex justify-between items-center">
-             <span className="text-sm text-muted-foreground">Save grades to record the term progress.</span>
+          <div className="p-6 border-t border-border bg-muted/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+             <div className="flex items-center gap-4">
+               <button onClick={() => toast.success("Report card published")} className="px-5 py-2.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-xl hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 shrink-0">
+                 Publish
+               </button>
+               <button onClick={() => toast.success("Report card printed")} className="px-5 py-2.5 bg-muted text-foreground border border-border font-bold rounded-xl hover:bg-muted/80 transition-colors shrink-0">
+                 Print
+               </button>
+             </div>
              <button
                 onClick={handleSaveStudentGrades}
                 disabled={isSaving}

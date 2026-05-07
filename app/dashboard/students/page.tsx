@@ -43,6 +43,12 @@ export default function StudentsPage() {
   const [page, setPage] = useState(1);
   const limit = 10;
   
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterGrade, setFilterGrade] = useState('');
+  const [filterParentId, setFilterParentId] = useState('');
+  const [filterAcademicYear, setFilterAcademicYear] = useState('');
+  const [filterGender, setFilterGender] = useState('');
+
   const [selectedPerson, setSelectedPerson] = useState<User | Student | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('overview');
   const [mainTab, setMainTab] = useState<'directory' | 'gradecards' | 'promotions' | 'history'>('directory');
@@ -70,9 +76,8 @@ export default function StudentsPage() {
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
 
   const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
-    ['students', page, debouncedSearch, activeAcademicYear?.name, mainTab === 'history'], 
-    // We pass undefined for academicYear in the main directory so promoted students don't suddenly disappear
-    ([_, p, s, a, isDeleted]) => getPaginatedStudents(p, limit, s, undefined, undefined, isDeleted)
+    ['students', page, debouncedSearch, filterAcademicYear, mainTab === 'history', filterGrade, filterGender, filterParentId], 
+    ([_, p, s, a, isDeleted, fGrade, fGender, fParent]) => getPaginatedStudents(p, limit, s, a || undefined, fGrade || undefined, isDeleted, fGender || undefined, fParent || undefined)
   );
 
   const students = studentsResponse?.data || [];
@@ -450,7 +455,7 @@ export default function StudentsPage() {
         <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card dark:bg-slate-900 p-4 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0">
             <div className="flex gap-2 w-full sm:w-auto">
-              <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all bg-card border border-border text-muted-foreground hover:bg-muted hover:border-border">
+              <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all border ${showFilters ? 'bg-primary/10 text-primary border-primary/20' : 'bg-card border-border text-muted-foreground hover:bg-muted hover:border-border'}`}>
                 <Filter size={16} />
                 {t('filters')}
               </button>
@@ -467,6 +472,72 @@ export default function StudentsPage() {
               />
             </div>
           </div>
+
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0 overflow-hidden">
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Grade</label>
+                    <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="">All Grades</option>
+                      {classesList.map((c: string) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Academic Year</label>
+                    <select value={filterAcademicYear} onChange={e => setFilterAcademicYear(e.target.value)} className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="">All Years</option>
+                      <option value="2024-2025">2024-2025</option>
+                      <option value="2025-2026">2025-2026</option>
+                      <option value="2026-2027">2026-2027</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Gender</label>
+                    <select value={filterGender} onChange={e => setFilterGender(e.target.value)} className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="">All</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Parent / Guardian Search</label>
+                    {/* For simplicity we'll just have a parent search input that sets the parent id if selected from foundParents. 
+                        A slightly simpler approach since we already have parentSearch and foundParents logic in this file */}
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="Type to search parent..." 
+                        value={parentSearch}
+                        onChange={e => {
+                          setParentSearch(e.target.value);
+                          if (!e.target.value) setFilterParentId('');
+                        }}
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                      {parentSearch.length >= 2 && foundParents.length > 0 && !filterParentId && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-40 overflow-auto">
+                          {foundParents.map((p: any) => (
+                            <button
+                              key={p.id}
+                              onClick={() => {
+                                setFilterParentId(p.id);
+                                setParentSearch(p.name);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-muted text-foreground"
+                            >
+                              {p.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
             <div className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm overflow-hidden">
