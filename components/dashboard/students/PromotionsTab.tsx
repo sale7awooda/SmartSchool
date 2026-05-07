@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { supabase } from '@/lib/supabase/client';
 import { getPaginatedStudents, getClasses } from '@/lib/supabase-db';
@@ -7,30 +7,49 @@ import { toast } from 'sonner';
 
 export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
   const [scope, setScope] = useState<'all' | 'grade' | 'manual'>('all');
-  const [selectedGrade, setSelectedGrade] = useState('');
+  const [selectedGradeScope, setSelectedGradeScope] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [scope, selectedGradeScope]);
 
   const { mutate } = useSWRConfig();
 
-  // We fetch a large number of students for this view, or we can use pagination.
-  // For 'all' scope, practically we might need a lot 
+  const queryFilter = scope === 'manual' ? debouncedSearch : '';
+  const gradeFilter = scope === 'grade' ? selectedGradeScope : undefined;
+
   const { data: studentsResponse, isLoading } = useSWR(
-    ['students_for_promotion', activeAcademicYear?.name],
-    ([_, year]) => getPaginatedStudents(1, 1000, '', undefined, false) // Fetching up to 1000 for bulk promotion, passing undefined for year so all active show
+    ['students_for_promotion', page, queryFilter, gradeFilter, activeAcademicYear?.name],
+    ([_, p, q, g, y]) => getPaginatedStudents(p, limit, q, g, false)
   );
 
   const { data: classesData } = useSWR('classes', getClasses);
   const classesList = useMemo(() => classesData?.map((c: any) => c.name) || [], [classesData]);
 
   const students = useMemo(() => studentsResponse?.data || [], [studentsResponse?.data]);
+  const totalPages = studentsResponse?.totalPages || 1;
 
   const { data: allGrades } = useSWR(
-    students.length > 0 ? ['all-grades-promotions'] : null,
+    students.length > 0 ? ['all-grades-promotions', page] : null,
     async () => {
       try {
-        const { data, error } = await supabase.from('grades').select('*');
+        const studentIds = students.map((s:any) => s.id);
+        if (studentIds.length === 0) return [];
+        const { data, error } = await supabase.from('grades').select('*').in('student_id', studentIds);
         if (error) return [];
         return data;
       } catch (e) {
@@ -43,7 +62,6 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
     const studentResults = allGrades?.filter((g: any) => g.student_id === studentId) || [];
     if (studentResults.length === 0) return 'Not Applicable';
     
-    // We expect grades for roughly 5-8 subjects
     if (studentResults.length < 3) return 'Not Yet Promoted';
 
     const average = studentResults.reduce((acc: number, g: any) => acc + (g.score || 0), 0) / studentResults.length;
@@ -54,32 +72,22 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
     return 'Not Yet Promoted';
   };
 
-  const filteredStudents = useMemo(() => {
-    let list = [...students];
-    if (scope === 'grade' && selectedGrade) {
-      list = list.filter((s: any) => s.grade === selectedGrade);
-    } else if (scope === 'manual' && searchQuery) {
-      const lowerSearch = searchQuery.toLowerCase();
-      list = list.filter((s: any) => 
-        s.name?.toLowerCase().includes(lowerSearch) || 
-        s.roll_number?.toLowerCase().includes(lowerSearch)
-      );
-    }
-    // Sort by grade, then name
-    return list.sort((a: any, b: any) => {
-      const gCmp = (a.grade || '').localeCompare(b.grade || '');
-      if (gCmp !== 0) return gCmp;
-      return (a.name || '').localeCompare(b.name || '');
-    });
-  }, [students, scope, selectedGrade, searchQuery]);
+  const filteredStudents = students;
 
   // Handle checking all students
   const handleCheckAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const newSet = new Set(filteredStudents.map((s: any) => s.id));
+      // Add all currently visible students
+      const visibleIds = filteredStudents.map((s: any) => s.id);
+      const newSet = new Set(selectedStudents);
+      visibleIds.forEach(id => newSet.add(id));
       setSelectedStudents(newSet);
     } else {
-      setSelectedStudents(new Set());
+      // Remove currently visible students
+      const visibleIds = filteredStudents.map((s: any) => s.id);
+      const newSet = new Set(selectedStudents);
+      visibleIds.forEach(id => newSet.delete(id));
+      setSelectedStudents(newSet);
     }
   };
 
@@ -95,7 +103,6 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
 
   const [nextGrades, setNextGrades] = useState<Record<string, string>>({});
 
-  // Auto-suggest next grade
   const suggestNextGrade = (currentGrade: string) => {
     const match = currentGrade.match(/\d+/);
     if (match) {
@@ -114,7 +121,13 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
 
     setIsSubmitting(true);
     try {
-      const studentsToPromote = filteredStudents.filter((s: any) => selectedStudents.has(s.id));
+      // We need the student objects for promotion, since they are paginated, we'd need to fetch them from the selected IDs
+      // but to keep it simple and safe we can just fetch the selected students.
+      const selectedArr = Array.from(selectedStudents);
+      const { data: studentsToPromote, error: fetchErr } = await supabase.from('students').select('*').in('id', selectedArr);
+      
+      if (fetchErr || !studentsToPromote) throw new Error('Could not fetch selected students');
+
       const nextYear = activeAcademicYear ? 
         `${parseInt(activeAcademicYear.name.split('-')[1])}-${parseInt(activeAcademicYear.name.split('-')[1]) + 1}` : 
         '2026-2027';
@@ -141,8 +154,8 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
       }
 
       toast.success(`Successfully promoted ${selectedStudents.size} students`);
-      mutateStudents(); // Update main directory
-      mutate(['students_for_promotion', activeAcademicYear?.name]); // Update promotions list specifically
+      mutateStudents(); 
+      mutate(['students_for_promotion', page, queryFilter, gradeFilter, activeAcademicYear?.name]); 
       setSelectedStudents(new Set());
       setNextGrades({});
     } catch (error) {
@@ -152,6 +165,8 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
       setIsSubmitting(false);
     }
   };
+
+  const isAllVisibleSelected = filteredStudents.length > 0 && filteredStudents.every((s:any) => selectedStudents.has(s.id));
 
   return (
     <div className="space-y-6 flex-1 flex flex-col overflow-hidden">
@@ -193,8 +208,8 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
 
           {scope === 'grade' && (
             <select
-              value={selectedGrade}
-              onChange={(e) => setSelectedGrade(e.target.value)}
+              value={selectedGradeScope}
+              onChange={(e) => setSelectedGradeScope(e.target.value)}
               className="px-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">Select Grade</option>
@@ -226,9 +241,9 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
               <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 w-12">
-                    <input
+                     <input
                       type="checkbox"
-                      checked={filteredStudents.length > 0 && selectedStudents.size === filteredStudents.length}
+                      checked={isAllVisibleSelected}
                       onChange={handleCheckAll}
                       className="rounded border-border text-primary focus:ring-primary"
                     />
@@ -247,15 +262,15 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                 ) : (
                   filteredStudents.map((student: any) => {
                     const status = getExamStatus(student.id);
-                    const canPromote = status === 'Passed' || status === 'Not Applicable';
+                    const canPromote = status !== 'Not Applicable';
                     
                     return (
                       <tr key={student.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                         <td className="px-6 py-4">
-                          <input
+                           <input
                             type="checkbox"
                             checked={selectedStudents.has(student.id)}
-                            disabled={!canPromote} // Allow overrides if needed or strictly block
+                            disabled={!canPromote} 
                             onChange={(e) => handleCheckStudent(student.id, e.target.checked)}
                             className="rounded border-border text-primary focus:ring-primary disabled:opacity-30"
                           />
@@ -298,6 +313,28 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
               </tbody>
             </table>
           </div>
+          
+          {totalPages > 0 && (
+             <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
+               <button
+                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                 disabled={page === 1}
+                 className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50"
+               >
+                 Previous
+               </button>
+               <span className="text-sm font-medium text-muted-foreground">
+                  Page {page} of {totalPages}
+               </span>
+               <button
+                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                 disabled={page === totalPages}
+                 className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50"
+               >
+                 Next
+               </button>
+             </div>
+          )}
         </div>
       </div>
     </div>
