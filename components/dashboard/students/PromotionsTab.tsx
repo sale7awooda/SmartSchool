@@ -255,7 +255,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                           <input
                             type="checkbox"
                             checked={selectedStudents.has(student.id)}
-                            disabled={!canPromote && status !== 'Not Applicable'} // Allow overrides if needed or strictly block
+                            disabled={!canPromote} // Allow overrides if needed or strictly block
                             onChange={(e) => handleCheckStudent(student.id, e.target.checked)}
                             className="rounded border-border text-primary focus:ring-primary disabled:opacity-30"
                           />
