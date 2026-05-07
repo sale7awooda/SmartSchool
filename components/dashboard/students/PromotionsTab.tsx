@@ -34,7 +34,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
 
   const { data: studentsResponse, isLoading } = useSWR(
     ['students_for_promotion', page, queryFilter, gradeFilter, activeAcademicYear?.name],
-    ([_, p, q, g, y]) => getPaginatedStudents(p, limit, q, undefined, g, false)
+    ([_, p, q, g, y]) => getPaginatedStudents(p as number, limit, q as string, y as string | undefined, g as string | undefined, false)
   );
 
   const { data: classesData } = useSWR('classes', getClasses);
