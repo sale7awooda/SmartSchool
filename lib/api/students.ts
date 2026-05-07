@@ -44,7 +44,7 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
 }
 
 
-export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, isDeleted: boolean = false) {
+export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, gradeFilter?: string, isDeleted: boolean = false) {
   try {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -61,6 +61,10 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
 
     if (academicYear) {
       query = query.eq('academic_year', academicYear);
+    }
+
+    if (gradeFilter) {
+      query = query.eq('grade', gradeFilter);
     }
 
     query = query.eq('is_deleted', isDeleted);

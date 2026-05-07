@@ -72,7 +72,7 @@ export default function StudentsPage() {
   const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
     ['students', page, debouncedSearch, activeAcademicYear?.name, mainTab === 'history'], 
     // We pass undefined for academicYear in the main directory so promoted students don't suddenly disappear
-    ([_, p, s, a, isDeleted]) => getPaginatedStudents(p, limit, s, undefined, isDeleted)
+    ([_, p, s, a, isDeleted]) => getPaginatedStudents(p, limit, s, undefined, undefined, isDeleted)
   );
 
   const students = studentsResponse?.data || [];

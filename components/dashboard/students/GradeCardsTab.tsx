@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import useSWR from 'swr';
 import { Search, Filter, FileText, ChevronRight, User, BookOpen, Calculator, Save, Link as LinkIcon, CheckCircle2, AlertCircle, ArrowLeft, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -38,7 +38,7 @@ export function GradeCardsTab() {
 
   const { data: studentsData, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
     viewState !== 'grades-grid' && selectedGrade ? ['grade-students', page, debouncedSearch, selectedGrade] : null,
-    () => getPaginatedStudents(page, limit, debouncedSearch, selectedGrade, false)
+    () => getPaginatedStudents(page, limit, debouncedSearch, undefined, selectedGrade, false)
   );
   
   // For 'edit-subject' we might need all students in that class if pagination is small, 
@@ -46,7 +46,7 @@ export function GradeCardsTab() {
   // The requirement says "the system will show all of them and let him enter the values in a series".
   const { data: allStudentsData } = useSWR(
     viewState === 'edit-subject' && selectedGrade ? ['all-grade-students', selectedGrade] : null,
-    () => getPaginatedStudents(1, 200, '', selectedGrade, false)
+    () => getPaginatedStudents(1, 200, '', undefined, selectedGrade, false)
   );
 
   const classes = useMemo(() => classesData || [], [classesData]);
@@ -81,7 +81,7 @@ export function GradeCardsTab() {
   };
 
   // Fetch grades for a specific subject for a whole class
-  const fetchSubjectGrades = async (classGrade: string, subjectId: string) => {
+  const fetchSubjectGrades = useCallback(async (classGrade: string, subjectId: string) => {
     try {
       // First we need all students in the class
       // allStudentsInGrade has this
@@ -101,7 +101,7 @@ export function GradeCardsTab() {
       console.warn('Grades table fetch error:', err);
       return [];
     }
-  };
+  }, [allStudentsInGrade, activeTerm]);
 
   const handleSelectClass = (className: string) => {
     setSelectedGrade(className);
@@ -158,7 +158,7 @@ export function GradeCardsTab() {
       };
       load();
     }
-  }, [viewState, selectedSubject, allStudentsInGrade, activeTerm]);
+  }, [viewState, selectedSubject, allStudentsInGrade, activeTerm, selectedGrade, fetchSubjectGrades]);
 
   const handleSaveStudentGrades = async () => {
     if (!selectedStudent) return;
@@ -242,7 +242,7 @@ export function GradeCardsTab() {
     }
   };
 
-  const terms = ['Term 1', 'Term 2', 'Term 3', 'Final'];
+  const terms = ['Term 1', 'Term 2', 'Monthly', 'Final'];
 
   return (
     <div className="flex flex-col h-full gap-6">
@@ -302,27 +302,26 @@ export function GradeCardsTab() {
             </div>
           </div>
           
-          <div className="flex gap-2 border-b border-border pb-4 shrink-0">
-            <button
-               onClick={() => setSubTab('by-student')}
-               className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${subTab === 'by-student' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              By Student
-            </button>
-            <button
-               onClick={() => setSubTab('by-subject')}
-               className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${subTab === 'by-subject' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              By Subject
-            </button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center shrink-0">
-             <div className="relative w-full sm:w-72">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4 shrink-0">
+            <div className="flex gap-2">
+              <button
+                 onClick={() => setSubTab('by-student')}
+                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${subTab === 'by-student' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+              >
+                By Student
+              </button>
+              <button
+                 onClick={() => setSubTab('by-subject')}
+                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${subTab === 'by-subject' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+              >
+                By Subject
+              </button>
+            </div>
+            <div className="relative w-full sm:w-72">
                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                <input
                  type="text"
-                 placeholder={subTab === 'by-student' ? t('search_students') : "Search subjects..."}
+                 placeholder={subTab === 'by-student' ? t('search_students') || 'Search students...' : "Search subjects..."}
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
                  className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all"
