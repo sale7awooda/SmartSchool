@@ -64,7 +64,7 @@ export function GradeCardsTab() {
   const [subTab, setSubTab] = useState<'by-student' | 'by-subject'>('by-student');
 
   // Fetch grades for selected student
-  const fetchStudentGrades = async (studentId: string) => {
+  const fetchStudentGrades = useCallback(async (studentId: string) => {
     try {
       const { data, error } = await supabase
         .from('grades')
@@ -78,7 +78,7 @@ export function GradeCardsTab() {
       console.warn('Grades table fetch error:', err);
       return [];
     }
-  };
+  }, [activeTerm]);
 
   // Fetch grades for a specific subject for a whole class
   const fetchSubjectGrades = useCallback(async (classGrade: string, subjectId: string) => {
@@ -110,33 +110,36 @@ export function GradeCardsTab() {
     setSearchQuery('');
   };
 
-  const handleSelectStudent = async (student: any) => {
+  const handleSelectStudent = (student: any) => {
     setSelectedStudent(student);
-    const existingGrades = await fetchStudentGrades(student.id);
-    
-    const initialGrades = subjects.map(sub => {
-      const existing = existingGrades.find((g: any) => g.subject_id === sub.id);
-      return {
-        subject_id: sub.id,
-        subject_name: sub.name,
-        marks: existing?.score || existing?.marks || '',
-        max_marks: existing?.max_score || existing?.max_marks || 100,
-        linked_assessment_id: existing?.assessment_id || existing?.linked_assessment_id || '',
-        remarks: existing?.remarks || ''
-      };
-    });
-    
-    setStudentGrades(initialGrades);
     setViewState('edit-student');
   };
 
-  const handleSelectSubject = async (subject: any) => {
+  const handleSelectSubject = (subject: any) => {
     setSelectedSubject(subject);
     setViewState('edit-subject');
-    
-    // Once we change state, SWR will fetch allStudentsData.
-    // We should wait for that or use an effect. actually, let\'s fetch grades directly since allStudentsInGrade might be delayed
   };
+
+  useEffect(() => {
+    if (viewState === 'edit-student' && selectedStudent) {
+      const load = async () => {
+        const existingGrades = await fetchStudentGrades(selectedStudent.id);
+        const initialGrades = subjects.map(sub => {
+          const existing = existingGrades.find((g: any) => g.subject_id === sub.id);
+          return {
+            subject_id: sub.id,
+            subject_name: sub.name,
+            marks: existing?.score || existing?.marks || '',
+            max_marks: existing?.max_score || existing?.max_marks || 100,
+            linked_assessment_id: existing?.assessment_id || existing?.linked_assessment_id || '',
+            remarks: existing?.remarks || ''
+          };
+        });
+        setStudentGrades(initialGrades);
+      };
+      load();
+    }
+  }, [viewState, selectedStudent, activeTerm, subjects, fetchStudentGrades]);
 
   useEffect(() => {
     if (viewState === 'edit-subject' && selectedSubject && allStudentsInGrade.length > 0) {
