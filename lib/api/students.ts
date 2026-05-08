@@ -44,7 +44,7 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
 }
 
 
-export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, gradeFilter?: string, isDeleted: boolean = false, genderFilter?: string, parentIdFilter?: string) {
+export async function getPaginatedStudents(page: number = 1, limit: number = 10, search: string = '', academicYear?: string, gradeFilter?: string, isDeleted: boolean = false, genderFilter?: string, parentIdFilter?: string, forceStudentId?: string, forceParentId?: string) {
   try {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -58,6 +58,26 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
           parent:users(*)
         )
       `, { count: 'exact' });
+
+    if (forceStudentId) {
+       query = query.eq('id', forceStudentId);
+    }
+    
+    if (forceParentId) {
+      const { data: parentStudents } = await supabase.from('parent_student').select('student_id').eq('parent_id', forceParentId);
+      if (parentStudents && parentStudents.length > 0) {
+        query = query.in('id', parentStudents.map(p => p.student_id));
+      } else {
+         query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+      }
+    } else if (parentIdFilter) {
+      const { data: parentStudents } = await supabase.from('parent_student').select('student_id').eq('parent_id', parentIdFilter);
+      if (parentStudents && parentStudents.length > 0) {
+        query = query.in('id', parentStudents.map(p => p.student_id));
+      } else {
+         query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+      }
+    }
 
     if (academicYear) {
       query = query.eq('academic_year', academicYear);
@@ -74,15 +94,12 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
     query = query.eq('is_deleted', isDeleted);
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,roll_number.ilike.%${search}%`);
-    }
-
-    if (parentIdFilter) {
-      const { data: parentStudents } = await supabase.from('parent_student').select('student_id').eq('parent_id', parentIdFilter);
-      if (parentStudents && parentStudents.length > 0) {
-        query = query.in('id', parentStudents.map(p => p.student_id));
+      const { data: users } = await supabase.from('users').select('id').ilike('name', `%${search}%`).eq('role', 'student');
+      const userIds = users?.map(u => u.id) || [];
+      if (userIds.length > 0) {
+        query = query.or(`roll_number.ilike.%${search}%,user_id.in.(${userIds.join(',')})`);
       } else {
-         query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+        query = query.ilike('roll_number', `%${search}%`);
       }
     }
 

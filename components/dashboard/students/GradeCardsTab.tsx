@@ -9,9 +9,15 @@ import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
 import { getPaginatedStudents, getClasses, getSubjects, getPaginatedAssessments } from '@/lib/supabase-db';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePermissions } from '@/lib/permissions';
+
+import { useAuth } from '@/lib/auth-context';
 
 export function GradeCardsTab() {
   const { t } = useLanguage();
+  const { can, isRole } = usePermissions();
+  const { user } = useAuth();
+  
   // View states: 'grades-grid' | 'class-view' | 'edit-student' | 'edit-subject'
   const [viewState, setViewState] = useState<'grades-grid' | 'class-view' | 'edit-student' | 'edit-subject'>('grades-grid');
   
@@ -38,7 +44,11 @@ export function GradeCardsTab() {
 
   const { data: studentsData, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
     viewState !== 'grades-grid' && selectedGrade ? ['grade-students', page, debouncedSearch, selectedGrade] : null,
-    () => getPaginatedStudents(page, limit, debouncedSearch, undefined, selectedGrade, false)
+    () => {
+      const forceStudentId = isRole('student') ? user?.studentId : undefined;
+      const forceParentId = isRole('parent') ? user?.id : undefined;
+      return getPaginatedStudents(page, limit, debouncedSearch, undefined, selectedGrade, false, undefined, undefined, forceStudentId, forceParentId);
+    }
   );
   
   // For 'edit-subject' we might need all students in that class if pagination is small, 
@@ -46,7 +56,11 @@ export function GradeCardsTab() {
   // The requirement says "the system will show all of them and let him enter the values in a series".
   const { data: allStudentsData } = useSWR(
     viewState === 'edit-subject' && selectedGrade ? ['all-grade-students', selectedGrade] : null,
-    () => getPaginatedStudents(1, 200, '', undefined, selectedGrade, false)
+    () => {
+      const forceStudentId = isRole('student') ? user?.studentId : undefined;
+      const forceParentId = isRole('parent') ? user?.id : undefined;
+      return getPaginatedStudents(1, 200, '', undefined, selectedGrade, false, undefined, undefined, forceStudentId, forceParentId);
+    }
   );
 
   const classes = useMemo(() => classesData || [], [classesData]);
@@ -303,7 +317,7 @@ export function GradeCardsTab() {
                   <p className="text-sm text-muted-foreground">Select a student or subject to enter grades.</p>
                </div>
             </div>
-            {subTab === 'by-student' && (
+            {subTab === 'by-student' && can('edit', 'assessments') && (
               <button onClick={() => toast.success("All report cards published for " + selectedGrade)} className="px-5 py-2.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-xl hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 shrink-0">
                 Publish All Reports
               </button>
@@ -357,17 +371,26 @@ export function GradeCardsTab() {
                         <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">No students found.</td></tr>
                       ) : (
                         students.map((student: any) => (
-                           <tr key={student.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                             <td className="px-6 py-4 font-bold text-foreground">{student.name}</td>
-                             <td className="px-6 py-4 text-muted-foreground">{student.roll_number}</td>
-                             <td className="px-6 py-4 text-right">
-                               <div className="flex items-center justify-end gap-2">
-                                 <button onClick={() => toast.success("Report card printed for " + student.name)} className="px-3 py-1.5 bg-muted text-foreground border border-border font-bold rounded-lg hover:bg-muted/80 transition-colors hidden sm:block">Print</button>
-                                 <button onClick={() => toast.success("Report card published for " + student.name)} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-lg hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Publish</button>
-                                 <button onClick={() => handleSelectStudent(student)} className="px-4 py-1.5 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20">Grade</button>
-                               </div>
-                             </td>
-                           </tr>
+                            <tr key={student.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                              <td className="px-6 py-4 font-bold text-foreground">{student.name}</td>
+                              <td className="px-6 py-4 text-muted-foreground">{student.roll_number}</td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {isRole(['admin']) && (
+                                    <button onClick={() => toast.success("Report card printed for " + student.name)} className="px-3 py-1.5 bg-muted text-foreground border border-border font-bold rounded-lg hover:bg-muted/80 transition-colors hidden sm:block">Print</button>
+                                  )}
+                                  {can('edit', 'assessments') && (
+                                    <>
+                                      <button onClick={() => toast.success("Report card published for " + student.name)} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-lg hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Publish</button>
+                                      <button onClick={() => handleSelectStudent(student)} className="px-4 py-1.5 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20">Grade</button>
+                                    </>
+                                  )}
+                                  {!can('edit', 'assessments') && (
+                                     <button onClick={() => handleSelectStudent(student)} className="px-4 py-1.5 bg-muted text-foreground font-bold rounded-lg hover:bg-muted/80 transition-colors shadow-sm">View</button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
                         ))
                       )}
                     </tbody>
@@ -505,20 +528,26 @@ export function GradeCardsTab() {
 
           <div className="p-6 border-t border-border bg-muted/10 flex flex-col sm:flex-row justify-between items-center gap-4">
              <div className="flex items-center gap-4">
-               <button onClick={() => toast.success("Report card published")} className="px-5 py-2.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-xl hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 shrink-0">
-                 Publish
-               </button>
-               <button onClick={() => toast.success("Report card printed")} className="px-5 py-2.5 bg-muted text-foreground border border-border font-bold rounded-xl hover:bg-muted/80 transition-colors shrink-0">
-                 Print
-               </button>
+               {can('edit', 'assessments') && (
+                 <button onClick={() => toast.success("Report card published")} className="px-5 py-2.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-xl hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 shrink-0">
+                   Publish
+                 </button>
+               )}
+               {isRole(['admin']) && (
+                 <button onClick={() => toast.success("Report card printed")} className="px-5 py-2.5 bg-muted text-foreground border border-border font-bold rounded-xl hover:bg-muted/80 transition-colors shrink-0">
+                   Print
+                 </button>
+               )}
              </div>
-             <button
-                onClick={handleSaveStudentGrades}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
-              >
-                <Save size={20} /> Save Grades
-              </button>
+             {can('edit', 'assessments') && (
+               <button
+                  onClick={handleSaveStudentGrades}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
+                >
+                  <Save size={20} /> Save Grades
+                </button>
+             )}
           </div>
         </motion.div>
       )}

@@ -77,7 +77,11 @@ export default function StudentsPage() {
 
   const { data: studentsResponse, isLoading: isStudentsLoading, mutate: mutateStudents } = useSWR(
     ['students', page, debouncedSearch, filterAcademicYear, mainTab === 'history', filterGrade, filterGender, filterParentId], 
-    ([_, p, s, a, isDeleted, fGrade, fGender, fParent]) => getPaginatedStudents(p, limit, s, a || undefined, fGrade || undefined, isDeleted, fGender || undefined, fParent || undefined)
+    ([_, p, s, a, isDeleted, fGrade, fGender, fParent]) => {
+      const forceStudentId = isRole('student') ? user?.studentId : undefined;
+      const forceParentId = isRole('parent') ? user?.id : undefined;
+      return getPaginatedStudents(p, limit, s, a || undefined, fGrade || undefined, isDeleted, fGender || undefined, fParent || undefined, forceStudentId, forceParentId);
+    }
   );
 
   const students = studentsResponse?.data || [];
@@ -383,20 +387,7 @@ export default function StudentsPage() {
     return <div className="p-4">{t('no_permission')}</div>;
   }
 
-  let studentMembers = students;
-
-  if (isRole('teacher')) {
-    // Teachers see their students
-    // Assuming we would filter this on the backend ideally, but keeping local filter for now
-  } else if (isRole('student')) {
-    // Students see only themselves
-    studentMembers = studentMembers.filter(s => s.id === user.id || s.id === user.studentId);
-  } else if (isRole('parent')) {
-    // Parents see their children
-    studentMembers = studentMembers.filter(s => s.id === user.studentId);
-  }
-
-  const filteredStudents = studentMembers;
+  const filteredStudents = students;
 
   const handleCloseProfile = () => {
     setSelectedPerson(null);
@@ -435,7 +426,13 @@ export default function StudentsPage() {
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide shrink-0">
         {(["directory", "gradecards", "promotions", "history"] as const)
-          .filter(tab => tab === 'directory' || isAdmin)
+          .filter(tab => {
+            if (tab === 'directory') return true;
+            if (tab === 'gradecards') return can('view', 'assessments');
+            if (tab === 'promotions') return isRole(['admin']);
+            if (tab === 'history') return isRole(['admin']);
+            return false;
+          })
           .map((tab) => (
           <button
             key={tab}
@@ -478,37 +475,37 @@ export default function StudentsPage() {
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-card dark:bg-slate-900 rounded-[1.5rem] border border-border dark:border-slate-800 shadow-sm shrink-0 overflow-hidden">
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Grade</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">{t('grade') || 'Grade'}</label>
                     <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="">All Grades</option>
+                      <option value="">{t('all_grades') || 'All Grades'}</option>
                       {classesList.map((c: string) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Academic Year</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">{t('academic_year') || 'Academic Year'}</label>
                     <select value={filterAcademicYear} onChange={e => setFilterAcademicYear(e.target.value)} className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="">All Years</option>
+                      <option value="">{t('all_years') || 'All Years'}</option>
                       <option value="2024-2025">2024-2025</option>
                       <option value="2025-2026">2025-2026</option>
                       <option value="2026-2027">2026-2027</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Gender</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">{t('gender') || 'Gender'}</label>
                     <select value={filterGender} onChange={e => setFilterGender(e.target.value)} className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="">All</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
+                      <option value="">{t('all') || 'All'}</option>
+                      <option value="Male">{t('male') || 'Male'}</option>
+                      <option value="Female">{t('female') || 'Female'}</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Parent / Guardian Search</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">{t('parent_guardian_search') || 'Parent / Guardian'}</label>
                     {/* For simplicity we'll just have a parent search input that sets the parent id if selected from foundParents. 
                         A slightly simpler approach since we already have parentSearch and foundParents logic in this file */}
                     <div className="relative">
                       <input 
                         type="text" 
-                        placeholder="Type to search parent..." 
+                        placeholder={t('type_to_search_parent') || "Type to search parent..."} 
                         value={parentSearch}
                         onChange={e => {
                           setParentSearch(e.target.value);
