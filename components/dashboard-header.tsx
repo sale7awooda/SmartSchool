@@ -226,6 +226,11 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
                       <LogOut size={18} />
                       {t('sign_out')}
                     </button>
+                    <div className="pt-3 pb-1 text-center">
+                      <p className="text-[9px] text-muted-foreground inline-flex items-center justify-center gap-1">
+                        Built with <span className="text-red-500">❤️</span> by <span className="font-semibold text-foreground">AwoodaTech™</span>
+                      </p>
+                    </div>
                   </div>
                 </motion.div>
               </>

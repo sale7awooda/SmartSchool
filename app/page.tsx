@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import { Logo } from '@/components/logo';
 import { GraduationCap, UserCircle, Users, ArrowRight, Loader2, ShieldCheck, BookOpen, Calculator } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from "sonner";
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -102,7 +104,7 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5">Email Address</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">{t('email_address') || 'Email Address'}</label>
                   <input
                     type="email"
                     required
@@ -114,8 +116,8 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-semibold text-foreground">Password</label>
-                    <a href="#" className="text-xs font-medium text-primary hover:text-primary/80">Forgot?</a>
+                    <label className="block text-sm font-semibold text-foreground">{t('password') || 'Password'}</label>
+                    <a href="#" className="text-xs font-medium text-primary hover:text-primary/80">{t('forgot_password') || 'Forgot?'}</a>
                   </div>
                   <input
                     type="password"
@@ -148,8 +150,8 @@ export default function LoginPage() {
                   <Loader2 size={20} className="animate-spin" />
                 ) : (
                   <>
-                    Sign In to Dashboard
-                    <ArrowRight size={18} />
+                    {t('sign_in_to_dashboard') || 'Sign In to Dashboard'}
+                    <ArrowRight size={18} className="rtl:rotate-180" />
                   </>
                 )}
               </button>
@@ -166,15 +168,16 @@ export default function LoginPage() {
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="h-px bg-border flex-1" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">MVP Quick Login</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('mvp_quick_login') || 'MVP Quick Login'}</span>
             <div className="h-px bg-border flex-1" />
           </div>
           
           <div className="grid grid-cols-2 gap-3">
             <button 
+              type="button"
               onClick={() => handleQuickLogin('admin')}
               disabled={isLoading}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-primary/50 hover:shadow-sm transition-all text-left group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-primary/50 hover:shadow-sm transition-all text-left rtl:text-right group"
             >
               <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                 <ShieldCheck size={16} />
@@ -186,9 +189,10 @@ export default function LoginPage() {
             </button>
             
             <button 
+              type="button"
               onClick={() => handleQuickLogin('teacher')}
               disabled={isLoading}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-emerald-500/50 hover:shadow-sm transition-all text-left group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-emerald-500/50 hover:shadow-sm transition-all text-left rtl:text-right group"
             >
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
                 <BookOpen size={16} />
@@ -200,9 +204,10 @@ export default function LoginPage() {
             </button>
             
             <button 
+              type="button"
               onClick={() => handleQuickLogin('accountant')}
               disabled={isLoading}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-amber-500/50 hover:shadow-sm transition-all text-left group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-amber-500/50 hover:shadow-sm transition-all text-left rtl:text-right group"
             >
               <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
                 <Calculator size={16} />
@@ -214,9 +219,10 @@ export default function LoginPage() {
             </button>
             
             <button 
+              type="button"
               onClick={() => handleQuickLogin('parent')}
               disabled={isLoading}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-purple-500/50 hover:shadow-sm transition-all text-left group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-purple-500/50 hover:shadow-sm transition-all text-left rtl:text-right group"
             >
               <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 group-hover:bg-purple-500/20 transition-colors">
                 <Users size={16} />
@@ -228,9 +234,10 @@ export default function LoginPage() {
             </button>
 
             <button 
+              type="button"
               onClick={() => handleQuickLogin('student')}
               disabled={isLoading}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-primary/50 hover:shadow-sm transition-all text-left group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-primary/50 hover:shadow-sm transition-all text-left rtl:text-right group"
             >
               <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                 <GraduationCap size={16} />
@@ -242,9 +249,10 @@ export default function LoginPage() {
             </button>
 
             <button 
+              type="button"
               onClick={() => handleQuickLogin('staff')}
               disabled={isLoading}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-slate-500/50 hover:shadow-sm transition-all text-left group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-slate-500/50 hover:shadow-sm transition-all text-left rtl:text-right group"
             >
               <div className="w-8 h-8 rounded-lg bg-slate-500/10 text-slate-500 flex items-center justify-center shrink-0 group-hover:bg-slate-500/20 transition-colors">
                 <UserCircle size={16} />
@@ -254,6 +262,12 @@ export default function LoginPage() {
                 <p className="text-[10px] font-medium text-muted-foreground">Support</p>
               </div>
             </button>
+          </div>
+          
+          <div className="mt-12 text-center">
+            <p className="text-sm text-muted-foreground inline-flex items-center justify-center gap-1.5">
+              Built with <span className="text-red-500">❤️</span> by <span className="font-semibold text-foreground">AwoodaTech™</span>
+            </p>
           </div>
         </motion.div>
       </div>

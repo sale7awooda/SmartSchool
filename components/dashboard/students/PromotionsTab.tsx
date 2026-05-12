@@ -183,7 +183,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
             className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <GraduationCap size={18} />
-            Promote Selected ({selectedStudents.size})
+            {t('promote_selected') ? t('promote_selected').replace('{count}', selectedStudents.size.toString()) : `Promote Selected (${selectedStudents.size})`}
           </button>
         </div>
 
@@ -203,7 +203,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  {s === 'all' ? 'All School' : 'By Grade'}
+                  {s === 'all' ? (t('all_school') || 'All School') : (t('by_grade') || 'By Grade')}
                 </button>
               ))}
             </div>
@@ -214,7 +214,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                 onChange={(e) => setSelectedGradeScope(e.target.value)}
                 className="px-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="">Select Grade</option>
+                <option value="">{t('select_grade') || 'Select Grade'}</option>
                 {classesList.map((g: string) => (
                   <option key={g} value={g}>{g}</option>
                 ))}
@@ -225,7 +225,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search students..."
+                placeholder={t('search_students') || "Search students..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
@@ -239,7 +239,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
               onChange={(e) => setForcePromote(e.target.checked)}
               className="rounded border-border text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
             />
-            Force Promotions Override
+            {t('force_promotions_override') || 'Force Promotions Override'}
           </label>
         </div>
       </div>
@@ -258,10 +258,10 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                       className="rounded border-border text-primary focus:ring-primary"
                     />
                   </th>
-                  <th className="px-6 py-4 font-bold">{t('student')}</th>
-                  <th className="px-6 py-4 font-bold">Current Grade</th>
-                  <th className="px-6 py-4 font-bold">Exam Status</th>
-                  <th className="px-6 py-4 font-bold">Promote To</th>
+                  <th className="px-6 py-4 font-bold">{t('student') || 'Student'}</th>
+                  <th className="px-6 py-4 font-bold">{t('current_grade') || 'Current Grade'}</th>
+                  <th className="px-6 py-4 font-bold">{t('exam_status') || 'Exam Status'}</th>
+                  <th className="px-6 py-4 font-bold">{t('promote_to') || 'Promote To'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -301,7 +301,10 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                             status === 'Not Applicable' ? 'bg-muted text-muted-foreground' :
                             'bg-red-500/10 text-red-500'
                           }`}>
-                            {status}
+                            {status === 'Passed' ? (t('passed') || 'Passed') :
+                             status === 'Demoted' ? (t('demoted') || 'Demoted') :
+                             status === 'Not Applicable' ? (t('not_applicable') || 'Not Applicable') :
+                             (t('not_yet_promoted') || 'Not Yet Promoted')}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -313,7 +316,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                             {classesList.map((g: string) => (
                               <option key={g} value={g}>{g}</option>
                             ))}
-                            <option value="Graduated">Graduated</option>
+                            <option value="Graduated">{t('graduated') || 'Graduated'}</option>
                           </select>
                         </td>
                       </tr>
@@ -331,17 +334,17 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                  disabled={page === 1}
                  className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50"
                >
-                 Previous
+                 {t('previous') || 'Previous'}
                </button>
                <span className="text-sm font-medium text-muted-foreground">
-                  Page {page} of {totalPages}
+                  {t('page_of') ? t('page_of').replace('{page}', page.toString()).replace('{total}', totalPages.toString()) : `Page ${page} of ${totalPages}`}
                </span>
                <button
                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                  disabled={page === totalPages}
                  className="px-4 py-2 text-sm font-bold text-foreground bg-card border border-border rounded-lg disabled:opacity-50"
                >
-                 Next
+                 {t('next') || 'Next'}
                </button>
              </div>
           )}

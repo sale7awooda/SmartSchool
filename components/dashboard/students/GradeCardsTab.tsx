@@ -267,8 +267,8 @@ export function GradeCardsTab() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-foreground">Classes / Grades</h2>
-              <p className="text-sm text-muted-foreground mt-1">Select a class to enter grades for its students.</p>
+              <h2 className="text-xl font-bold text-foreground">{t('classes_grades') || 'Classes / Grades'}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('classes_grades_desc') || 'Select a class to enter grades for its students.'}</p>
             </div>
           </div>
 
@@ -288,7 +288,7 @@ export function GradeCardsTab() {
                   <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{cls.name}</h3>
                 </div>
                 <div className="relative z-10 text-sm font-medium text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors">
-                  Open Register <ChevronRight size={16} />
+                  {t('open_register') || 'Open Register'} <ChevronRight size={16} />
                 </div>
               </motion.button>
             ))}

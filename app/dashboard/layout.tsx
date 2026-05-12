@@ -186,8 +186,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
           
-          <div className="px-2 py-1">
+          <div className="px-2 py-1 flex flex-col justify-center items-center gap-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Smart School v1.0</p>
+            {!isCollapsed && (
+              <p className="text-[9px] text-muted-foreground inline-flex items-center justify-center gap-1">
+                Built with <span className="text-red-500">❤️</span> by <span className="font-semibold text-foreground">AwoodaTech™</span>
+              </p>
+            )}
           </div>
         </div>
       </aside>
