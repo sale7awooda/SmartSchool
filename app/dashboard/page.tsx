@@ -52,14 +52,18 @@ export default function DashboardHome() {
         // Filter fee invoices by academic year via student relation
         let feeQuery = supabase
           .from('fee_invoices')
-          .select(`
-            amount, 
-            status,
-            student:students!inner(academic_year)
-          `);
+          .select(`amount, status, student_id`);
         
         if (activeAcademicYear) {
-          feeQuery = feeQuery.eq('student.academic_year', activeAcademicYear.name);
+          const { data: studentsInYear } = await supabase.from('students').select('id').eq('academic_year', activeAcademicYear.name);
+          const filteredStudentIds = studentsInYear?.map(s => s.id) || [];
+          if (filteredStudentIds.length > 0) {
+             feeQuery = feeQuery.in('student_id', filteredStudentIds);
+          } else {
+             // Avoid PGRST by returning empty early
+             // We can just query something impossible
+             feeQuery = feeQuery.eq('student_id', '00000000-0000-0000-0000-000000000000');
+          }
         }
 
         const { data: feeData } = await feeQuery;

@@ -7,13 +7,18 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
 
   let query = supabase
     .from('fee_invoices')
-    .select(`
-      *,
-      student:students!inner(user:users!inner(name), academic_year)
-    `, { count: 'exact' });
+    .select('*', { count: 'exact' });
 
+  let filteredStudentIds: string[] = [];
   if (academicYear) {
-    query = query.eq('students.academic_year', academicYear);
+    const { data: studentsInYear } = await supabase.from('students').select('id').eq('academic_year', academicYear);
+    filteredStudentIds = studentsInYear?.map(s => s.id) || [];
+    if (filteredStudentIds.length > 0) {
+      query = query.in('student_id', filteredStudentIds);
+    } else {
+      // Return empty early if no students match the academic year
+      return { data: [], count: 0, totalPages: 0 };
+    }
   }
 
   if (studentId) {
@@ -34,7 +39,8 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
   }
 
   if (search) {
-    // Search by student name or invoice ID
+    // Try resolving if search string matches student name?
+    // Since we can't join in DB easily without FK, we will just search invoice descriptions for now
     query = query.or(`description.ilike.%${search}%,id.ilike.%${search}%`);
   }
 
@@ -42,10 +48,31 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
     .order('created_at', { ascending: false })
     .range(from, to);
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === 'PGRST200') {
+      console.warn("Possible schema sync delay on fee_invoices");
+    }
+    throw error;
+  }
+
+  let mappedData = data || [];
+  // manually join students
+  if (mappedData.length > 0) {
+    const invoiceStudentIds = [...new Set(mappedData.map(i => i.student_id).filter(id => id))];
+    if (invoiceStudentIds.length > 0) {
+      const { data: sData } = await supabase.from('students')
+        .select('id, academic_year, user:users(name)')
+        .in('id', invoiceStudentIds as string[]);
+      const studentsData = sData || [];
+      mappedData = mappedData.map(inv => {
+        const matchingStudent = studentsData.find(s => s.id === inv.student_id);
+        return { ...inv, student: matchingStudent };
+      });
+    }
+  }
 
   return {
-    data,
+    data: mappedData,
     count: count || 0,
     totalPages: Math.ceil((count || 0) / limit)
   };
@@ -121,14 +148,16 @@ export async function recordPayment(paymentData: {
 export async function getFeeStats(academicYear?: string) {
   let query = supabase
     .from('fee_invoices')
-    .select(`
-      amount, 
-      status,
-      student:students!inner(academic_year)
-    `);
+    .select(`amount, status, student_id`);
   
   if (academicYear) {
-    query = query.eq('students.academic_year', academicYear);
+    const { data: studentsInYear } = await supabase.from('students').select('id').eq('academic_year', academicYear);
+    const filteredStudentIds = studentsInYear?.map(s => s.id) || [];
+    if (filteredStudentIds.length > 0) {
+      query = query.in('student_id', filteredStudentIds);
+    } else {
+      return { collected: 0, pending: 0, overdue: 0, total: 0 };
+    }
   }
 
   const { data, error } = await query;
