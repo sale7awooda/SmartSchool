@@ -9,7 +9,7 @@ import { motion } from 'motion/react';
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -49,11 +49,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 sm:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 sm:p-8 relative overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-96 bg-slate-50 rounded-b-[3rem] sm:rounded-b-[5rem] -z-10" />
       <div className="absolute top-10 left-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
       <div className="absolute top-40 right-10 w-48 h-48 bg-primary/5 rounded-full blur-3xl" />
+
+      {/* Language Toggle */}
+      <div className="absolute top-6 right-6 z-20 rtl:right-auto rtl:left-6">
+        <button
+          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+        >
+          <span className={language === 'en' ? 'text-primary' : 'text-muted-foreground'}>EN</span>
+          <span className="text-muted-foreground">/</span>
+          <span className={language === 'ar' ? 'text-primary font-arabic' : 'text-muted-foreground font-arabic'}>AR</span>
+        </button>
+      </div>
 
       <div className="w-full max-w-md z-10">
         {/* Logo & Header */}
@@ -265,9 +277,14 @@ export default function LoginPage() {
           </div>
           
           <div className="mt-12 text-center">
-            <p className="text-sm text-muted-foreground inline-flex items-center justify-center gap-1.5">
-              Built with <span className="text-red-500">❤️</span> by <span className="font-semibold text-foreground">AwoodaTech™</span>
-            </p>
+            <p 
+              className="text-sm text-muted-foreground inline-flex items-center justify-center gap-1.5"
+              dangerouslySetInnerHTML={{ 
+                __html: (t('built_with_love') || 'Built with ❤️ by AwoodaTech™')
+                  .replace('❤️', '<span class="text-red-500">❤️</span>')
+                  .replace('AwoodaTech™', '<span class="font-semibold text-foreground">AwoodaTech™</span>')
+              }} 
+            />
           </div>
         </motion.div>
       </div>

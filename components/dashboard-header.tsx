@@ -227,9 +227,14 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
                       {t('sign_out')}
                     </button>
                     <div className="pt-3 pb-1 text-center">
-                      <p className="text-[9px] text-muted-foreground inline-flex items-center justify-center gap-1">
-                        Built with <span className="text-red-500">❤️</span> by <span className="font-semibold text-foreground">AwoodaTech™</span>
-                      </p>
+                      <p 
+                        className="text-[9px] text-muted-foreground inline-flex items-center justify-center gap-1"
+                        dangerouslySetInnerHTML={{ 
+                          __html: (t('built_with_love') || 'Built with ❤️ by AwoodaTech™')
+                            .replace('❤️', '<span class="text-red-500">❤️</span>')
+                            .replace('AwoodaTech™', '<span class="font-semibold text-foreground">AwoodaTech™</span>')
+                        }} 
+                      />
                     </div>
                   </div>
                 </motion.div>
