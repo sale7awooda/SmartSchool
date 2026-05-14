@@ -13,15 +13,16 @@ const getRoleBadgeColor = (role: string) => {
   }
 };
 
-import { BehaviorRecord, Student, TimelineEvent, User } from '@/types';
+import { Student, User } from '@/types';
+import { DollarSign, FileText, CheckCircle } from 'lucide-react';
 
 interface StudentProfileModalProps {
   selectedPerson: Student | User | null;
   setSelectedPerson: (person: Student | User | null) => void;
-  activeProfileTab: 'overview' | 'medical' | 'behavior' | 'timeline';
-  setActiveProfileTab: (tab: 'overview' | 'medical' | 'behavior' | 'timeline') => void;
-  behaviorRecords: BehaviorRecord[];
-  timelineRecords: TimelineEvent[];
+  activeProfileTab: 'overview' | 'payments' | 'assessments';
+  setActiveProfileTab: (tab: 'overview' | 'payments' | 'assessments') => void;
+  paymentRecords: any[];
+  assessmentRecords: any[];
   t: (key: string) => string;
   isStudent: (person: any) => person is Student;
   handleCloseProfile: () => void;
@@ -32,8 +33,8 @@ export function StudentProfileModal({
   setSelectedPerson, 
   activeProfileTab, 
   setActiveProfileTab, 
-  behaviorRecords, 
-  timelineRecords, 
+  paymentRecords, 
+  assessmentRecords, 
   t, 
   isStudent, 
   handleCloseProfile 
@@ -86,38 +87,28 @@ export function StudentProfileModal({
                         : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
                     }`}
                   >
-                    {t('overview')}
+                    {t('overview') || 'Overview'}
                   </button>
                   
                   <button
-                    onClick={() => setActiveProfileTab('medical')}
+                    onClick={() => setActiveProfileTab('assessments')}
                     className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-                      activeProfileTab === 'medical' 
+                      activeProfileTab === 'assessments' 
                         ? 'border-primary text-primary' 
                         : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
                     }`}
                   >
-                    {t('medical')}
+                    {t('assessments') || 'Assessments'}
                   </button>
                   <button
-                    onClick={() => setActiveProfileTab('behavior')}
+                    onClick={() => setActiveProfileTab('payments')}
                     className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-                      activeProfileTab === 'behavior' 
+                      activeProfileTab === 'payments' 
                         ? 'border-primary text-primary' 
                         : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
                     }`}
                   >
-                    {t('behavior')}
-                  </button>
-                  <button
-                    onClick={() => setActiveProfileTab('timeline')}
-                    className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-                      activeProfileTab === 'timeline' 
-                        ? 'border-primary text-primary' 
-                        : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
-                    }`}
-                  >
-                    {t('timeline')}
+                    {t('payments') || 'Payments'}
                   </button>
                 </div>
               )}
@@ -199,155 +190,85 @@ export function StudentProfileModal({
                       <div className="flex items-start gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900 border border-border dark:border-slate-800 shadow-sm">
                         <div className="p-3 bg-muted rounded-xl text-muted-foreground"><MapPin size={20} /></div>
                         <div>
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('address')}</p>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('address') || 'Address'}</p>
                           <p className="text-sm font-bold text-foreground mt-0.5">{selectedPerson.address}</p>
                         </div>
                       </div>
                     )}
-
-                    {isStudent(selectedPerson) && selectedPerson.medical?.emergencyContact && (
-                      <div className="bg-destructive/10 rounded-2xl p-5 border border-destructive/20">
-                        <h3 className="text-destructive dark:text-rose-400 font-bold flex items-center gap-2 mb-3">
-                          <AlertCircle size={18} /> {t('emergency_contact')}
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">{t('name')}</p>
-                            <p className="text-sm font-bold text-foreground dark:text-rose-100">{selectedPerson.medical.emergencyContact.name}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">{t('relation')}</p>
-                            <p className="text-sm font-bold text-foreground dark:text-rose-100">{selectedPerson.medical.emergencyContact.relation}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-destructive/70 dark:text-rose-400/70 uppercase tracking-wider">{t('phone')}</p>
-                            <p className="text-sm font-bold text-foreground dark:text-rose-100">{selectedPerson.medical.emergencyContact.phone}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
-                {/* Student Medical Tab */}
-                {activeProfileTab === 'medical' && isStudent(selectedPerson) && (
+                {/* Student Assessments Tab */}
+                {activeProfileTab === 'assessments' && isStudent(selectedPerson) && (
                   <div className="space-y-6">
-                    {selectedPerson.medical ? (
-                      <>
-                          <div className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="p-2 bg-primary/10 text-primary rounded-lg"><Heart size={20} /></div>
-                              <h3 className="font-bold text-foreground">{t('conditions')}</h3>
+                    {assessmentRecords.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {assessmentRecords.map((submission: any) => (
+                          <div key={submission.id} className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
+                            <div className="flex justify-between items-start mb-3">
+                              <h3 className="font-bold text-foreground">{submission.assessment?.title || 'Unknown Assessment'}</h3>
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                submission.status === 'graded' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                                submission.status === 'submitted' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
+                                'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                              }`}>
+                                {submission.status}
+                              </span>
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedPerson.medical.conditions.length > 0 ? (
-                                selectedPerson.medical.conditions.map((c: string, i: number) => (
-                                  <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-sm font-bold border border-primary/20">{c}</span>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground text-sm">{t('none_listed')}</span>
-                              )}
+                            <div className="text-sm text-muted-foreground mb-4">
+                              <p><span className="font-medium text-foreground">Subject:</span> {submission.assessment?.subject_id || 'N/A'}</p>
+                              <p><span className="font-medium text-foreground">Date:</span> {new Date(submission.submitted_at || submission.created_at).toLocaleDateString()}</p>
                             </div>
-                          </div>
-
-                        <div className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 bg-amber-500/100/10 text-amber-500 rounded-lg"><AlertCircle size={20} /></div>
-                            <h3 className="font-bold text-foreground">{t('allergies')}</h3>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedPerson.medical.allergies.length > 0 ? (
-                              selectedPerson.medical.allergies.map((a: string, i: number) => (
-                                <span key={i} className="px-3 py-1 bg-amber-500/100/10 text-amber-500 rounded-lg text-sm font-bold border border-amber-500/20 dark:border-amber-500/20">{a}</span>
-                              ))
-                            ) : (
-                              <span className="text-muted-foreground text-sm">{t('no_known_allergies')}</span>
+                            {submission.status === 'graded' && submission.score !== null && (
+                              <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
+                                <span className="text-sm font-bold text-muted-foreground uppercase">Score</span>
+                                <span className="text-xl font-black text-primary">{submission.score} / {submission.assessment?.total_marks || 100}</span>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      </>
+                        ))}
+                      </div>
                     ) : (
-                      <div className="text-center py-10 text-muted-foreground">{t('no_medical_records')}</div>
+                      <div className="text-center py-10 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl text-muted-foreground">
+                        <FileText size={40} className="mb-3 opacity-20" />
+                        <p>{t('no_assessments') || 'No assessments found for this student.'}</p>
+                      </div>
                     )}
                   </div>
                 )}
 
-                {/* Student Behavior Tab */}
-                {activeProfileTab === 'behavior' && isStudent(selectedPerson) && (
+                {/* Student Payments Tab */}
+                {activeProfileTab === 'payments' && isStudent(selectedPerson) && (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-emerald-500/100/10 p-5 rounded-2xl border border-emerald-500/20 dark:border-emerald-500/20 text-center">
-                        <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-emerald-500 mb-2 shadow-sm">
-                          <ThumbsUp size={20} />
-                        </div>
-                        <p className="text-3xl font-bold text-emerald-500">{selectedPerson.merits || 0}</p>
-                        <p className="text-xs font-bold text-emerald-500/70 uppercase tracking-wider mt-1">{t('total_merits')}</p>
-                      </div>
-                      <div className="bg-destructive/10 p-5 rounded-2xl border border-destructive/20 text-center">
-                        <div className="w-10 h-10 mx-auto bg-card rounded-full flex items-center justify-center text-destructive mb-2 shadow-sm">
-                          <ThumbsDown size={20} />
-                        </div>
-                        <p className="text-3xl font-bold text-destructive">{selectedPerson.demerits || 0}</p>
-                        <p className="text-xs font-bold text-destructive/70 uppercase tracking-wider mt-1">{t('total_demerits')}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="font-bold text-foreground">{t('recent_records')}</h3>
-                      {behaviorRecords.length > 0 ? (
-                        behaviorRecords.map((record: any) => (
-                          <div key={record.id} className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border dark:border-slate-800 shadow-sm flex gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                              record.type === 'merit' ? 'bg-emerald-500/20 dark:bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 dark:bg-destructive/100/20 text-destructive'
-                            }`}>
-                              {record.type === 'merit' ? <Star size={18} /> : <AlertCircle size={18} />}
-                            </div>
+                    {paymentRecords && paymentRecords.length > 0 ? (
+                      <div className="space-y-4">
+                        {paymentRecords.map((invoice: any) => (
+                          <div key={invoice.id} className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm flex flex-col sm:flex-row justify-between gap-4">
                             <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-foreground">{record.title || record.type}</h4>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                                  record.type === 'merit' ? 'bg-emerald-500/100/20 text-emerald-500' : 'bg-destructive/20 text-destructive'
-                                }`}>
-                                  {record.type === 'merit' ? '+' : '-'}{record.points} {t('pts')}
-                                </span>
-                              </div>
-                              <p className="text-sm text-muted-foreground mt-0.5">{record.description}</p>
-                              <p className="text-xs font-medium text-muted-foreground mt-2">{new Date(record.date).toLocaleDateString()}</p>
+                               <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-bold text-foreground text-lg">{invoice.term || 'Invoice'}</h4>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                                    invoice.status === 'paid' ? 'bg-emerald-500/100/20 text-emerald-500' : 
+                                    invoice.status === 'overdue' ? 'bg-destructive/20 text-destructive' :
+                                    'bg-amber-500/100/20 text-amber-500'
+                                  }`}>
+                                    {invoice.status}
+                                  </span>
+                               </div>
+                               <p className="text-sm text-muted-foreground">{t('due_date') || 'Due Date'}: {new Date(invoice.due_date || invoice.dueDate).toLocaleDateString()}</p>
                             </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground text-sm">{t('no_behavior_records')}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Student Timeline Tab */}
-                {activeProfileTab === 'timeline' && isStudent(selectedPerson) && (
-                  <div className="space-y-6">
-                    {timelineRecords.length > 0 ? (
-                      <div className="relative pl-8 space-y-8 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800 rtl:pl-0 rtl:pr-8 rtl:before:left-auto rtl:before:right-[15px]">
-                        {timelineRecords.map((event: any) => (
-                          <div key={event.id} className="relative">
-                            <div className="absolute -left-[39px] w-8 h-8 rounded-full bg-card dark:bg-slate-900 border-2 border-primary/20 dark:border-indigo-900 flex items-center justify-center text-primary shadow-sm z-10 rtl:-left-auto rtl:-right-[39px]">
-                              {event.type === 'award' ? <Star size={14} /> : 
-                               event.type === 'alert' ? <AlertCircle size={14} /> :
-                               event.type === 'file' ? <Activity size={14} /> :
-                               <Calendar size={14} />}
-                            </div>
-                            <div className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border dark:border-slate-800 shadow-sm">
-                              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-md mb-2 inline-block">
-                                {new Date(event.date).toLocaleDateString()}
-                              </span>
-                              <h4 className="font-bold text-foreground">{event.title}</h4>
-                              <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+                            <div className="text-left sm:text-right flex flex-col justify-center">
+                               <p className="text-sm font-bold text-muted-foreground uppercase">{t('amount') || 'Amount'}</p>
+                               <p className="text-2xl font-black text-foreground">${invoice.amount}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-10 text-muted-foreground">{t('no_timeline_events')}</div>
+                       <div className="text-center py-10 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl text-muted-foreground">
+                        <DollarSign size={40} className="mb-3 opacity-20" />
+                        <p>{t('no_payments') || 'No payment records found for this student.'}</p>
+                      </div>
                     )}
                   </div>
                 )}

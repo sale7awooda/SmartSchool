@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { User, Student, Parent, BehaviorRecord, TimelineEvent } from '@/types';
-import { getPaginatedStudents, getPaginatedParents, createStudent, getBehaviorRecords, getTimelineRecords, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getNextStudentId, getFeeItems, createFeeItem } from '@/lib/supabase-db';
+import { getPaginatedStudents, getPaginatedParents, createStudent, getClasses, getActiveAcademicYear, getStudentCountForAcademicYear, getNextStudentId, getFeeItems, createFeeItem, getPaginatedInvoices, getStudentSubmissions } from '@/lib/supabase-db';
 import { processDeleteStudentAction } from '@/app/actions/students';
 import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/language-context';
@@ -26,7 +26,7 @@ import { StudentProfileModal } from '@/components/dashboard/students/StudentProf
 import { PromotionsTab } from '@/components/dashboard/students/PromotionsTab';
 
 type DirectoryTab = 'students' | 'parents';
-type ProfileTab = 'overview' | 'medical' | 'behavior' | 'timeline';
+type ProfileTab = 'overview' | 'payments' | 'assessments';
 
 import { GradeCardsTab } from '@/components/dashboard/students/GradeCardsTab';
 
@@ -89,17 +89,17 @@ export default function StudentsPage() {
   const totalCount = studentsResponse?.count || 0;
   const isLoadingData = isStudentsLoading;
 
-  const { data: behaviorData } = useSWR(
-    selectedPerson && isStudent(selectedPerson) ? `behavior-${selectedPerson.id}` : null,
-    () => getBehaviorRecords(selectedPerson!.id)
+  const { data: paymentsData } = useSWR(
+    selectedPerson && isStudent(selectedPerson) ? `payments-${selectedPerson.id}` : null,
+    () => getPaginatedInvoices(1, 100, '', selectedPerson!.id)
   );
-  const { data: timelineData } = useSWR(
-    selectedPerson && isStudent(selectedPerson) ? `timeline-${selectedPerson.id}` : null,
-    () => getTimelineRecords(selectedPerson!.id)
+  const { data: assessmentsData } = useSWR(
+    selectedPerson && isStudent(selectedPerson) ? `assessments-${selectedPerson.id}` : null,
+    () => getStudentSubmissions(selectedPerson!.id)
   );
   
-  const behaviorRecords = behaviorData || [];
-  const timelineRecords = timelineData || [];
+  const paymentRecords = paymentsData?.data || [];
+  const assessmentRecords = assessmentsData || [];
 
   const { data: classesData } = useSWR('classes', getClasses);
   const classesList = classesData?.map(c => c.name) || [];
@@ -798,7 +798,7 @@ export default function StudentsPage() {
         editingStudent={editingStudent}
         mutateStudents={mutateStudents}
       />
-      <StudentProfileModal selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} activeProfileTab={activeProfileTab} setActiveProfileTab={setActiveProfileTab} behaviorRecords={behaviorRecords} timelineRecords={timelineRecords} t={t} isStudent={isStudent} handleCloseProfile={handleCloseProfile} />
+      <StudentProfileModal selectedPerson={selectedPerson} setSelectedPerson={setSelectedPerson} activeProfileTab={activeProfileTab} setActiveProfileTab={setActiveProfileTab} paymentRecords={paymentRecords} assessmentRecords={assessmentRecords} t={t} isStudent={isStudent} handleCloseProfile={handleCloseProfile} />
 
     </motion.div>
   );
