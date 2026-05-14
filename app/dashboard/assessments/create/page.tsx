@@ -154,7 +154,7 @@ export default function CreateAssessmentPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-20 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/assessments" className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-xl transition-colors">
             <ArrowLeft size={20} />
@@ -170,18 +170,6 @@ export default function CreateAssessmentPage() {
             className="px-4 py-2 text-muted-foreground font-bold text-sm hover:bg-muted rounded-xl transition-colors"
           >
             Cancel
-          </button>
-          <button 
-            onClick={handleSave}
-            disabled={isSaving || !examDetails.title || !examDetails.date}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
-          >
-            {isSaving ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Save size={16} />
-            )}
-            {isSaving ? 'Saving...' : 'Save Assessment'}
           </button>
         </div>
       </div>
@@ -483,13 +471,25 @@ export default function CreateAssessmentPage() {
             ))}
           </div>
           
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-between items-center pt-8 border-t border-border mt-8">
             <button 
               onClick={handleAddQuestion}
               className="px-6 py-3 bg-muted text-foreground rounded-xl font-bold hover:bg-slate-200 transition-colors flex items-center gap-2"
             >
               <Plus size={18} />
               Add Another Question
+            </button>
+            <button 
+              onClick={handleSave}
+              disabled={isSaving || !examDetails.title || !examDetails.date || questions.length === 0 || questions.some(q => !q.text.trim())}
+              className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
+            >
+              {isSaving ? (
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save size={20} />
+              )}
+              {isSaving ? 'Saving...' : 'Save Assessment'}
             </button>
           </div>
         </motion.div>

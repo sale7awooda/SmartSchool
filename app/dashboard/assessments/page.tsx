@@ -264,87 +264,95 @@ export default function AssessmentsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredAssessments.map((assessment: any) => (
-            <div key={assessment.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col relative group text-sm">
-            
-            {isTeacherOrAdmin && (
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                {assessment.status === 'upcoming' && (
-                  <button 
-                    onClick={() => setActivateConfirmId(assessment.id)}
-                    className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
-                    title="Activate Assessment"
-                  >
-                    <PlayCircle size={12} />
-                  </button>
-                )}
-                <Link href={`/dashboard/assessments/${assessment.id}/edit`} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors" title="Edit Assessment">
-                   <Edit size={12} />
-                </Link>
-                <button 
-                   onClick={() => setDeleteConfirmId(assessment.id)}
-                   className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" title="Delete Assessment">
-                   <Trash2 size={12} />
-                </button>
-              </div>
-            )}
-
-            <div className="p-3.5 flex-1 relative">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex flex-col gap-1.5">
-                  <div className="p-1.5 bg-primary/10 text-primary rounded-lg w-fit">
-                    <FileText size={14} />
+            <div key={assessment.id} className="bg-card rounded-2xl border border-border shadow-sm flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow">
+              
+              {/* Header section with Status and Actions */}
+              <div className="p-4 bg-muted/30 border-b border-border flex justify-between items-start gap-2">
+                <div className="flex flex-col gap-2 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {getTypeBadge(assessment.type)}
+                    {getStatusBadge(assessment.status)}
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground leading-tight line-clamp-1" title={assessment.title}>
+                    {assessment.title}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-xs text-primary font-medium bg-primary/5 w-fit px-2 py-1 rounded-md shrink-0">
+                   <BookOpen size={12} />
+                   <span>{assessment.subject} • {assessment.grade}</span>
                   </div>
                 </div>
-                <div className="mr-5">
-                  {getStatusBadge(assessment.status)}
+
+                {isTeacherOrAdmin && (
+                  <div className="flex gap-1 shrink-0">
+                    {assessment.status === 'upcoming' && (
+                      <button 
+                        onClick={() => setActivateConfirmId(assessment.id)}
+                        className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl hover:bg-emerald-500/20 transition-colors"
+                        title="Activate Assessment"
+                      >
+                        <PlayCircle size={16} />
+                      </button>
+                    )}
+                    <Link 
+                      href={`/dashboard/assessments/${assessment.id}/edit`} 
+                      className="p-2 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-500/20 transition-colors" 
+                      title="Edit Assessment"
+                    >
+                      <Edit size={16} />
+                    </Link>
+                    <button 
+                      onClick={() => setDeleteConfirmId(assessment.id)}
+                      className="p-2 bg-red-500/10 text-red-600 rounded-xl hover:bg-red-500/20 transition-colors" 
+                      title="Delete Assessment"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Body */}
+              <div className="p-4 flex-1 flex flex-col justify-between gap-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-foreground bg-muted p-2.5 rounded-xl">
+                    <Calendar size={16} className="text-muted-foreground shrink-0" />
+                    <span className="font-bold truncate">{new Date(assessment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground bg-muted p-2.5 rounded-xl">
+                    <Clock size={16} className="text-muted-foreground shrink-0" />
+                    <span className="font-bold truncate">{assessment.duration} Mins</span>
+                  </div>
                 </div>
               </div>
               
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-0.5 leading-tight pr-5">{assessment.title}</h3>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 font-medium">
-                <BookOpen size={12} className="text-primary/70" />
-                <span className="text-primary/90">{assessment.subject} • {assessment.grade}</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 mt-auto">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 p-1.5 rounded-md">
-                  <Calendar size={12} className="text-muted-foreground" />
-                  <span className="font-semibold">{new Date(assessment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 p-1.5 rounded-md">
-                  <Clock size={12} className="text-muted-foreground" />
-                  <span className="font-semibold">{assessment.duration} Min</span>
-                </div>
+              {/* Footer / CTA action */}
+              <div className="p-4 pt-0">
+                {assessment.status === 'active' && isStudent && (
+                  <Link href={`/dashboard/assessments/${assessment.id}/take`} className="w-full py-3 bg-emerald-500 text-primary-foreground rounded-xl font-bold text-sm hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                    <PlayCircle size={18} />
+                    Start Assessment
+                  </Link>
+                )}
+                {assessment.status === 'active' && isTeacherOrAdmin && (
+                  <Link href={`/dashboard/assessments/${assessment.id}/monitor`} className="w-full py-3 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <BarChart size={18} />
+                    Monitor Live Results
+                  </Link>
+                )}
+                {assessment.status === 'upcoming' && (
+                  <div className="w-full py-3 bg-muted text-muted-foreground rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                    <Clock size={18} />
+                    Starts Soon
+                  </div>
+                )}
+                {assessment.status === 'completed' && (
+                  <Link href={`/dashboard/assessments/${assessment.id}/results`} className="w-full py-3 bg-card border border-border text-foreground hover:bg-muted rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
+                    <BarChart size={18} />
+                    {isStudent ? `View Results (${assessment.score}/${assessment.totalMarks})` : 'View Analytics'}
+                  </Link>
+                )}
               </div>
             </div>
-            
-            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-              {assessment.status === 'active' && isStudent && (
-                <Link href={`/dashboard/assessments/${assessment.id}/take`} className="w-full py-2 bg-emerald-500 text-primary-foreground rounded-lg font-bold text-xs hover:bg-emerald-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                  <PlayCircle size={14} />
-                  Start
-                </Link>
-              )}
-              {assessment.status === 'active' && isTeacherOrAdmin && (
-                <Link href={`/dashboard/assessments/${assessment.id}/monitor`} className="w-full py-2 bg-primary/10 text-primary rounded-lg font-bold text-xs hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5">
-                  <BarChart size={14} />
-                  Monitor
-                </Link>
-              )}
-              {assessment.status === 'upcoming' && (
-                <button disabled className="w-full py-2 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed">
-                  <Clock size={14} />
-                  Starts Soon
-                </button>
-              )}
-              {assessment.status === 'completed' && (
-                <Link href={`/dashboard/assessments/${assessment.id}/results`} className="w-full py-2 bg-card border border-border text-foreground rounded-lg font-bold text-xs hover:bg-muted transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                  <BarChart size={14} />
-                  {isStudent ? `Results: ${assessment.score}/${assessment.totalMarks}` : 'Analytics'}
-                </Link>
-              )}
-            </div>
-          </div>
         ))}
       </div>
       )}
