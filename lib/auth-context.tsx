@@ -136,6 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initial fetch
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
+        if (error.message?.includes('Lock broken')) {
+          console.warn("Session fetch aborted (lock stolen). Ignoring.");
+          return;
+        }
         console.error("Error getting session:", error);
         if (error.message?.includes("Refresh Token") || error.message?.includes("Failed to fetch")) {
           supabase.auth.signOut().catch(console.error);
@@ -143,6 +147,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       loadProfile(session);
     }).catch((err) => {
+      if (err?.name === 'AbortError' || err?.message?.includes('Lock broken') || err?.message?.includes('steal')) {
+        console.warn("Session fetch aborted (lock stolen). Ignoring.");
+        return;
+      }
       console.error("Session fetch caught error:", err);
       loadProfile(null);
     });

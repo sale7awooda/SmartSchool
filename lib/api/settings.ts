@@ -4,8 +4,9 @@ export async function getSystemSettings() {
   try {
     const { data, error } = await supabase.from('system_settings').select('*').maybeSingle();
     if (error) {
-      if (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message.includes('relation "system_settings" does not exist')) {
+      if (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message?.includes('relation "system_settings" does not exist') || error.message?.includes('Lock broken') || error.message?.includes('Failed to fetch')) {
         // Fallback to localStorage or defaults
+        console.warn('Supabase fetch failed silently or table missing. Falling back to local settings.', error);
         if (typeof window !== 'undefined') {
           const saved = localStorage.getItem('SYSTEM_SETTINGS');
           if (saved) return JSON.parse(saved);
