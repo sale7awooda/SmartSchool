@@ -57,9 +57,9 @@ export async function getSystemSettings() {
       };
       return mappedData;
     } catch (error: any) {
-    // Handle "Failed to fetch" which happens when the Supabase URL is invalid/placeholder
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      console.warn('Supabase connection failed. Falling back to local settings.');
+    // Handle "Failed to fetch" which happens when the Supabase URL is invalid/placeholder or Lock is broken.
+    if ((error instanceof TypeError && error.message === 'Failed to fetch') || error?.name === 'AbortError' || error?.message?.includes('Lock broken')) {
+      console.warn('Supabase connection failed or blocked. Falling back to local settings.');
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('SYSTEM_SETTINGS');
         if (saved) return JSON.parse(saved);
