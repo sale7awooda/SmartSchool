@@ -7,7 +7,7 @@ import { logAudit } from './audit';
 const CreateStaffSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
-  role: z.enum(['teacher', 'staff', 'accountant', 'admin', 'principal', 'superintendent']),
+  role: z.enum(['teacher', 'staff', 'accountant', 'admin']),
   phone: z.string().optional(),
   department: z.string().optional(),
   createdBy: z.string().uuid("Invalid user ID")

@@ -74,9 +74,6 @@ export function EditStaffModal({ staff, onClose, onUpdate }: { staff: any; onClo
                 <option value="teacher">Teacher</option>
                 <option value="staff">Staff</option>
                 <option value="accountant">Accountant</option>
-                <option value="driver">Driver</option>
-                <option value="cleaner">Cleaner</option>
-                <option value="guard">Guard</option>
               </select>
             </div>
           </form>
