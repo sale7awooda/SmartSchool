@@ -1,20 +1,20 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { getAssessmentWithQuestions } from '@/lib/supabase-db';
+import { getAssessmentWithQuestions, getSubmissions } from '@/lib/supabase-db';
 import { 
   ArrowLeft, 
-  Users, 
   Clock, 
   CheckCircle2, 
   AlertCircle,
   Loader2,
   BarChart3,
-  Activity
+  Activity,
+  UserCheck
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -23,16 +23,49 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
   const { user } = useAuth();
   const router = useRouter();
   
-  const { data: assessment, isLoading, error } = useSWR(
+  const { data: assessment, isLoading: isLoadingAssessment, error: assessmentError } = useSWR(
     id ? `assessment_${id}` : null,
     () => getAssessmentWithQuestions(id)
   );
+
+  const { data: submissions, isLoading: isLoadingSubmissions } = useSWR(
+    id ? `submissions_${id}` : null,
+    () => getSubmissions(id),
+    { refreshInterval: 5000 } // Refresh every 5 seconds for live monitor
+  );
+
+  const [timeRemaining, setTimeRemaining] = useState<string>('--:--');
+
+  useEffect(() => {
+    if (!assessment?.due_date) {
+      setTimeRemaining('No Limit');
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const dueDate = new Date(assessment.due_date).getTime();
+      const diff = dueDate - now;
+
+      if (diff <= 0) {
+        setTimeRemaining('Ended');
+        clearInterval(interval);
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeRemaining(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [assessment?.due_date]);
 
   if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
     return null;
   }
 
-  if (isLoading) {
+  if (isLoadingAssessment) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -41,7 +74,7 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
     );
   }
 
-  if (error || !assessment) {
+  if (assessmentError || !assessment) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-10 h-10 text-destructive" />
@@ -52,6 +85,9 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
       </div>
     );
   }
+
+  const submissionsList = submissions || [];
+  const submittedCount = submissionsList.length;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -65,23 +101,14 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-primary/10 text-primary rounded-xl">
-            <Users size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground font-medium">Active Students</p>
-            <p className="text-2xl font-bold">12 / 24</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4">
           <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
             <CheckCircle2 size={24} />
           </div>
           <div>
             <p className="text-sm text-muted-foreground font-medium">Submissions</p>
-            <p className="text-2xl font-bold">5</p>
+            <p className="text-2xl font-bold">{submittedCount}</p>
           </div>
         </div>
         <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4">
@@ -90,7 +117,7 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
           </div>
           <div>
             <p className="text-sm text-muted-foreground font-medium">Time Remaining</p>
-            <p className="text-2xl font-bold">24:15</p>
+            <p className="text-2xl font-bold">{timeRemaining}</p>
           </div>
         </div>
       </div>
@@ -107,10 +134,40 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
           </div>
         </div>
         <div className="p-6">
-          <div className="text-center py-12 text-muted-foreground">
-            <BarChart3 size={48} className="mx-auto mb-4 opacity-20" />
-            <p className="font-medium">Real-time student tracking will appear here.</p>
-          </div>
+          {isLoadingSubmissions ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : submissionsList.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <BarChart3 size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="font-medium">No submissions yet. Waiting for students...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {submissionsList.map((submission: any) => (
+                <div key={submission.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {submission.student?.user?.first_name?.[0] || 'S'}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {submission.student?.user?.first_name} {submission.student?.user?.last_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Submitted at {new Date(submission.created_at).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full text-sm font-medium">
+                    <CheckCircle2 size={16} />
+                    Completed
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
