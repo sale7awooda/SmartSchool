@@ -128,9 +128,21 @@ export default function AssessmentsPage() {
     const assessmentGrade = a.class?.name || a.grade || '';
     if (isStudent && studentRecord) {
       if (assessmentGrade !== studentRecord.grade) return false;
-      const intendedDate = a.date.split('T')[0];
-      if (todayDateString !== intendedDate) return false;
-      if (a.status !== 'active') return false;
+      
+      const submissionInfo = studentSubmissions?.find((s: any) => s.assessment_id === a.id);
+      
+      // If student has already submitted, they should see it regardless of date/status so they can view results
+      if (submissionInfo) return true;
+      
+      // If no submission, only show active assessments (or upcoming ones? User wants them to start if active)
+      // Usually students only see 'active' assessments that they haven't taken yet, or maybe 'upcoming' ones
+      if (a.status === 'upcoming') return true; 
+      if (a.status === 'completed') return false; // Closed for new submissions
+      
+      // If active, let them see it so they can take it
+      if (a.status === 'active') return true;
+
+      return false; // Hide drafts etc
     }
     // if student record hasn't loaded yet, default to false so they don't see wrong ones
     if (isStudent && !studentRecord) return false;
