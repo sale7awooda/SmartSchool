@@ -389,3 +389,26 @@ CREATE POLICY "permissive_all" ON grades FOR ALL USING (true) WITH CHECK (true);
 INSERT INTO academic_years (name, start_date, end_date, is_active)
 VALUES ('2025-2026', '2025-09-01', '2026-06-30', true)
 ON CONFLICT (name) DO NOTHING;
+
+-- Fix schedules table missing period and uniqueness
+ALTER TABLE schedules ADD COLUMN IF NOT EXISTS period INT;
+ALTER TABLE schedules DROP CONSTRAINT IF EXISTS schedules_class_id_day_of_week_period_key;
+ALTER TABLE schedules ADD CONSTRAINT schedules_class_id_day_of_week_period_key UNIQUE (class_id, day_of_week, period);
+
+-- Create schedule_drafts
+CREATE TABLE IF NOT EXISTS schedule_drafts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT UNIQUE,
+  constraints JSONB,
+  mappings JSONB,
+  schedule JSONB,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS and setup policies for schedule_drafts
+ALTER TABLE schedule_drafts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow full access to schedule drafts" ON schedule_drafts;
+CREATE POLICY "Allow full access to schedule drafts" ON schedule_drafts FOR ALL USING (true);

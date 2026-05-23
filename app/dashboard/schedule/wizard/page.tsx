@@ -446,7 +446,7 @@ export default function TimetableWizard() {
     const destPeriod = parseInt(destPeriodStr);
 
     setSchedule(prev => {
-      const newSchedule = [...prev];
+      const newSchedule = prev.map(item => ({...item}));
       const draggedItemIndex = newSchedule.findIndex(
         s => s.day === selectedDay && s.grade === sourceGrade && s.period === sourcePeriod
       );
