@@ -411,4 +411,4 @@ CREATE TABLE IF NOT EXISTS schedule_drafts (
 ALTER TABLE schedule_drafts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow full access to schedule drafts" ON schedule_drafts;
-CREATE POLICY "Allow full access to schedule drafts" ON schedule_drafts FOR ALL USING (true);
+CREATE POLICY "Allow full access to schedule drafts" ON schedule_drafts FOR ALL USING (true) WITH CHECK (true);

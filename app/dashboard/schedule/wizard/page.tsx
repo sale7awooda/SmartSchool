@@ -144,7 +144,7 @@ export default function TimetableWizard() {
       setSelectedDay(activeDays[0]);
     }
   }, [activeDays, selectedDay]);
-  const [selectedSlot, setSelectedSlot] = useState<{grade: string, period: number} | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{grade: string, period: number, id?: string} | null>(null);
   const [slotForm, setSlotForm] = useState({ mappingId: '', room: '' });
 
   const steps = [
@@ -286,11 +286,11 @@ export default function TimetableWizard() {
     }
     try {
       const scheduleItems = schedule.map(s => ({
-        class_id: s.grade,
-        day_of_week: DAYS.indexOf(s.day) + 1,
+        class_id: classesData?.find((c: any) => c.name === s.grade)?.id || null,
+        day_of_week: s.day,
         period: s.period,
-        subject: s.subject,
-        teacher_id: teachers.find(t => t.name === s.teacher)?.id,
+        subject_id: subjectsData?.find((sub: any) => sub.name === s.subject)?.id || null,
+        teacher_id: teachers.find((t: User) => t.name === s.teacher)?.id || null,
         room: s.room
       }));
 
@@ -414,20 +414,36 @@ export default function TimetableWizard() {
 
   const handleAddClass = () => {
     const mapping = mappings.find(m => m.id === slotForm.mappingId);
-    if (!mapping || !selectedSlot) return;
+    if (!mapping && !selectedSlot?.id) return;
     
-    const newClass = {
-      id: `manual-${Date.now()}`,
-      day: selectedDay,
-      grade: selectedSlot.grade,
-      period: selectedSlot.period,
-      subject: mapping.subject,
-      teacher: mapping.teacher,
-      room: slotForm.room || 'TBD',
-      color: getColorForSubject(mapping.subject)
-    };
+    setSchedule(prev => {
+      let newSchedule = [...prev];
+      if (selectedSlot?.id) {
+        const index = newSchedule.findIndex(s => s.id === selectedSlot.id);
+        if (index !== -1) {
+          newSchedule[index].period = selectedSlot.period;
+          newSchedule[index].room = slotForm.room || 'TBD';
+          if (mapping) {
+            newSchedule[index].subject = mapping.subject;
+            newSchedule[index].teacher = mapping.teacher;
+            newSchedule[index].color = getColorForSubject(mapping.subject);
+          }
+        }
+      } else if (mapping && selectedSlot) {
+        newSchedule.push({
+          id: `manual-${Date.now()}`,
+          day: selectedDay,
+          grade: selectedSlot.grade,
+          period: selectedSlot.period,
+          subject: mapping.subject,
+          teacher: mapping.teacher,
+          room: slotForm.room || 'TBD',
+          color: getColorForSubject(mapping.subject)
+        });
+      }
+      return newSchedule;
+    });
     
-    setSchedule([...schedule, newClass]);
     setSelectedSlot(null);
     setSlotForm({ mappingId: '', room: '' });
   };
@@ -935,9 +951,17 @@ export default function TimetableWizard() {
                                   <div 
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
-                                    onClick={() => !classData && setSelectedSlot({ grade, period: period.id as number })}
+                                    onClick={() => {
+                                      if (!classData) {
+                                        setSelectedSlot({ grade, period: period.id as number });
+                                      } else {
+                                        const matchingMapping = mappings.find(m => m.subject === classData.subject && m.teacher === classData.teacher && m.grade === classData.grade);
+                                        setSlotForm({ mappingId: matchingMapping?.id || '', room: classData.room || '' });
+                                        setSelectedSlot({ grade, period: period.id as number, id: classData.id });
+                                      }
+                                    }}
                                     className={`p-2 border-r border-border last:border-0 min-h-[100px] transition-colors ${
-                                      snapshot.isDraggingOver ? 'bg-primary/10' : !classData ? 'hover:bg-muted cursor-pointer' : ''
+                                      snapshot.isDraggingOver ? 'bg-primary/10' : 'hover:bg-muted cursor-pointer'
                                     }`}
                                   >
                                     {classData ? (
@@ -1035,7 +1059,9 @@ export default function TimetableWizard() {
               className="bg-card rounded-2xl p-6 w-full max-w-md shadow-xl"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-foreground">Add Class</h3>
+                <h3 className="text-lg font-bold text-foreground">
+                  {selectedSlot.id ? 'Edit Class' : 'Add Class'}
+                </h3>
                 <button onClick={() => setSelectedSlot(null)} className="p-2 hover:bg-muted rounded-full transition-colors">
                   <X size={20} className="text-muted-foreground" />
                 </button>
@@ -1052,6 +1078,19 @@ export default function TimetableWizard() {
                     <option value="">Select a mapped subject...</option>
                     {mappings.filter(m => m.grade === selectedSlot.grade).map(m => (
                       <option key={m.id} value={m.id}>{m.subject} ({m.teacher})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">Period (Manual Switch)</label>
+                  <select 
+                    value={selectedSlot.period}
+                    onChange={(e) => setSelectedSlot({...selectedSlot, period: parseInt(e.target.value)})}
+                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
+                  >
+                    {periods.filter(p => p.id !== 'break').map(p => (
+                      <option key={p.id} value={p.id as number}>{p.label}</option>
                     ))}
                   </select>
                 </div>
@@ -1072,7 +1111,7 @@ export default function TimetableWizard() {
                   disabled={!slotForm.mappingId}
                   className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  Add to Schedule
+                  {selectedSlot.id ? 'Save Changes' : 'Add to Schedule'}
                 </button>
               </div>
             </motion.div>

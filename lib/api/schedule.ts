@@ -7,7 +7,9 @@ export async function getSchedules(classId?: string, academicYear?: string) {
       .from('schedules')
       .select(`
         *,
-        teacher:users(name)
+        teacher:users(name),
+        subject:subjects(name),
+        class:classes(name)
       `);
 
     if (classId) {

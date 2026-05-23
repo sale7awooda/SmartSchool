@@ -100,18 +100,16 @@ export default function AdminScheduleView() {
   }, [activeAcademicYear]);
 
   const getPeriodData = (grade: string, periodId: number, day: string) => {
-    const dayIndex = DAYS.indexOf(day) + 1;
-    
     const realSchedule = schedules.find(s => 
-      s.class_id === grade && 
+      s.class?.name === grade && 
       s.period === periodId && 
-      s.day_of_week === dayIndex
+      s.day_of_week === day
     );
 
     if (realSchedule) {
       return {
-        subject: realSchedule.subject,
-        room: realSchedule.room,
+        subject: realSchedule.subject?.name || 'Unknown',
+        room: realSchedule.room || 'TBD',
         teacherName: realSchedule.teacher?.name || 'Unknown',
         color: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
       };
@@ -121,19 +119,17 @@ export default function AdminScheduleView() {
   };
 
   const getTeacherPeriodData = (teacherName: string, periodId: number, day: string) => {
-    const dayIndex = DAYS.indexOf(day) + 1;
-    
     const realSchedule = schedules.find(s => 
       s.teacher?.name === teacherName && 
       s.period === periodId && 
-      s.day_of_week === dayIndex
+      s.day_of_week === day
     );
 
     if (realSchedule) {
       return {
-        subject: realSchedule.subject,
-        room: realSchedule.room,
-        grade: realSchedule.class_id,
+        subject: realSchedule.subject?.name || 'Unknown',
+        room: realSchedule.room || 'TBD',
+        grade: realSchedule.class?.name || 'Unknown',
         color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
       };
     }
@@ -468,13 +464,13 @@ export default function AdminScheduleView() {
               <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
                 <h3 className="text-lg font-bold text-foreground mb-4">Active Teachers</h3>
                 <p className="text-4xl font-black text-emerald-500">
-                  {new Set(schedules.filter(s => s.teacher).map(s => s.teacher.id)).size}
+                  {new Set(schedules.filter(s => s.teacher).map(s => s.teacher?.name)).size}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">Currently assigned to classes</p>
               </div>
               <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
                 <h3 className="text-lg font-bold text-foreground mb-4">Grades Scheduled</h3>
-                <p className="text-4xl font-black text-amber-500">{grades.length}</p>
+                <p className="text-4xl font-black text-amber-500">{new Set(schedules.map(s => s.class?.name).filter(Boolean)).size}</p>
                 <p className="text-sm text-muted-foreground mt-2">With active timetables</p>
               </div>
             </div>
@@ -496,8 +492,8 @@ export default function AdminScheduleView() {
                   {teachers.map(teacher => {
                     const teacherSchedules = schedules.filter(s => s.teacher?.name === teacher);
                     const totalPeriods = teacherSchedules.length;
-                    const uniqueSubjects = new Set(teacherSchedules.map(s => s.subject)).size;
-                    const uniqueGrades = new Set(teacherSchedules.map(s => s.class_id)).size;
+                    const uniqueSubjects = new Set(teacherSchedules.map(s => s.subject?.name)).size;
+                    const uniqueGrades = new Set(teacherSchedules.map(s => s.class?.name)).size;
                     
                     let loadStatus = { label: 'Optimal', color: 'text-emerald-500 bg-emerald-500/10' };
                     if (totalPeriods > 25) loadStatus = { label: 'Overloaded', color: 'text-red-500 bg-red-500/10' };

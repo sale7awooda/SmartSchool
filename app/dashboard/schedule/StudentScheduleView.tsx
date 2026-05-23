@@ -110,20 +110,20 @@ export default function StudentScheduleView() {
     return <div className="p-4">No student data available.</div>;
   }
 
-  const getPeriodData = (dayId: number, periodId: number) => {
+  const getPeriodData = (dayName: string, periodId: number) => {
     const grade = selectedStudent.grade || 'Grade 4';
     
     // Check real data first
     const realSchedule = schedules.find(s => 
-      s.class_id === grade && 
+      s.class?.name === grade && 
       s.period === periodId && 
-      s.day_of_week === dayId
+      s.day_of_week === dayName
     );
 
     if (realSchedule) {
       return {
-        subject: realSchedule.subject,
-        room: realSchedule.room,
+        subject: realSchedule.subject?.name || 'Unknown',
+        room: realSchedule.room || 'TBD',
         teacherName: realSchedule.teacher?.name || 'Unknown',
         color: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
       };
@@ -213,7 +213,7 @@ export default function StudentScheduleView() {
                     );
                   }
 
-                  const classData = getPeriodData(day.id, period.id as number);
+                  const classData = getPeriodData(day.name, period.id as number);
 
                   return (
                     <div 
