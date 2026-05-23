@@ -61,7 +61,7 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Live Monitor: {assessment.title}</h1>
-          <p className="text-muted-foreground text-sm font-medium">{assessment.subject} • {assessment.grade}</p>
+          <p className="text-muted-foreground text-sm font-medium">{assessment.subject?.name || assessment.subject} • {assessment.class?.name || assessment.grade || assessment.class}</p>
         </div>
       </div>
 

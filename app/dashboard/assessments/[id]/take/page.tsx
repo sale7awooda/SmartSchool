@@ -202,7 +202,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card sm:p-4 sm:rounded-2xl sm:border sm:border-border sm:shadow-sm">
           <div>
             <h1 className="text-xl font-bold text-foreground">{assessment.title}</h1>
-            <p className="text-sm font-medium text-muted-foreground">{assessment.subject} • {assessment.total_marks} Marks</p>
+            <p className="text-sm font-medium text-muted-foreground">{assessment.subject?.name || assessment.subject || 'Unknown Subject'} • {assessment.total_marks} Marks</p>
           </div>
           
           <div className="flex items-center gap-6">

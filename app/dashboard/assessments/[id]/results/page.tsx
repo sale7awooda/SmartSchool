@@ -79,7 +79,7 @@ export default function AssessmentResultsPage({ params }: { params: Promise<{ id
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             {isStudent ? 'Your Results' : 'Assessment Analytics'}: {assessment.title}
           </h1>
-          <p className="text-muted-foreground text-sm font-medium">{assessment.subject} • {assessment.grade}</p>
+          <p className="text-muted-foreground text-sm font-medium">{assessment.subject?.name || assessment.subject || 'Unknown Subject'} • {assessment.class?.name || assessment.grade || assessment.class}</p>
         </div>
       </div>
 
