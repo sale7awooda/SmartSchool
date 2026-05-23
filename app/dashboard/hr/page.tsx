@@ -81,6 +81,7 @@ export default function HRPage() {
   // Modal States
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [isSubmittingEmployee, setIsSubmittingEmployee] = useState(false);
+  const [newEmployeeRole, setNewEmployeeRole] = useState('teacher');
 
   if (!user) return null;
 
@@ -115,6 +116,17 @@ export default function HRPage() {
     setIsSubmittingEmployee(true);
     const formData = new FormData(e.currentTarget);
     formData.append('createdBy', user.id);
+
+    // Map specific fields to department based on role
+    if (newEmployeeRole === 'teacher') {
+      formData.set('department', (formData.get('subject') as string) || 'Teaching');
+    } else if (newEmployeeRole === 'staff') {
+      formData.set('department', (formData.get('job_title') as string) || 'General Staff');
+    } else if (newEmployeeRole === 'admin') {
+      formData.set('department', 'Administration');
+    } else if (newEmployeeRole === 'accountant') {
+      formData.set('department', 'Finance');
+    }
 
     try {
       const result = await processCreateStaffAction({ success: false, message: '' }, formData);
@@ -235,6 +247,24 @@ export default function HRPage() {
               </div>
               
               <form onSubmit={handleAddEmployee} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-foreground mb-2">Role</label>
+                    <select 
+                      name="role" 
+                      required 
+                      value={newEmployeeRole}
+                      onChange={(e) => setNewEmployeeRole(e.target.value)}
+                      className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+                    >
+                      <option value="teacher">Teacher</option>
+                      <option value="admin">Admin</option>
+                      <option value="accountant">Accountant</option>
+                      <option value="staff">Staff</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-bold text-foreground mb-2">Full Name</label>
                   <input name="name" required type="text" placeholder="John Doe" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
@@ -250,22 +280,20 @@ export default function HRPage() {
                     <label className="block text-sm font-bold text-foreground mb-2">Phone</label>
                     <input name="phone" type="tel" placeholder="+1 234 567 8900" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Department</label>
-                    <input name="department" type="text" placeholder="e.g. Science, HR, Main Office" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
-                  </div>
-                </div>
+                  
+                  {newEmployeeRole === 'teacher' && (
+                    <div>
+                      <label className="block text-sm font-bold text-foreground mb-2">Subject Specialty</label>
+                      <input name="subject" type="text" placeholder="e.g. Mathematics" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                    </div>
+                  )}
 
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">Role</label>
-                    <select name="role" required className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground">
-                      <option value="admin">Admin</option>
-                      <option value="teacher">Teacher</option>
-                      <option value="staff">Staff</option>
-                      <option value="accountant">Accountant</option>
-                    </select>
-                  </div>
+                  {newEmployeeRole === 'staff' && (
+                    <div>
+                      <label className="block text-sm font-bold text-foreground mb-2">Job Title</label>
+                      <input name="job_title" type="text" placeholder="e.g. Librarian" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-6">

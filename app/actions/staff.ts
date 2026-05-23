@@ -47,23 +47,47 @@ export async function processCreateStaffAction(
   const adminClient = createAdminClient();
   const supabase = await createClient();
 
-  // Try to create auth user first
-  const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-    email: staffData.email,
-    email_confirm: true,
-    password: 'password123',
-    user_metadata: { name: staffData.name, role: staffData.role }
-  });
+  // Try to find if user already exists
+  const { data: listData } = await adminClient.auth.admin.listUsers();
+  let authUser = listData?.users.find(u => u.email === staffData.email);
 
-  if (authError) {
-    console.error("Auth creation error:", authError);
-    return { success: false, message: "Auth creation failed: " + authError.message };
+  // If not, try to create auth user first
+  if (!authUser) {
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+      email: staffData.email,
+      email_confirm: true,
+      password: 'password123',
+      user_metadata: { name: staffData.name, role: staffData.role }
+    });
+
+    if (authError) {
+      console.warn("Auth creation failed, attempting fallback:", authError);
+      
+      const { data: fallbackAuthData, error: fallbackError } = await adminClient.auth.signUp({
+        email: staffData.email,
+        password: 'password123',
+        options: {
+          data: { name: staffData.name, role: staffData.role }
+        }
+      });
+      
+      if (fallbackError) {
+        return { success: false, message: "Auth creation failed: " + (authError.message || fallbackError.message) };
+      }
+      authUser = fallbackAuthData?.user || undefined;
+    } else {
+      authUser = authData?.user || undefined;
+    }
   }
 
-  const { data: newStaff, error } = await supabase
+  if (!authUser) {
+    return { success: false, message: "Failed to create or find auth user." };
+  }
+
+  const { data: newStaff, error } = await adminClient
     .from('users')
-    .insert([{
-      id: authData.user.id,
+    .upsert([{
+      id: authUser.id,
       ...staffData,
       created_at: new Date().toISOString()
     }])
