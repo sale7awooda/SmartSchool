@@ -38,6 +38,16 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const initializedRef = useRef(false);
 
+  let computedStatus = assessment?.status || 'upcoming';
+  const dateProperty = assessment?.date || assessment?.due_date;
+  if (computedStatus === 'active' && dateProperty) {
+    const dueDateObj = new Date(dateProperty);
+    dueDateObj.setHours(23, 59, 59, 999);
+    if (new Date().getTime() > dueDateObj.getTime()) {
+      computedStatus = 'completed';
+    }
+  }
+
   useEffect(() => {
     if (user?.id) {
       getStudentByUserId(user.id).then(student => {
@@ -183,6 +193,23 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
         <AlertCircle className="w-10 h-10 text-destructive" />
         <p className="text-muted-foreground font-medium">Failed to load assessment.</p>
         <button onClick={() => router.push('/dashboard/assessments')} className="text-primary font-bold hover:underline">
+          Go back to dashboard
+        </button>
+      </div>
+    );
+  }
+
+  if (computedStatus !== 'active') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
+        <AlertCircle className="w-12 h-12 text-amber-500" />
+        <h2 className="text-2xl font-bold">Assessment Not Active</h2>
+        <p className="text-muted-foreground font-medium">
+          {computedStatus === 'upcoming' 
+            ? 'This assessment has not started yet.' 
+            : 'This assessment has ended and is no longer accepting submissions.'}
+        </p>
+        <button onClick={() => router.push('/dashboard/assessments')} className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-colors">
           Go back to dashboard
         </button>
       </div>

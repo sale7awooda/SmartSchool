@@ -44,7 +44,9 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
 
     const interval = setInterval(() => {
       const now = new Date().getTime();
-      const dueDate = new Date(assessment.due_date).getTime();
+      const dueDateObj = new Date(assessment.due_date);
+      dueDateObj.setHours(23, 59, 59, 999);
+      const dueDate = dueDateObj.getTime();
       const diff = dueDate - now;
 
       if (diff <= 0) {

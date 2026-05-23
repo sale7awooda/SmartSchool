@@ -153,14 +153,24 @@ export default function AssessmentsPage() {
   const filteredAssessments = assessments.map((assessment: any) => {
     const submission = studentSubmissions?.find((s: any) => s.assessment_id === assessment.id);
     
+    let computedStatus = assessment.status || 'upcoming';
+    const dateProperty = assessment.date || assessment.due_date;
+    if (computedStatus === 'active' && dateProperty) {
+      const dueDateObj = new Date(dateProperty);
+      dueDateObj.setHours(23, 59, 59, 999);
+      if (new Date().getTime() > dueDateObj.getTime()) {
+        computedStatus = 'completed';
+      }
+    }
+
     return {
       id: assessment.id,
       title: assessment.title,
       subject: assessment.subject?.name || assessment.subject || 'Unknown Subject',
       grade: assessment.class?.name || assessment.grade || 'All Grades',
-      date: assessment.date || assessment.due_date || 'TBD',
+      date: dateProperty || 'TBD',
       duration: assessment.duration || 60,
-      status: submission ? 'completed' : (assessment.status || 'upcoming'),
+      status: submission ? 'completed' : computedStatus,
       totalMarks: assessment.total_marks || 0,
       questionsCount: assessment.questions_count || 0,
       type: assessment.type || 'exam',
