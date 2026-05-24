@@ -23,6 +23,18 @@ export async function updateUserPermissions(userId: string, customPermissions: R
   return data;
 }
 
+export async function updateStaffMember(userId: string, payload: { name: string, email: string, phone: string, role: string, department: string }) {
+  const { data, error } = await supabase
+    .from('users')
+    .update(payload)
+    .eq('id', userId)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function updateUserRoleAndDepartment(userId: string, role: string, department: string) {
   const { data, error } = await supabase
     .from('users')

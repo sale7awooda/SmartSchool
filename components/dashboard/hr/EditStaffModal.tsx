@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { X, Save } from 'lucide-react';
-import { updateUserRoleAndDepartment } from '@/lib/api/users';
+import { updateStaffMember } from '@/lib/api/users';
 import { toast } from 'sonner';
 
 export function EditStaffModal({ staff, onClose, onUpdate }: { staff: any; onClose: () => void; onUpdate: () => void }) {
+  const [name, setName] = useState(staff.name || '');
+  const [email, setEmail] = useState(staff.email || '');
+  const [phone, setPhone] = useState(staff.phone || '');
   const [role, setRole] = useState(staff.role || '');
   const [department, setDepartment] = useState(staff.department || '');
   const [isAttendanceMarker, setIsAttendanceMarker] = useState(staff.department?.includes('attendance_marker') || false);
@@ -17,7 +20,13 @@ export function EditStaffModal({ staff, onClose, onUpdate }: { staff: any; onClo
     setIsSubmitting(true);
     try {
       const newDept = isAttendanceMarker ? 'attendance_marker' : '';
-      await updateUserRoleAndDepartment(staff.id, role, newDept);
+      await updateStaffMember(staff.id, {
+        name,
+        email,
+        phone,
+        role,
+        department: newDept
+      });
       toast.success('Staff profile updated successfully');
       onUpdate();
     } catch (err) {
@@ -53,12 +62,33 @@ export function EditStaffModal({ staff, onClose, onUpdate }: { staff: any; onClo
         <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1 relative">
           <form id="edit-staff-form" onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-foreground mb-2">Staff Member</label>
+              <label className="block text-sm font-bold text-foreground mb-2">Full Name</label>
               <input 
                 type="text" 
-                value={staff.name} 
-                disabled
-                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 text-muted-foreground font-medium cursor-not-allowed"
+                value={name} 
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Email Address</label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Phone</label>
+              <input 
+                type="tel" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
               />
             </div>
 
