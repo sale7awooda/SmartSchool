@@ -20,6 +20,8 @@ export interface User {
   studentIds?: string[];
   phone?: string;
   staffProfile?: StaffProfile;
+  department?: string;
+  students?: any[];
   customPermissions?: Record<string, string[]>;
 }
 
