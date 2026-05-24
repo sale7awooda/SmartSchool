@@ -23,6 +23,23 @@ const DAYS = [
   { id: 5, name: 'Thursday' },
 ];
 
+const COLORS = [
+  'bg-blue-100 text-blue-800 border-blue-200', 
+  'bg-emerald-100 text-emerald-800 border-emerald-200',
+  'bg-purple-100 text-purple-800 border-purple-200', 
+  'bg-amber-100 text-amber-800 border-amber-500/20', 
+  'bg-pink-100 text-pink-800 border-pink-200', 
+  'bg-orange-100 text-orange-800 border-orange-200'
+];
+
+const getColorForSubject = (subject: string) => {
+  let hash = 0;
+  for (let i = 0; i < subject.length; i++) {
+    hash = subject.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return COLORS[Math.abs(hash) % COLORS.length];
+};
+
 const PERIODS = [
   { id: 1, time: '08:00 AM - 08:50 AM' },
   { id: 2, time: '09:00 AM - 09:50 AM' },
@@ -123,9 +140,8 @@ export default function StudentScheduleView() {
     if (realSchedule) {
       return {
         subject: realSchedule.subject?.name || 'Unknown',
-        room: realSchedule.room || 'TBD',
         teacherName: realSchedule.teacher?.name || 'Unknown',
-        color: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+        color: getColorForSubject(realSchedule.subject?.name || 'Unknown')
       };
     }
 
@@ -218,20 +234,17 @@ export default function StudentScheduleView() {
                   return (
                     <div 
                       key={`${day.id}-${period.id}`}
-                      className="p-2 border-r border-border last:border-0 min-h-[100px] transition-colors"
+                      className="p-2 border-r border-border last:border-0 min-h-[70px] transition-colors"
                     >
                       {classData ? (
                         <div
                           className={`h-full p-2 rounded-xl border ${classData.color} flex flex-col justify-between shadow-sm`}
                         >
                           <div>
-                            <h4 className="font-bold text-xs leading-tight">{classData.subject}</h4>
-                            <p className="text-[10px] opacity-80 mt-1 flex items-center gap-1">
-                              <MapPin size={10} /> {classData.room}
-                            </p>
+                            <h4 className="font-bold text-sm leading-tight">{classData.subject}</h4>
                           </div>
-                          <p className="text-[10px] font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
-                            <User size={10} /> {classData.teacherName}
+                          <p className="text-xs font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
+                            <User size={12} /> {classData.teacherName}
                           </p>
                         </div>
                       ) : (

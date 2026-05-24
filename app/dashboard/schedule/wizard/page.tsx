@@ -54,7 +54,14 @@ export default function TimetableWizard() {
   const { data: classesData } = useSWR('classes', getClasses);
   const { data: subjectsData } = useSWR('subjects', getSubjects);
 
-  const GRADES = useMemo(() => classesData?.map(c => c.name) || ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'], [classesData]);
+  const GRADES = useMemo(() => {
+    const rawGrades = classesData?.map(c => c.name) || ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
+    return [...rawGrades].sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.replace(/\D/g, '')) || 0;
+      return numA - numB;
+    });
+  }, [classesData]);
   const SYSTEM_SUBJECTS = useMemo(() => subjectsData?.map(s => s.name) || ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Art', 'Physical Education', 'Music', 'Computer Science'], [subjectsData]);
 
   // Step 1 State: Constraints
@@ -145,7 +152,7 @@ export default function TimetableWizard() {
     }
   }, [activeDays, selectedDay]);
   const [selectedSlot, setSelectedSlot] = useState<{grade: string, period: number, id?: string} | null>(null);
-  const [slotForm, setSlotForm] = useState({ mappingId: '', room: '' });
+  const [slotForm, setSlotForm] = useState({ mappingId: '' });
 
   const steps = [
     { id: 1, title: 'Constraints', icon: Settings, description: 'Set periods and timing' },
@@ -244,7 +251,6 @@ export default function TimetableWizard() {
         period: s.period,
         subject: s.subject,
         teacher: s.teacher?.name || 'Unknown',
-        room: s.room || 'TBD',
         color: getColorForSubject(s.subject)
       }));
 
@@ -291,7 +297,6 @@ export default function TimetableWizard() {
         period: s.period,
         subject_id: subjectsData?.find((sub: any) => sub.name === s.subject)?.id || null,
         teacher_id: teachers.find((t: User) => t.name === s.teacher)?.id || null,
-        room: s.room
       }));
 
       await publishSchedule(scheduleItems, activeAcademicYear.name);
@@ -368,7 +373,15 @@ export default function TimetableWizard() {
             !(mapping.linkedGrade === s.grade && s.subject === mapping.subject) // Allow if it's the linked grade
           );
 
-          if (!isClassOccupied && !isTeacherOccupied) {
+          // 3. Max consecutive checking (no more than 2 consecutive periods in same grade)
+          const hasPrev1 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod - 1);
+          const hasPrev2 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod - 2);
+          const hasNext1 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod + 1);
+          const hasNext2 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod + 2);
+          
+          const willExceedConsecutive = (hasPrev1 && hasPrev2) || (hasNext1 && hasNext2) || (hasPrev1 && hasNext1);
+
+          if (!isClassOccupied && !isTeacherOccupied && !willExceedConsecutive) {
             
             // Handle double periods
             if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
@@ -380,10 +393,10 @@ export default function TimetableWizard() {
                 if (!isNextClassOccupied && !isNextTeacherOccupied) {
                   // Place both
                   newSchedule.push({
-                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: randomPeriod, subject: mapping.subject, teacher: mapping.teacher, room: 'TBD', color
+                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: randomPeriod, subject: mapping.subject, teacher: mapping.teacher, color
                   });
                   newSchedule.push({
-                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, room: 'TBD', color
+                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, color
                   });
                   classesPlaced += 2;
                   continue;
@@ -399,7 +412,6 @@ export default function TimetableWizard() {
               period: randomPeriod,
               subject: mapping.subject,
               teacher: mapping.teacher,
-              room: 'TBD',
               color: color
             });
             classesPlaced++;
@@ -422,7 +434,6 @@ export default function TimetableWizard() {
         const index = newSchedule.findIndex(s => s.id === selectedSlot.id);
         if (index !== -1) {
           newSchedule[index].period = selectedSlot.period;
-          newSchedule[index].room = slotForm.room || 'TBD';
           if (mapping) {
             newSchedule[index].subject = mapping.subject;
             newSchedule[index].teacher = mapping.teacher;
@@ -437,7 +448,6 @@ export default function TimetableWizard() {
           period: selectedSlot.period,
           subject: mapping.subject,
           teacher: mapping.teacher,
-          room: slotForm.room || 'TBD',
           color: getColorForSubject(mapping.subject)
         });
       }
@@ -445,7 +455,7 @@ export default function TimetableWizard() {
     });
     
     setSelectedSlot(null);
-    setSlotForm({ mappingId: '', room: '' });
+    setSlotForm({ mappingId: '' });
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -956,7 +966,7 @@ export default function TimetableWizard() {
                                         setSelectedSlot({ grade, period: period.id as number });
                                       } else {
                                         const matchingMapping = mappings.find(m => m.subject === classData.subject && m.teacher === classData.teacher && m.grade === classData.grade);
-                                        setSlotForm({ mappingId: matchingMapping?.id || '', room: classData.room || '' });
+                                        setSlotForm({ mappingId: matchingMapping?.id || '' });
                                         setSelectedSlot({ grade, period: period.id as number, id: classData.id });
                                       }
                                     }}
@@ -989,9 +999,6 @@ export default function TimetableWizard() {
                                                   <X size={12} />
                                                 </button>
                                               </div>
-                                              <p className="text-[10px] opacity-80 mt-1 flex items-center gap-1">
-                                                <MapPin size={10} /> {classData.room}
-                                              </p>
                                             </div>
                                             <p className="text-[10px] font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
                                               <UserIcon size={10} /> {classData.teacher}
@@ -1093,17 +1100,6 @@ export default function TimetableWizard() {
                       <option key={p.id} value={p.id as number}>{p.label}</option>
                     ))}
                   </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">Room</label>
-                  <input 
-                    type="text"
-                    placeholder="e.g. Room 101"
-                    value={slotForm.room}
-                    onChange={(e) => setSlotForm({...slotForm, room: e.target.value})}
-                    className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
-                  />
                 </div>
                 
                 <button 
