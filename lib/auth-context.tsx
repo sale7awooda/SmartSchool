@@ -39,7 +39,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
       
       if (profile && profile.role === 'parent') {
-        profile.studentIds = profile.parent_student?.map((ps: any) => ps.student_id) || [];
+        const { data: parentData } = await supabase
+          .from('parent_student')
+          .select('student_id, students(id, name)')
+          .eq('parent_id', sessionUser.id);
+
+        profile.students = parentData?.map((ps: any) => ps.students) || [];
+        profile.studentIds = profile.students.map((s: any) => s.id);
         profile.studentId = profile.studentIds[0] || undefined;
       } else if (profile && profile.role === 'student') {
         const { data: studentData } = await supabase
@@ -95,13 +101,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      if (profile && profile.role === 'parent' && !profile.studentIds) {
+      if (profile && profile.role === 'parent' && !profile.students) {
         const { data: parentData } = await supabase
           .from('parent_student')
-          .select('student_id')
+          .select('student_id, students(id, name)')
           .eq('parent_id', profile.id);
           
-        profile.studentIds = parentData?.map((ps: any) => ps.student_id) || [];
+        profile.students = parentData?.map((ps: any) => ps.students) || [];
+        profile.studentIds = profile.students.map((s: any) => s.id);
         profile.studentId = profile.studentIds[0] || undefined;
       }
 

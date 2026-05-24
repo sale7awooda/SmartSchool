@@ -171,21 +171,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         <div className="p-3 border-t border-border/50">
-          {user.role === 'parent' && user.studentIds && user.studentIds.length > 1 && !isCollapsed && (
-            <div className="mb-4 px-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Switch Student</label>
-              <select 
-                value={user.studentId} 
-                onChange={(e) => switchStudent(e.target.value)}
-                className="w-full bg-background border border-border text-foreground text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                {user.studentIds.map(id => (
-                  <option key={id} value={id}>Student: {id}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          
           <div className="px-2 py-1 flex flex-col justify-center items-center gap-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Smart School v1.0</p>
             {!isCollapsed && (
@@ -252,6 +237,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onShowProfile={() => setShowProfileModal(true)} 
           onMenuClick={() => setIsMobileMenuOpen(true)}
         />
+        
+        {user.role === 'parent' && user.students && user.students.length > 1 && (
+          <div className="bg-card w-full border-b border-border shadow-sm shrink-0">
+            <div className="flex px-4 sm:px-6 lg:px-8 gap-4 overflow-x-auto custom-scrollbar pt-2">
+              {user.students.map((student: any) => (
+                <button
+                  key={student.id}
+                  onClick={() => switchStudent(student.id)}
+                  className={`px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 ${
+                    user.studentId === student.id
+                     ? 'border-primary text-primary'
+                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/50'
+                  }`}
+                >
+                  <Users size={16} className={user.studentId === student.id ? 'opacity-100' : 'opacity-50'} />
+                  {student.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col">
           {children}
         </div>

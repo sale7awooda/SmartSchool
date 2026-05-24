@@ -3,25 +3,25 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { X, Save } from 'lucide-react';
-import { updateUserRole } from '@/lib/supabase-db';
+import { updateUserRoleAndDepartment } from '@/lib/api/users';
 import { toast } from 'sonner';
 
 export function EditStaffModal({ staff, onClose, onUpdate }: { staff: any; onClose: () => void; onUpdate: () => void }) {
   const [role, setRole] = useState(staff.role || '');
   const [department, setDepartment] = useState(staff.department || '');
+  const [isAttendanceMarker, setIsAttendanceMarker] = useState(staff.department?.includes('attendance_marker') || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await updateUserRole(staff.id, role);
-      // Wait if there's a department table too, we only have updateUserRole for now?
-      // For now, let's just update role.
-      toast.success('Staff role updated successfully');
+      const newDept = isAttendanceMarker ? 'attendance_marker' : '';
+      await updateUserRoleAndDepartment(staff.id, role, newDept);
+      toast.success('Staff profile updated successfully');
       onUpdate();
     } catch (err) {
-      toast.error('Failed to update staff role');
+      toast.error('Failed to update staff profile');
     } finally {
       setIsSubmitting(false);
       onClose();
@@ -75,6 +75,22 @@ export function EditStaffModal({ staff, onClose, onUpdate }: { staff: any; onClo
                 <option value="staff">Staff</option>
                 <option value="accountant">Accountant</option>
               </select>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 border border-border rounded-xl bg-muted/30">
+              <input
+                type="checkbox"
+                id="attendanceMarker"
+                checked={isAttendanceMarker}
+                onChange={(e) => setIsAttendanceMarker(e.target.checked)}
+                className="w-5 h-5 rounded text-primary focus:ring-primary border-border"
+              />
+              <label htmlFor="attendanceMarker" className="font-bold text-sm text-foreground cursor-pointer">
+                Can Mark Attendance
+                <p className="font-medium text-xs text-muted-foreground mt-0.5 font-normal">
+                  Allows this staff member to mark daily attendance.
+                </p>
+              </label>
             </div>
           </form>
         </div>

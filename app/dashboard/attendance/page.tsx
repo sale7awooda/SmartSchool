@@ -28,8 +28,11 @@ export default function AttendancePage() {
     return <div className="p-4">{t('no_permission')}</div>;
   }
 
-  if (isRole(['teacher'])) return <TeacherAttendance />;
   if (isRole(['parent', 'student'])) return <StudentAttendanceView />;
+  
+  const isAttendanceMarker = user.department?.includes('attendance_marker');
+  
+  if (isAttendanceMarker) return <TeacherAttendance />;
   if (isRole(['admin', 'staff', 'accountant'])) return <AdminAttendance />;
 
   return <div className="p-4">{t('no_permission')}</div>;
