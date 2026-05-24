@@ -38,6 +38,7 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
 
   useEffect(() => {
     if (!assessment?.due_date) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeRemaining('No Limit');
       return;
     }

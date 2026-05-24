@@ -21,6 +21,7 @@ export default function AttendancePage() {
   const { user } = useAuth();
   const { can, isRole } = usePermissions();
   const { t } = useLanguage();
+  const [activeView, setActiveView] = useState<'dashboard' | 'mark'>('dashboard');
   
   if (!user) return null;
 
@@ -30,22 +31,54 @@ export default function AttendancePage() {
 
   if (isRole(['parent', 'student'])) return <StudentAttendanceView />;
   
-  const isAttendanceMarker = user.department?.includes('attendance_marker');
-  
-  if (isAttendanceMarker) return <TeacherAttendance />;
-  if (isRole(['admin', 'staff', 'accountant'])) return <AdminAttendance />;
+  const isAttendanceMarker = user.department?.includes('attendance_marker') || false;
+  const isManagement = isRole(['admin', 'staff', 'accountant']);
+  const isTeacher = isRole(['teacher']);
+
+  if (isManagement) {
+    if (isAttendanceMarker) {
+      return (
+        <div className="space-y-4 h-full flex flex-col">
+          <div className="flex bg-muted/50 p-1 rounded-xl w-fit mb-2 border border-border">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeView === 'dashboard' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Overview Dashboard
+            </button>
+            <button
+              onClick={() => setActiveView('mark')}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeView === 'mark' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Mark Attendance
+            </button>
+          </div>
+          {activeView === 'dashboard' ? <AdminAttendance /> : <TeacherAttendance canMark={true} />}
+        </div>
+      );
+    }
+    return <AdminAttendance />;
+  }
+
+  if (isTeacher) {
+    return <TeacherAttendance canMark={isAttendanceMarker} />;
+  }
 
   return <div className="p-4">{t('no_permission')}</div>;
 }
 
-function TeacherAttendance() {
+function TeacherAttendance({ canMark = true }: { canMark?: boolean }) {
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const searchParams = useSearchParams();
   const classFilter = searchParams.get('class');
   
   const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
-  const [activeTab, setActiveTab] = useState<'mark' | 'history'>('mark');
+  const [activeTab, setActiveTab] = useState<'mark' | 'history'>(canMark ? 'mark' : 'history');
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [students, setStudents] = useState<Student[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -164,13 +197,15 @@ function TeacherAttendance() {
             <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('attendance_history')}</h1>
             <p className="text-muted-foreground mt-2 font-medium">{t('attendance_history_desc')}</p>
           </div>
-          <button 
-            onClick={() => setActiveTab('mark')}
-            className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2"
-          >
-            <ChevronLeft size={18} className="rtl:rotate-180" />
-            {t('back_to_marking')}
-          </button>
+          {canMark && (
+            <button 
+              onClick={() => setActiveTab('mark')}
+              className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+            >
+              <ChevronLeft size={18} className="rtl:rotate-180" />
+              {t('back_to_marking')}
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
