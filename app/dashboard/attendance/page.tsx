@@ -32,10 +32,9 @@ export default function AttendancePage() {
   if (isRole(['parent', 'student'])) return <StudentAttendanceView />;
   
   const isAttendanceMarker = user.department?.includes('attendance_marker') || false;
-  const isManagement = isRole(['admin', 'staff', 'accountant']);
-  const isTeacher = isRole(['teacher']);
+  const canViewOverview = isRole(['admin', 'staff', 'accountant', 'teacher']);
 
-  if (isManagement) {
+  if (canViewOverview) {
     if (isAttendanceMarker) {
       return (
         <div className="space-y-4 h-full flex flex-col">
@@ -62,10 +61,6 @@ export default function AttendancePage() {
       );
     }
     return <AdminAttendance />;
-  }
-
-  if (isTeacher) {
-    return <TeacherAttendance canMark={isAttendanceMarker} />;
   }
 
   return <div className="p-4">{t('no_permission')}</div>;

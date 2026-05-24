@@ -275,18 +275,11 @@ export default function HRPage() {
                   <input name="email" required type="email" placeholder="john.doe@school.edu" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-foreground mb-2">Phone</label>
                     <input name="phone" type="tel" placeholder="+1 234 567 8900" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
                   </div>
-                  
-                  {newEmployeeRole === 'teacher' && (
-                    <div>
-                      <label className="block text-sm font-bold text-foreground mb-2">Subject Specialty</label>
-                      <input name="subject" type="text" placeholder="e.g. Mathematics" className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" />
-                    </div>
-                  )}
 
                   {newEmployeeRole === 'staff' && (
                     <div>
