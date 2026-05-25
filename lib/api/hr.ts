@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { runPayrollAction, applyLeaveAction, updateLeaveStatusAction } from '@/app/actions/hr';
+import { runPayrollAction, applyLeaveAction, updateLeaveStatusAction, getLeaveRequestsAction, getPayslipsAction } from '@/app/actions/hr';
 
 // Fallback user fetching for un-embedded relations
 async function mapUsersToRecords(records: any[], userIdField: string) {
@@ -8,17 +8,14 @@ async function mapUsersToRecords(records: any[], userIdField: string) {
   if (userIds.length === 0) return records;
   const { data: users } = await supabase.from('users').select('id, name').in('id', userIds);
   const userMap = (users || []).reduce((acc: any, u: any) => ({ ...acc, [u.id]: u.name }), {});
-  return records.map(r => ({ ...r, staffName: userMap[r[userIdField]] || r.staff?.name || r[userIdField] }));
+  return records.map(r => {
+    const name = userMap[r[userIdField]] || r.staff?.name || r[userIdField];
+    return { ...r, staffName: name, staff: name };
+  });
 }
 
 export async function getLeaveRequests() {
-  const { data, error } = await supabase
-    .from('leave_requests')
-    .select('*');
-  if (error) {
-    if (error.code === 'PGRST205' || error.code === '42P01') return [];
-    throw error;
-  }
+  const data = await getLeaveRequestsAction();
   return await mapUsersToRecords(data, 'user_id');
 }
 
@@ -34,13 +31,7 @@ export async function updateLeaveRequestStatus(id: string, status: string) {
 }
 
 export async function getPayslips() {
-  const { data, error } = await supabase
-    .from('payslips')
-    .select('*');
-  if (error) {
-    if (error.code === 'PGRST205' || error.code === '42P01') return [];
-    throw error;
-  }
+  const data = await getPayslipsAction();
   return await mapUsersToRecords(data, 'staff_id');
 }
 

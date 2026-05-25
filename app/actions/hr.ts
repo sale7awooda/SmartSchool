@@ -40,6 +40,26 @@ export async function runPayrollAction(monthStr: string) {
   return { success: true, count: newPayslips.length };
 }
 
+export async function getLeaveRequestsAction() {
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient.from('leave_requests').select('*');
+  if (error) {
+    if (error.code === 'PGRST205' || error.code === '42P01') return [];
+    throw error;
+  }
+  return data;
+}
+
+export async function getPayslipsAction() {
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient.from('payslips').select('*');
+  if (error) {
+    if (error.code === 'PGRST205' || error.code === '42P01') return [];
+    throw error;
+  }
+  return data;
+}
+
 export async function applyLeaveAction(leaveData: any) {
   const adminClient = createAdminClient();
   const dataToInsert = { ...leaveData };
