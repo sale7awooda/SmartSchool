@@ -461,8 +461,8 @@ export function AccountantFees() {
                         <button 
                           onClick={async () => {
                             try {
-                              const { error } = await supabase.from('payslips').update({ status: 'Paid', date: new Date().toISOString().split('T')[0] }).eq('id', slip.id);
-                              if (error) throw error;
+                              const { updatePayslipStatusAction } = await import('@/app/actions/hr');
+                              await updatePayslipStatusAction(slip.id, 'Paid');
                               toast.success('Payslip paid successfully');
                               mutatePayslips();
                             } catch (e: any) {

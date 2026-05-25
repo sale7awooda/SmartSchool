@@ -248,12 +248,22 @@ export async function getFinancialStats(academicYear?: string) {
 export async function getFinancials() {
   const { data, error } = await supabase
     .from('financials')
-    .select('*, staff:users(name)');
+    .select('*');
   if (error) {
     if (error.code === 'PGRST205') return [];
     throw error;
   }
-  return data.map((f: any) => ({ ...f, staff: f.staff?.name }));
+  
+  // As a workaround since financials doesn't have a direct staff relation, we'll map gracefully
+  return data.map((f: any) => ({ ...f, staff: f.category || itemCategoryToUser(f) }));
+}
+
+function itemCategoryToUser(f: any) {
+  // Extract user from description if we saved it there
+  if (f.description && f.description.startsWith('Staff:')) {
+    return f.description.split('-')[0].replace('Staff:', '').trim();
+  }
+  return null;
 }
 
 

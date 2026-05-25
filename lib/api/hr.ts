@@ -1,39 +1,47 @@
 import { supabase } from '@/lib/supabase/client';
+import { runPayrollAction, applyLeaveAction, updateLeaveStatusAction } from '@/app/actions/hr';
+
+// Fallback user fetching for un-embedded relations
+async function mapUsersToRecords(records: any[], userIdField: string) {
+  if (!records || records.length === 0) return records;
+  const userIds = [...new Set(records.map(r => r[userIdField]).filter(Boolean))];
+  if (userIds.length === 0) return records;
+  const { data: users } = await supabase.from('users').select('id, name').in('id', userIds);
+  const userMap = (users || []).reduce((acc: any, u: any) => ({ ...acc, [u.id]: u.name }), {});
+  return records.map(r => ({ ...r, staffName: userMap[r[userIdField]] || r.staff?.name || r[userIdField] }));
+}
 
 export async function getLeaveRequests() {
   const { data, error } = await supabase
     .from('leave_requests')
-    .select('*, staff:users(name)')
-    .order('created_at', { ascending: false });
+    .select('*');
   if (error) {
-    if (error.code === 'PGRST205' || error.code === '42P01') return []; // Table doesn't exist yet
+    if (error.code === 'PGRST205' || error.code === '42P01') return [];
     throw error;
   }
-  return data.map((l: any) => ({ ...l, staffName: l.staff?.name }));
+  return await mapUsersToRecords(data, 'user_id');
 }
 
 export async function createLeaveRequest(leaveData: any) {
-  const { data, error } = await supabase.from('leave_requests').insert(leaveData).select().single();
-  if (error) throw error;
-  return data;
+  const dataToInsert = { ...leaveData, user_id: leaveData.staff_id };
+  delete dataToInsert.staff_id;
+  // Use action to bypass RLS
+  return await applyLeaveAction(dataToInsert);
 }
 
 export async function updateLeaveRequestStatus(id: string, status: string) {
-  const { data, error } = await supabase.from('leave_requests').update({ status }).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
+  return await updateLeaveStatusAction(id, status);
 }
 
 export async function getPayslips() {
   const { data, error } = await supabase
     .from('payslips')
-    .select('*, staff:users(name)')
-    .order('created_at', { ascending: false });
+    .select('*');
   if (error) {
     if (error.code === 'PGRST205' || error.code === '42P01') return [];
     throw error;
   }
-  return data.map((p: any) => ({ ...p, staffName: p.staff?.name }));
+  return await mapUsersToRecords(data, 'staff_id');
 }
 
 export async function createPayslip(payslipData: any) {
@@ -43,39 +51,7 @@ export async function createPayslip(payslipData: any) {
 }
 
 export async function runPayrollForMonth(monthStr: string) {
-  // get all active staff (users not student/parent)
-  const { data: staffList, error: err } = await supabase
-    .from('users')
-    .select('id, role')
-    .in('role', ['teacher', 'accountant', 'staff', 'admin', 'driver', 'cleaner', 'guard']);
-
-  if (err) throw err;
-  
-  if (!staffList || staffList.length === 0) return [];
-
-  const baseSalaryByRole: Record<string, number> = {
-    teacher: 3500,
-    accountant: 4000,
-    staff: 2500,
-    admin: 5000,
-    driver: 2000,
-    cleaner: 1500,
-    guard: 2000,
-  };
-
-  const newPayslips = staffList.map(s => {
-    return {
-      staff_id: s.id,
-      month: monthStr,
-      amount: baseSalaryByRole[s.role] || 3000,
-      status: 'Pending', // pending until paid from finance module
-      date: new Date().toISOString().split('T')[0]
-    };
-  });
-
-  const { data: created, error: cErr } = await supabase.from('payslips').insert(newPayslips).select();
-  if (cErr) throw cErr;
-  return created;
+  return await runPayrollAction(monthStr);
 }
 
 

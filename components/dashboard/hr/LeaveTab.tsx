@@ -20,7 +20,18 @@ import { toast } from 'sonner';
 export function LeaveTab({ isAdmin, userName }: { isAdmin: boolean, userName: string }) {
   const { data: leaves, mutate } = useSWR('leave_requests', getLeaveRequests);
 
-  const displayLeaves = (leaves || []).filter((l: any) => isAdmin || l.staffName === userName);
+  const displayLeaves = (leaves || []).map((l: any) => {
+    let extractedType = 'Leave';
+    let cleanReason = l.reason || '';
+    if (cleanReason.startsWith('[')) {
+      const closingIdx = cleanReason.indexOf(']');
+      if (closingIdx > 0) {
+        extractedType = cleanReason.substring(1, closingIdx);
+        cleanReason = cleanReason.substring(closingIdx + 1).trim();
+      }
+    }
+    return { ...l, type: l.type || extractedType, cleanReason };
+  }).filter((l: any) => isAdmin || l.staffName === userName);
   const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
 

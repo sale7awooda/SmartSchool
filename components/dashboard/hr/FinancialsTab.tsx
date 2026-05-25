@@ -24,7 +24,7 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
   const { data: financials, mutate } = useSWR('financials', getFinancials);
 
   const displayFinancials = (financials || [])
-    .filter((f: any) => isAdmin || f.staffName === userName)
+    .filter((f: any) => isAdmin || f.staff === userName)
     .filter((f: any) => f.date && f.date.startsWith(targetPrefix));
 
   const [isApplyLoanOpen, setIsApplyLoanOpen] = useState(false);
@@ -68,14 +68,13 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
     const description = form.description.value;
 
     try {
-      const { data: userRecord } = await supabase.from('users').select('id').eq('name', userName).single();
+      const { data: userRecord } = await supabase.from('users').select('id, name').eq('name', userName).single();
       if (!userRecord) throw new Error("Could not find user ID");
 
       await createFinancial({
-        staff_id: userRecord.id,
         type: 'Loan',
         amount: parseFloat(amount),
-        description: description,
+        description: `Staff: ${userName} - ${description}`,
         date: new Date().toISOString().split('T')[0],
         status: 'Pending'
       });
@@ -103,11 +102,13 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
     const type = form.type.value;
 
     try {
+      const { data: userRecord } = await supabase.from('users').select('name').eq('id', selectedStaffId).single();
+      const staffName = userRecord?.name || 'Unknown';
+
       await createFinancial({
-        staff_id: selectedStaffId,
         type: type as any,
         amount: parseFloat(amount),
-        description: description,
+        description: `Staff: ${staffName} - ${description}`,
         date: new Date().toISOString().split('T')[0],
         status: 'Active'
       });
