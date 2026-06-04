@@ -9,6 +9,7 @@ import { usePermissions } from '@/lib/permissions';
 import { useSWRConfig } from 'swr';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { 
   UserCog, 
   Users, 
@@ -209,13 +210,15 @@ export default function HRPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-        <AnimatePresence mode="wait">
-          {activeTab === 'directory' && isAdmin && <DirectoryTab key="directory" onSelectStaff={setSelectedStaff} onAddEmployee={() => setIsAddEmployeeOpen(true)} />}
-          {activeTab === 'attendance' && isAdmin && <StaffAttendanceTab key="attendance" />}
-          {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} />}
-          {activeTab === 'payroll' && <PayrollTab key="payroll" isAdmin={isAdmin} userName={user.name} />}
-          {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} />}
-        </AnimatePresence>
+        <ErrorBoundary name="HR Tab Content">
+          <AnimatePresence mode="wait">
+            {activeTab === 'directory' && isAdmin && <DirectoryTab key="directory" onSelectStaff={setSelectedStaff} onAddEmployee={() => setIsAddEmployeeOpen(true)} />}
+            {activeTab === 'attendance' && isAdmin && <StaffAttendanceTab key="attendance" />}
+            {activeTab === 'leave' && <LeaveTab key="leave" isAdmin={isAdmin} userName={user.name} />}
+            {activeTab === 'payroll' && <PayrollTab key="payroll" isAdmin={isAdmin} userName={user.name} />}
+            {activeTab === 'financials' && <FinancialsTab key="financials" isAdmin={isAdmin} userName={user.name} />}
+          </AnimatePresence>
+        </ErrorBoundary>
       </div>
 
       <AnimatePresence>

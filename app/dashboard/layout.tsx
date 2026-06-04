@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import StaffProfileModal from '@/components/StaffProfileModal';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { AnimatePresence } from 'motion/react';
@@ -260,7 +261,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col">
-          {children}
+          <ErrorBoundary name="Main Dashboard View">
+            {children}
+          </ErrorBoundary>
         </div>
       </main>
 
