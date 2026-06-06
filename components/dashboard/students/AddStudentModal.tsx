@@ -280,7 +280,9 @@ export function AddStudentModal({
                         frequency: 'Per Term',
                         category: 'Academic'
                       },
-                      additionalInfo: ''
+                      additionalInfo: '',
+                      joiningDate: '',
+                      discountPercentage: ''
                     });
                     setFormErrors({});
                   } catch (error) {
