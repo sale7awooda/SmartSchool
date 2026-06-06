@@ -520,9 +520,12 @@ export function AddStudentModal({
                           className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                         >
                           <option value="">{t('select_fee_structure')}</option>
-                          <option value="Full Year">Full Year (1 Installment)</option>
-                          <option value="Term">Term payments (3 Installments)</option>
-                          <option value="Monthly">Monthly payments (10 Installments)</option>
+                          <option value="1 Term">1 term payment (1 installment)</option>
+                          <option value="2 Terms">2 terms payment (2 installments)</option>
+                          <option value="3 Terms">3 terms payment (3 installments)</option>
+                          <option value="4 Terms">4 terms payment (4 installments)</option>
+                          <option value="5 Terms">5 terms payment (5 installments)</option>
+                          <option value="6 Terms">6 terms payment (6 installments)</option>
                         </select>
                       </div>
                     ) : (
