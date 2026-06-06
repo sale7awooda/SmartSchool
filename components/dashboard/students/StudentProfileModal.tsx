@@ -19,8 +19,8 @@ import { DollarSign, FileText, CheckCircle } from 'lucide-react';
 interface StudentProfileModalProps {
   selectedPerson: Student | User | null;
   setSelectedPerson: (person: Student | User | null) => void;
-  activeProfileTab: 'overview' | 'statement' | 'assessments';
-  setActiveProfileTab: (tab: 'overview' | 'statement' | 'assessments') => void;
+  activeProfileTab: 'overview' | 'statement' | 'assessments' | 'payments';
+  setActiveProfileTab: (tab: 'overview' | 'statement' | 'assessments' | 'payments') => void;
   paymentRecords: any[];
   assessmentRecords: any[];
   t: (key: string) => string;
