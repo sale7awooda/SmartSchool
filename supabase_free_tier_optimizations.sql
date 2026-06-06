@@ -11,10 +11,10 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 -- Supabase automatically generates RLS rules that often JOIN or evaluate relationships.
 -- A sequential scan here on 200 concurrent users will bring the free DB RAM to 100%.
 -- Replace these with your actual table names.
-CREATE INDEX IF NOT EXISTS idx_attendance_user_id ON attendance(user_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
 
 -- 3. PARTIAL INDEXES FOR BOOLEAN/COMMON FILTERS
 -- Ex: You often fetch only "absent" students or "unread" messages.
