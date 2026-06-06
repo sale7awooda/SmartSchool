@@ -393,12 +393,12 @@ export function AccountantFees() {
           {activeTab === 'structure' ? (
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-lg">{t('standard_fee_items')}</h3>
+                <h3 className="font-bold text-lg">Grade Fee Structures</h3>
                 <button 
                   onClick={() => setIsAddFeeItemOpen(true)}
                   className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
                 >
-                  <Plus size={14} /> {t('add_item')}
+                  <Plus size={14} /> Add Grade Structure
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -406,7 +406,6 @@ export function AccountantFees() {
                   <div key={item.id} className="p-4 rounded-2xl border border-border bg-muted/30 flex items-center justify-between group hover:border-primary/30 transition-all">
                     <div>
                       <p className="font-bold text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{t(item.category.toLowerCase())} • {t(item.frequency.toLowerCase().replace(' ', '_'))}</p>
                     </div>
                     <div className="text-right rtl:text-left">
                       <p className="font-black text-lg text-foreground">${item.amount}</p>
@@ -599,65 +598,36 @@ export function AccountantFees() {
               className="bg-card rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-border flex flex-col"
             >
               <div className="p-6 sm:p-8 border-b border-border bg-muted/50">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingFeeItem ? t('edit_fee_item') : t('add_fee_item')}</h2>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{editingFeeItem ? 'Edit Grade Structure' : 'Add Grade Structure'}</h2>
                 <p className="text-sm font-medium text-muted-foreground mt-2">
-                  {editingFeeItem ? t('update_fee_item_desc') : t('add_fee_item_desc')}
+                  {editingFeeItem ? 'Update the base amount for this grade.' : 'Define a new base fee structure for a grade.'}
                 </p>
               </div>
               
               <form onSubmit={handleAddFeeItem} className="p-6 sm:p-8 space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">{t('item_name')}</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">Grade Name</label>
                   <input 
                     required 
                     type="text" 
-                    placeholder={t('item_name_placeholder')} 
+                    placeholder="e.g. Grade 1" 
                     value={newFeeItem.name}
                     onChange={(e) => setNewFeeItem(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">{t('amount')} ($)</label>
-                    <input 
-                      required 
-                      type="number" 
-                      min="1" 
-                      placeholder="0.00" 
-                      value={newFeeItem.amount}
-                      onChange={(e) => setNewFeeItem(prev => ({ ...prev, amount: e.target.value }))}
-                      className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-2">{t('frequency')}</label>
-                    <select 
-                      value={newFeeItem.frequency}
-                      onChange={(e) => setNewFeeItem(prev => ({ ...prev, frequency: e.target.value }))}
-                      className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
-                    >
-                      <option value="Per Term">{t('per_term')}</option>
-                      <option value="Monthly">{t('monthly')}</option>
-                      <option value="Annual">{t('annual')}</option>
-                      <option value="One-time">{t('one_time')}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">{t('category')}</label>
-                  <select 
-                    value={newFeeItem.category}
-                    onChange={(e) => setNewFeeItem(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
-                  >
-                    <option value="Academic">{t('academic')}</option>
-                    <option value="Transport">{t('transport')}</option>
-                    <option value="Extracurricular">{t('extracurricular')}</option>
-                    <option value="Facility">{t('facility')}</option>
-                  </select>
+                <div className="mb-4">
+                  <label className="block text-sm font-bold text-foreground mb-2">Base Tuition Amount ($)</label>
+                  <input 
+                    required 
+                    type="number" 
+                    min="1" 
+                    placeholder="0.00" 
+                    value={newFeeItem.amount}
+                    onChange={(e) => setNewFeeItem(prev => ({ ...prev, amount: e.target.value }))}
+                    className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-6">
@@ -677,7 +647,7 @@ export function AccountantFees() {
                     disabled={isSubmittingFeeItem}
                     className="flex-1 px-4 py-3.5 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-md shadow-primary/20 flex items-center justify-center gap-2"
                   >
-                    {isSubmittingFeeItem ? <Loader2 size={20} className="animate-spin" /> : editingFeeItem ? t('update_item') : t('add_item')}
+                    {isSubmittingFeeItem ? <Loader2 size={20} className="animate-spin" /> : editingFeeItem ? 'Update Structure' : 'Add Structure'}
                   </button>
                 </div>
               </form>
@@ -697,8 +667,8 @@ export function AccountantFees() {
                 <AlertCircle size={40} />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-foreground">{t('delete_confirmation')}</h3>
-                <p className="text-sm text-muted-foreground mt-2">{t('delete_fee_item_warning')}</p>
+                <h3 className="text-xl font-bold text-foreground">Delete Grade Structure</h3>
+                <p className="text-sm text-muted-foreground mt-2">Are you sure you want to delete this grade structure? This will not affect existing invoices.</p>
               </div>
               <div className="flex gap-3 w-full">
                 <button 
