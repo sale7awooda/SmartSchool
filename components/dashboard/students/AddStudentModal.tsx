@@ -32,6 +32,8 @@ interface FormData {
   feeStructure: string;
   manualFeeItem: ManualFeeItem;
   additionalInfo: string;
+  joiningDate: string;
+  discountPercentage: string;
 }
 
 type FormErrors = Record<string, string>;
@@ -143,6 +145,8 @@ export function AddStudentModal({
                       }
                       
                       actionFormData.append('additionalInfo', formData.additionalInfo);
+                      actionFormData.append('joiningDate', formData.joiningDate);
+                      actionFormData.append('discountPercentage', formData.discountPercentage);
                       actionFormData.append('updatedBy', user.id);
 
                       const result = await processUpdateStudentAction({ success: false, message: '' }, actionFormData);
@@ -227,6 +231,8 @@ export function AddStudentModal({
                       }
                       
                       actionFormData.append('additionalInfo', formData.additionalInfo);
+                      actionFormData.append('joiningDate', formData.joiningDate);
+                      actionFormData.append('discountPercentage', formData.discountPercentage);
 
                       const result = await processCreateStudentAction({ success: false, message: '' }, actionFormData);
                       
@@ -459,6 +465,32 @@ export function AddStudentModal({
                 </div>
 
                 <div className="pt-4 border-t border-border">
+                  <h3 className="font-bold text-foreground mb-4">Registration & Finance Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2 text-foreground">
+                      <label className="text-sm font-bold text-foreground/80 mb-1 block">Date of Joining (Proration)</label>
+                      <input 
+                        type="date" 
+                        value={formData.joiningDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, joiningDate: e.target.value }))}
+                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium border-border focus:border-primary focus:ring-primary/20`} 
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">Leave empty to use start of academic year.</p>
+                    </div>
+                    <div className="space-y-2 text-foreground">
+                      <label className="text-sm font-bold text-foreground/80 mb-1 block">Sibling Discount / Scholarship (%)</label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        max="100"
+                        placeholder="e.g. 15 for 15% discount"
+                        value={formData.discountPercentage}
+                        onChange={(e) => setFormData(prev => ({ ...prev, discountPercentage: e.target.value }))}
+                        className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium border-border focus:border-primary focus:ring-primary/20`} 
+                      />
+                    </div>
+                  </div>
+
                   <h3 className="font-bold text-foreground mb-4">{t('fee_structure')}</h3>
                   <div className="space-y-4">
                     <div className="flex gap-4">
@@ -486,9 +518,9 @@ export function AddStudentModal({
                           className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                         >
                           <option value="">{t('select_fee_structure')}</option>
-                          {feeItems.map(item => (
-                            <option key={item.id} value={item.name}>{item.name} (${item.amount})</option>
-                          ))}
+                          <option value="Full Year">Full Year (1 Installment)</option>
+                          <option value="Term">Term payments (3 Installments)</option>
+                          <option value="Monthly">Monthly payments (10 Installments)</option>
                         </select>
                       </div>
                     ) : (

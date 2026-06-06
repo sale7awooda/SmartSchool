@@ -54,7 +54,7 @@ export function ParentFees() {
     }
   );
 
-  const pendingTotal = myInvoices.filter((inv: any) => inv.status !== 'paid').reduce((sum: number, inv: any) => sum + inv.amount, 0);
+  const pendingTotal = studentDetails?.total_due || 0;
 
   useEffect(() => {
     // Real-time subscription for parent's student invoices
@@ -159,16 +159,39 @@ export function ParentFees() {
         </div>
       </div>
 
-      {studentDetails?.fee_structure && (
+      {studentDetails && (
         <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm">
           <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <FileText size={20} className="text-primary" />
-            {t('assigned_fee_structure')}
+            Financial Standing & Ledger Overview
           </h3>
-          <div className="p-4 bg-muted/50 rounded-xl border border-border">
-            <p className="text-sm font-medium text-foreground whitespace-pre-wrap">
-              {studentDetails.fee_structure}
-            </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-muted/50 rounded-xl border border-border">
+              <p className="text-xs font-bold text-muted-foreground uppercase">Assigned Plan</p>
+              <p className="text-sm font-black text-foreground mt-1">
+                {studentDetails.fee_structure || 'Standard'}
+              </p>
+            </div>
+            {studentDetails.discount_percentage ? (
+              <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">Discount / Scholarship</p>
+                <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                  {studentDetails.discount_percentage}% Applied
+                </p>
+              </div>
+            ) : null}
+            <div className="p-4 bg-muted/50 rounded-xl border border-border">
+              <p className="text-xs font-bold text-muted-foreground uppercase">Total Invoiced</p>
+              <p className="text-sm font-black text-foreground mt-1">
+                ${studentDetails.total_due || 0}
+              </p>
+            </div>
+            <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">Total Paid</p>
+              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                ${studentDetails.total_paid || 0}
+              </p>
+            </div>
           </div>
         </div>
       )}

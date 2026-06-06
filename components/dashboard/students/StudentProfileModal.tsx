@@ -19,8 +19,8 @@ import { DollarSign, FileText, CheckCircle } from 'lucide-react';
 interface StudentProfileModalProps {
   selectedPerson: Student | User | null;
   setSelectedPerson: (person: Student | User | null) => void;
-  activeProfileTab: 'overview' | 'payments' | 'assessments';
-  setActiveProfileTab: (tab: 'overview' | 'payments' | 'assessments') => void;
+  activeProfileTab: 'overview' | 'statement' | 'assessments';
+  setActiveProfileTab: (tab: 'overview' | 'statement' | 'assessments') => void;
   paymentRecords: any[];
   assessmentRecords: any[];
   t: (key: string) => string;
@@ -90,6 +90,18 @@ export function StudentProfileModal({
                     {t('overview') || 'Overview'}
                   </button>
                   
+                  <button
+                    onClick={() => setActiveProfileTab('statement')}
+                    className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                      activeProfileTab === 'statement' 
+                        ? 'border-primary text-primary' 
+                        : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    Statement of Account
+                  </button>
+
                   <button
                     onClick={() => setActiveProfileTab('assessments')}
                     className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
@@ -237,38 +249,55 @@ export function StudentProfileModal({
                   </div>
                 )}
 
-                {/* Student Payments Tab */}
-                {activeProfileTab === 'payments' && isStudent(selectedPerson) && (
+                {/* Statement of Account Tab */}
+                {activeProfileTab === 'statement' && isStudent(selectedPerson) && (
                   <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="p-4 rounded-xl border border-border bg-muted/30">
+                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Due / Expected</p>
+                         <p className="text-xl sm:text-2xl font-black text-foreground">${selectedPerson.total_due || 0}</p>
+                       </div>
+                       <div className="p-4 rounded-xl border border-border bg-emerald-500/10 dark:bg-emerald-500/5">
+                         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Total Paid</p>
+                         <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">${selectedPerson.total_paid || 0}</p>
+                       </div>
+                    </div>
+                    
+                    <h3 className="font-bold text-foreground">Transaction Ledger</h3>
                     {paymentRecords && paymentRecords.length > 0 ? (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {paymentRecords.map((invoice: any) => (
-                          <div key={invoice.id} className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm flex flex-col sm:flex-row justify-between gap-4">
-                            <div>
-                               <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-bold text-foreground text-lg">{invoice.term || 'Invoice'}</h4>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                                    invoice.status === 'paid' ? 'bg-emerald-500/100/20 text-emerald-500' : 
-                                    invoice.status === 'overdue' ? 'bg-destructive/20 text-destructive' :
-                                    'bg-amber-500/100/20 text-amber-500'
-                                  }`}>
-                                    {invoice.status}
-                                  </span>
+                          <div key={invoice.id} className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center gap-4 w-full">
+                               <div className={`p-2 rounded-lg shrink-0 ${invoice.status === 'paid' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}`}>
+                                  {invoice.status === 'paid' ? <CheckCircle size={20} /> : <FileText size={20} />}
                                </div>
-                               <p className="text-sm text-muted-foreground">{t('due_date') || 'Due Date'}: {new Date(invoice.due_date || invoice.dueDate).toLocaleDateString()}</p>
+                               <div>
+                                  <h4 className="font-bold text-foreground text-sm line-clamp-1">{invoice.title || invoice.term || 'General Tuition'}</h4>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {invoice.status === 'paid' ? 'Paid on: ' : 'Due by: '}
+                                    {new Date(invoice.paid_at || invoice.due_date || invoice.dueDate).toLocaleDateString()}
+                                  </p>
+                               </div>
                             </div>
-                            <div className="text-left sm:text-right flex flex-col justify-center">
-                               <p className="text-sm font-bold text-muted-foreground uppercase">{t('amount') || 'Amount'}</p>
-                               <p className="text-2xl font-black text-foreground">${invoice.amount}</p>
+                            <div className="text-right whitespace-nowrap min-w-[100px]">
+                               <p className="text-lg font-black text-foreground">${invoice.amount}</p>
+                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                 invoice.status === 'paid' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 
+                                 invoice.status === 'overdue' ? 'bg-destructive/20 text-destructive' :
+                                 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                               }`}>
+                                 {invoice.status}
+                               </span>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
                        <div className="text-center py-10 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl text-muted-foreground">
-                        <DollarSign size={40} className="mb-3 opacity-20" />
-                        <p>{t('no_payments') || 'No payment records found for this student.'}</p>
-                      </div>
+                         <DollarSign size={40} className="mb-3 opacity-20" />
+                         <p>No transactions found for this student.</p>
+                       </div>
                     )}
                   </div>
                 )}

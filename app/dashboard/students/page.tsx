@@ -26,7 +26,7 @@ import { StudentProfileModal } from '@/components/dashboard/students/StudentProf
 import { PromotionsTab } from '@/components/dashboard/students/PromotionsTab';
 
 type DirectoryTab = 'students' | 'parents';
-type ProfileTab = 'overview' | 'payments' | 'assessments';
+type ProfileTab = 'overview' | 'statement' | 'assessments';
 
 import { GradeCardsTab } from '@/components/dashboard/students/GradeCardsTab';
 

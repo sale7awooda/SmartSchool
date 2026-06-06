@@ -21,6 +21,8 @@ const CreateStudentSchema = z.object({
   // Fee & Academic info
   academicYear: z.string().min(1, "Academic year is required"),
   feeStructure: z.string().optional(),
+  joiningDate: z.string().optional(),
+  discountPercentage: z.string().optional(),
   additionalInfo: z.string().optional(),
 
   createdBy: z.string().uuid("Invalid user ID")
@@ -55,6 +57,8 @@ export async function processUpdateStudentAction(
       parentEmail: formData.get('parentEmail') as string,
       parentRelation: formData.get('parentRelation') as string,
       feeStructure: formData.get('feeStructure') as string,
+      joiningDate: formData.get('joiningDate') as string,
+      discountPercentage: formData.get('discountPercentage') as string,
       additionalInfo: formData.get('additionalInfo') as string,
       updatedBy: formData.get('updatedBy') as string,
     };
@@ -72,18 +76,30 @@ export async function processUpdateStudentAction(
     const { student_id, updatedBy, ...updateData } = validatedFields.data;
     const supabase = await createClient();
 
+    const discountNum = updateData.discountPercentage ? parseFloat(updateData.discountPercentage) : undefined;
+    
+    const updatePayload: any = {
+      name: updateData.name,
+      grade: updateData.grade,
+      roll_number: updateData.studentId,
+      dob: updateData.dob,
+      gender: updateData.gender,
+      address: updateData.address,
+      fee_structure: updateData.feeStructure,
+      additional_info: updateData.additionalInfo
+    };
+    
+    if (updateData.joiningDate !== undefined) {
+      updatePayload.joining_date = updateData.joiningDate || null;
+    }
+    
+    if (discountNum !== undefined) {
+      updatePayload.discount_percentage = discountNum;
+    }
+
     const { error: studentError, data: student } = await supabase
       .from('students')
-      .update({
-        name: updateData.name,
-        grade: updateData.grade,
-        roll_number: updateData.studentId,
-        dob: updateData.dob,
-        gender: updateData.gender,
-        address: updateData.address,
-        fee_structure: updateData.feeStructure,
-        additional_info: updateData.additionalInfo
-      })
+      .update(updatePayload)
       .eq('id', student_id)
       .select()
       .single();
@@ -266,6 +282,8 @@ export async function processCreateStudentAction(
       academicYear: formData.get('academicYear') as string,
       studentEmail: formData.get('studentEmail') as string,
       feeStructure: formData.get('feeStructure') as string,
+      joiningDate: formData.get('joiningDate') as string,
+      discountPercentage: formData.get('discountPercentage') as string,
       additionalInfo: formData.get('additionalInfo') as string,
       createdBy: formData.get('createdBy') as string,
     };
@@ -357,6 +375,8 @@ export async function processCreateStudentAction(
     }
 
     // 2. Create the student record
+    const discountNum = studentData.discountPercentage ? parseFloat(studentData.discountPercentage) : 0;
+    
     const { data: student, error: studentError } = await adminClient
       .from('students')
       .insert([{
@@ -368,6 +388,8 @@ export async function processCreateStudentAction(
         address: studentData.address,
         academic_year: studentData.academicYear || '2025-2026',
         fee_structure: studentData.feeStructure,
+        joining_date: studentData.joiningDate || null,
+        discount_percentage: discountNum,
         additional_info: studentData.additionalInfo
       }])
       .select()

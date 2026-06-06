@@ -120,6 +120,10 @@ export interface Student {
   medical?: MedicalProfile;
   gender?: string;
   fee_structure?: string;
+  joining_date?: string;
+  discount_percentage?: number;
+  total_due?: number;
+  total_paid?: number;
   additional_info?: string;
   is_deleted?: boolean;
   deleted_reason?: string;
