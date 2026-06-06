@@ -227,7 +227,9 @@ export async function createStudent(studentData: any) {
       roll_number: studentData.studentId,
       date_of_birth: studentData.dob,
       gender: studentData.gender,
-      academic_year: studentData.academicYear || null
+      academic_year: studentData.academicYear || null,
+      joining_date: studentData.joining_date,
+      discount_percentage: studentData.discount_percentage
     }])
     .select()
     .single();
@@ -291,6 +293,14 @@ export async function updateStudent(id: string, studentData: any) {
   if (studentData.dob) {
     updatePayload.date_of_birth = studentData.dob;
     delete updatePayload.dob;
+  }
+  if (studentData.joiningDate !== undefined) {
+    updatePayload.joining_date = studentData.joiningDate;
+    delete updatePayload.joiningDate;
+  }
+  if (studentData.discountPercentage !== undefined) {
+    updatePayload.discount_percentage = studentData.discountPercentage;
+    delete updatePayload.discountPercentage;
   }
 
   const { data, error } = await supabase
