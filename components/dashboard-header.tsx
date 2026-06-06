@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Bell, 
@@ -15,7 +15,10 @@ import {
   User,
   Settings as SettingsIcon,
   ChevronDown,
-  Menu
+  Menu,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/lib/language-context';
@@ -24,6 +27,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import useSWR from 'swr';
 import { getNotices, getAcademicYears } from '@/lib/supabase-db';
 import { Logo } from '@/components/logo';
+import { getOfflineQueueCount } from '@/lib/offline-db';
 
 interface DashboardHeaderProps {
   onShowProfile?: () => void;
@@ -37,6 +41,29 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? navigator.onLine : true);
+  const [pendingSyncs, setPendingSyncs] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const interval = setInterval(() => {
+      setPendingSyncs(getOfflineQueueCount());
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, []);
 
   const { data: notices } = useSWR('notices', getNotices);
   const { data: academicYears } = useSWR('academic_years', getAcademicYears);
@@ -68,6 +95,35 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
       </div>
 
       <div className="flex items-center gap-1 sm:gap-4">
+
+        {/* Network Status & Outbox Sync Monitor */}
+        <div 
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold select-none shrink-0 transition-colors ${
+            isOnline 
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse'
+          }`}
+          title={isOnline ? 'System Online: Real-time Live Sync active' : 'Offline Mode: Data stored locally and queuing for sync'}
+        >
+          {isOnline ? (
+            <>
+              <Wifi size={14} className="shrink-0" />
+              <span className="text-[10px] font-bold hidden sm:inline shrink-0">Online Sync</span>
+            </>
+          ) : (
+            <>
+              <WifiOff size={14} className="shrink-0" />
+              <span className="text-[10px] font-bold hidden sm:inline shrink-0">Offline (Local First)</span>
+            </>
+          )}
+
+          {pendingSyncs > 0 && (
+            <div className="flex items-center gap-1 bg-amber-500/20 px-1.5 py-0.5 rounded-md">
+              <RefreshCw size={10} className="animate-spin" />
+              <span className="text-[9px] font-black">{pendingSyncs}</span>
+            </div>
+          )}
+        </div>
 
         {/* Language Switcher */}
         <button

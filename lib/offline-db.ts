@@ -15,6 +15,14 @@ const localStore = new Map<string, any>();
 const mutationQueue: any[] = [];
 let isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
 
+export function getOfflineQueueCount(): number {
+  return mutationQueue.length;
+}
+
+export function getLocalStoreSize(): number {
+  return localStore.size;
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     isOnline = true;
