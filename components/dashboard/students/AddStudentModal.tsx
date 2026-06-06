@@ -271,6 +271,9 @@ export function AddStudentModal({
                       parentRelation: 'Father',
                       feeType: 'predefined',
                       feeStructure: '',
+                      paymentStructure: 'Term',
+                      baseFeeAmount: '',
+                      isCustomFee: false,
                       manualFeeItem: {
                         name: '',
                         amount: '',
