@@ -83,7 +83,7 @@ export default function DashboardHome() {
         try {
           const { data: auditData, error: auditError } = await supabase
             .from('audit_logs')
-            .select('*, user:users(name)')
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(5);
           
@@ -258,7 +258,7 @@ function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats
           <div className="space-y-4">
             {recentActivities.length > 0 ? recentActivities.map((activity, i) => (
               <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/30">
-                <span className="font-semibold text-foreground">{formatActionType(activity.action_type)}</span>
+                <span className="font-semibold text-foreground">{formatActionType(activity.action_type || activity.action)}</span>
                 <span className="text-xs font-medium text-muted-foreground">{formatTime(activity.created_at)}</span>
               </div>
             )) : [
