@@ -21,6 +21,9 @@ const CreateStudentSchema = z.object({
   // Fee & Academic info
   academicYear: z.string().min(1, "Academic year is required"),
   feeStructure: z.string().optional(),
+  paymentStructure: z.string().optional(),
+  baseFeeAmount: z.string().optional(),
+  isCustomFee: z.string().optional(),
   joiningDate: z.string().optional(),
   discountPercentage: z.string().optional(),
   additionalInfo: z.string().optional(),
@@ -32,6 +35,7 @@ const UpdateStudentSchema = CreateStudentSchema.partial().extend({
   student_id: z.string().uuid("Invalid student ID"),
   updatedBy: z.string().uuid("Invalid user ID")
 });
+
 
 export type CreateStudentState = {
   success: boolean;
@@ -57,6 +61,9 @@ export async function processUpdateStudentAction(
       parentEmail: formData.get('parentEmail') as string,
       parentRelation: formData.get('parentRelation') as string,
       feeStructure: formData.get('feeStructure') as string,
+      paymentStructure: formData.get('paymentStructure') as string,
+      baseFeeAmount: formData.get('baseFeeAmount') as string,
+      isCustomFee: formData.get('isCustomFee') as string,
       joiningDate: formData.get('joiningDate') as string,
       discountPercentage: formData.get('discountPercentage') as string,
       additionalInfo: formData.get('additionalInfo') as string,
@@ -86,6 +93,9 @@ export async function processUpdateStudentAction(
       gender: updateData.gender,
       address: updateData.address,
       fee_structure: updateData.feeStructure,
+      payment_structure: updateData.paymentStructure,
+      base_fee_amount: updateData.baseFeeAmount ? parseFloat(updateData.baseFeeAmount) : null,
+      is_custom_fee: updateData.isCustomFee === 'true',
       additional_info: updateData.additionalInfo
     };
     
@@ -282,6 +292,9 @@ export async function processCreateStudentAction(
       academicYear: formData.get('academicYear') as string,
       studentEmail: formData.get('studentEmail') as string,
       feeStructure: formData.get('feeStructure') as string,
+      paymentStructure: formData.get('paymentStructure') as string,
+      baseFeeAmount: formData.get('baseFeeAmount') as string,
+      isCustomFee: formData.get('isCustomFee') as string,
       joiningDate: formData.get('joiningDate') as string,
       discountPercentage: formData.get('discountPercentage') as string,
       additionalInfo: formData.get('additionalInfo') as string,
@@ -388,6 +401,9 @@ export async function processCreateStudentAction(
         address: studentData.address,
         academic_year: studentData.academicYear || '2025-2026',
         fee_structure: studentData.feeStructure,
+        payment_structure: studentData.paymentStructure,
+        base_fee_amount: studentData.baseFeeAmount ? parseFloat(studentData.baseFeeAmount) : null,
+        is_custom_fee: studentData.isCustomFee === 'true',
         joining_date: studentData.joiningDate || null,
         discount_percentage: discountNum,
         additional_info: studentData.additionalInfo

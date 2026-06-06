@@ -30,6 +30,9 @@ interface FormData {
   parentRelation: string;
   feeType: 'predefined' | 'manual';
   feeStructure: string;
+  paymentStructure: string;
+  baseFeeAmount: string;
+  isCustomFee: boolean;
   manualFeeItem: ManualFeeItem;
   additionalInfo: string;
   joiningDate: string;
@@ -138,10 +141,18 @@ export function AddStudentModal({
                       actionFormData.append('parentRelation', formData.parentRelation);
                       actionFormData.append('parentEmail', formData.parentEmail);
                       
-                      if (formData.feeType === 'manual' && formData.manualFeeItem.name) {
-                        actionFormData.append('feeStructure', `${formData.manualFeeItem.name} ($${formData.manualFeeItem.amount})`);
+                      actionFormData.append('feeStructure', formData.feeStructure);
+                      actionFormData.append('paymentStructure', formData.paymentStructure);
+                      if (formData.isCustomFee) {
+                        actionFormData.append('baseFeeAmount', formData.baseFeeAmount);
+                        actionFormData.append('isCustomFee', 'true');
                       } else {
-                        actionFormData.append('feeStructure', formData.feeStructure);
+                        // Find the selected fee item amount from feeItems array
+                        const selectedFee = feeItems.find(f => f.id === formData.feeStructure);
+                        if (selectedFee) {
+                          actionFormData.append('baseFeeAmount', selectedFee.amount.toString());
+                        }
+                        actionFormData.append('isCustomFee', 'false');
                       }
                       
                       actionFormData.append('additionalInfo', formData.additionalInfo);
@@ -203,31 +214,17 @@ export function AddStudentModal({
                       actionFormData.append('parentEmail', formData.parentEmail);
                       actionFormData.append('createdBy', user.id);
 
-                      // If manual fee, we might want to create a fee item first or just save the string
-                      if (formData.feeType === 'manual' && formData.manualFeeItem.name) {
-                        actionFormData.append('feeStructure', `${formData.manualFeeItem.name} ($${formData.manualFeeItem.amount})`);
-                        
-                        // Optionally create the fee item in the database so it becomes "predefined" for others
-                        if (formData.manualFeeItem.amount && !isNaN(parseFloat(formData.manualFeeItem.amount))) {
-                          try {
-                            await createFeeItem({
-                              name: formData.manualFeeItem.name,
-                              amount: parseFloat(formData.manualFeeItem.amount),
-                              frequency: formData.manualFeeItem.frequency,
-                              category: formData.manualFeeItem.category
-                            });
-                          } catch (e: any) {
-                            console.error("Error creating manual fee item:", e);
-                            if (e.message?.includes('PGRST204') || e.message?.includes('frequency')) {
-                              toast.error("Database Schema Error", {
-                                description: "The 'frequency' column is missing from 'fee_items'. Please run the SQL fix in your Supabase SQL Editor.",
-                                duration: 10000
-                              });
-                            }
-                          }
-                        }
+                      actionFormData.append('feeStructure', formData.feeStructure);
+                      actionFormData.append('paymentStructure', formData.paymentStructure);
+                      if (formData.isCustomFee) {
+                        actionFormData.append('baseFeeAmount', formData.baseFeeAmount);
+                        actionFormData.append('isCustomFee', 'true');
                       } else {
-                        actionFormData.append('feeStructure', formData.feeStructure);
+                        const selectedFee = feeItems.find(f => f.id === formData.feeStructure);
+                        if (selectedFee) {
+                          actionFormData.append('baseFeeAmount', selectedFee.amount.toString());
+                        }
+                        actionFormData.append('isCustomFee', 'false');
                       }
                       
                       actionFormData.append('additionalInfo', formData.additionalInfo);
@@ -493,33 +490,53 @@ export function AddStudentModal({
                     </div>
                   </div>
 
-                  <h3 className="font-bold text-foreground mb-4">{t('fee_structure')}</h3>
+                  <h3 className="font-bold text-foreground mb-4">Fee Structure</h3>
                   <div className="space-y-4">
-                    <div className="flex gap-4">
-                      <button 
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, feeType: 'predefined' }))}
-                        className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${formData.feeType === 'predefined' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border'}`}
-                      >
-                        {t('predefined')}
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, feeType: 'manual' }))}
-                        className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${formData.feeType === 'manual' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border'}`}
-                      >
-                        {t('manual_entry')}
-                      </button>
-                    </div>
-                    {formData.feeType === 'predefined' ? (
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('select_predefined_structure')}</label>
-                        <select 
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Select Grade Fee Structure</label>
+                       <select 
                           value={formData.feeStructure}
                           onChange={(e) => setFormData(prev => ({ ...prev, feeStructure: e.target.value }))}
+                          disabled={formData.isCustomFee}
+                          className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium disabled:opacity-50"
+                        >
+                          <option value="">Select Fee Structure</option>
+                          {feeItems.map((item) => (
+                            <option key={item.id} value={item.id}>{item.name} (${item.amount})</option>
+                          ))}
+                       </select>
+                       
+                       <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                         <input 
+                           type="checkbox" 
+                           checked={formData.isCustomFee} 
+                           onChange={(e) => setFormData(prev => ({ ...prev, isCustomFee: e.target.checked }))}
+                           className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                         />
+                         <span className="text-sm font-bold text-foreground">Custom fees amount</span>
+                       </label>
+
+                       {formData.isCustomFee && (
+                         <div className="mt-3">
+                           <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Manual Amount ($)</label>
+                           <input 
+                              type="number" 
+                              placeholder="0.00"
+                              value={formData.baseFeeAmount}
+                              onChange={(e) => setFormData(prev => ({ ...prev, baseFeeAmount: e.target.value }))}
+                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary transition-all"
+                            />
+                         </div>
+                       )}
+                    </div>
+
+                    <div className="space-y-2 mt-4 pt-4 border-t border-border">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Select Payment Structure</label>
+                        <select 
+                          value={formData.paymentStructure}
+                          onChange={(e) => setFormData(prev => ({ ...prev, paymentStructure: e.target.value }))}
                           className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                         >
-                          <option value="">{t('select_fee_structure')}</option>
                           <option value="1 Term">1 term payment (1 installment)</option>
                           <option value="2 Terms">2 terms payment (2 installments)</option>
                           <option value="3 Terms">3 terms payment (3 installments)</option>
@@ -528,80 +545,6 @@ export function AddStudentModal({
                           <option value="6 Terms">6 terms payment (6 installments)</option>
                         </select>
                       </div>
-                    ) : (
-                      <div className="p-5 rounded-2xl border border-border bg-muted/30 space-y-5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('add_fee_item')}</p>
-                          <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold uppercase">{t('manual_entry')}</span>
-                        </div>
-                        
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('item_name')}</label>
-                            <input 
-                              type="text" 
-                              placeholder="e.g. Lab Fee"
-                              value={formData.manualFeeItem.name}
-                              onChange={(e) => setFormData(prev => ({ 
-                                ...prev, 
-                                manualFeeItem: { ...prev.manualFeeItem, name: e.target.value },
-                                feeStructure: e.target.value
-                              }))}
-                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                            />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('amount')} ($)</label>
-                              <input 
-                                type="number" 
-                                placeholder="0.00"
-                                value={formData.manualFeeItem.amount}
-                                onChange={(e) => setFormData(prev => ({ 
-                                  ...prev, 
-                                  manualFeeItem: { ...prev.manualFeeItem, amount: e.target.value } 
-                                }))}
-                                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('frequency')}</label>
-                              <select 
-                                value={formData.manualFeeItem.frequency}
-                                onChange={(e) => setFormData(prev => ({ 
-                                  ...prev, 
-                                  manualFeeItem: { ...prev.manualFeeItem, frequency: e.target.value } 
-                                }))}
-                                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                              >
-                                <option value="Per Term">{t('per_term')}</option>
-                                <option value="Monthly">{t('monthly')}</option>
-                                <option value="Annual">{t('annual')}</option>
-                                <option value="One-time">{t('one_time')}</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">{t('category')}</label>
-                            <select 
-                              value={formData.manualFeeItem.category}
-                              onChange={(e) => setFormData(prev => ({ 
-                                ...prev, 
-                                manualFeeItem: { ...prev.manualFeeItem, category: e.target.value } 
-                              }))}
-                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                            >
-                              <option value="Academic">{t('academic')}</option>
-                              <option value="Transport">{t('transport')}</option>
-                              <option value="Extracurricular">{t('extracurricular')}</option>
-                              <option value="Facility">{t('facility')}</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 

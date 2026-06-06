@@ -127,6 +127,9 @@ export default function StudentsPage() {
     parentRelation: 'Father',
     feeType: 'predefined' as 'predefined' | 'manual',
     feeStructure: '',
+    paymentStructure: 'Monthly',
+    baseFeeAmount: '',
+    isCustomFee: false,
     joiningDate: '',
     discountPercentage: '',
     manualFeeItem: {
@@ -327,6 +330,9 @@ export default function StudentsPage() {
       parentRelation: 'Father',
       feeType: 'predefined',
       feeStructure: '',
+      paymentStructure: 'Term', // default 3 terms
+      baseFeeAmount: '',
+      isCustomFee: false,
       joiningDate: '',
       discountPercentage: '',
       manualFeeItem: {
@@ -363,8 +369,11 @@ export default function StudentsPage() {
       parentName: student.parents?.[0]?.parent?.name || '',
       parentPhone: student.parents?.[0]?.parent?.phone || '',
       parentRelation: student.parents?.[0]?.relation || 'Father',
-      feeType: student.fee_structure?.includes('$') ? 'manual' : 'predefined',
+      feeType: 'predefined',
       feeStructure: student.fee_structure || '',
+      paymentStructure: (student as any).payment_structure || 'Term',
+      baseFeeAmount: (student as any).base_fee_amount ? String((student as any).base_fee_amount) : '',
+      isCustomFee: (student as any).is_custom_fee || false,
       joiningDate: student.joining_date || '',
       discountPercentage: student.discount_percentage ? String(student.discount_percentage) : '',
       manualFeeItem: {
