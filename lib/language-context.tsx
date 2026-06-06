@@ -1189,15 +1189,16 @@ const translations = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem('language') as Language;
-      if (savedLang && (savedLang === 'en' || savedLang === 'ar')) {
-        return savedLang;
-      }
+  const [language, setLanguageState] = useState<Language>('en');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('language') as Language;
+    if (savedLang && (savedLang === 'en' || savedLang === 'ar')) {
+      setLanguageState(savedLang);
     }
-    return 'en';
-  });
+    setMounted(true);
+  }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -1205,9 +1206,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = language;
-  }, [language]);
+    if (mounted) {
+      document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = language;
+    }
+  }, [language, mounted]);
+
+  // If we don't want to show wrong layout briefly, we can just render nothing until mounted
+  // But wait, returning children directly with default EN is fine, if we use suppressHydrationWarning where we use language for dir.
+  // We'll just return it. The hydration mismatch is because `language` string changes. Let's just suppress hydration warning in page.tsx or return null until mounted if we must, but returning children is standard.
+
 
   const t = (key: string) => {
     return translations[language][key as keyof typeof translations['en']] || key;
