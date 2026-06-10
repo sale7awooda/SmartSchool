@@ -43,6 +43,7 @@ export function AccountantFees() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [stats, setStats] = useState({ collected: 0, pending: 0, overdue: 0 });
+  const [dueMonthFilter, setDueMonthFilter] = useState<'all' | 'this-month' | 'next-month'>('all');
   const [feeStructure, setFeeStructure] = useState<any[]>([]);
 
   const fetchFeeData = async () => {
@@ -125,12 +126,31 @@ export function AccountantFees() {
     amount: inv.amount,
     dueDate: inv.due_date,
     status: inv.status,
-    term: inv.description
+    term: inv.description || inv.title || 'General Tuition Fee'
   }));
+
+  const matchesDueMonth = (dueDate: string) => {
+    if (dueMonthFilter === 'all') return true;
+    if (!dueDate) return false;
+    const invDate = new Date(dueDate);
+    const now = new Date();
+    
+    if (dueMonthFilter === 'this-month') {
+      return invDate.getMonth() === now.getMonth() && invDate.getFullYear() === now.getFullYear();
+    }
+    
+    if (dueMonthFilter === 'next-month') {
+      const nextMonth = (now.getMonth() + 1) % 12;
+      const nextMonthYear = now.getFullYear() + (now.getMonth() === 11 ? 1 : 0);
+      return invDate.getMonth() === nextMonth && invDate.getFullYear() === nextMonthYear;
+    }
+    
+    return true;
+  };
 
   const filteredInvoices = mappedInvoices.filter((inv: any) => {
     const matchesTab = activeTab === 'all' ? true : (activeTab === 'structure' || activeTab === 'payroll') ? false : inv.status === activeTab;
-    return matchesTab;
+    return matchesTab && matchesDueMonth(inv.dueDate);
   });
 
   const studentInvoices = mappedInvoices.filter((inv: any) => inv.studentId === selectedStudentForProfile);
@@ -361,15 +381,55 @@ export function AccountantFees() {
 
       <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden flex-1 flex flex-col">
         <div className="p-6 border-b border-border space-y-5 bg-muted/50 shrink-0">
-          <div className="relative">
-            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-4" />
-            <input 
-              type="text" 
-              placeholder={t('search_invoice_placeholder')} 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground text-foreground shadow-sm rtl:pl-4 rtl:pr-12"
-            />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="relative flex-1">
+              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-4" />
+              <input 
+                type="text" 
+                placeholder={t('search_invoice_placeholder')} 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground text-foreground shadow-sm rtl:pl-4 rtl:pr-12"
+              />
+            </div>
+            
+            {activeTab !== 'structure' && activeTab !== 'payroll' && (
+              <div className="flex bg-background border border-border p-1 rounded-xl self-start md:self-auto shrink-0 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setDueMonthFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                    dueMonthFilter === 'all'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  All Dues
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDueMonthFilter('this-month')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                    dueMonthFilter === 'this-month'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  Due This Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDueMonthFilter('next-month')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                    dueMonthFilter === 'next-month'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  Due Next Month
+                </button>
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">

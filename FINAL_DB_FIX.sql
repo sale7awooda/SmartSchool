@@ -11,11 +11,12 @@ ALTER TABLE fee_invoices ADD COLUMN IF NOT EXISTS title TEXT DEFAULT 'General Tu
 ALTER TABLE fee_invoices ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE fee_invoices ADD COLUMN IF NOT EXISTS academic_year TEXT;
 
--- 2. Drop the NOT NULL constraint on `academic_year` and `title` to prevent crashes
+-- 3. Drop the NOT NULL constraints to prevent crashes
 ALTER TABLE fee_invoices ALTER COLUMN academic_year DROP NOT NULL;
 ALTER TABLE fee_invoices ALTER COLUMN title DROP NOT NULL;
+ALTER TABLE fee_invoices ALTER COLUMN description DROP NOT NULL;
 
--- 3. Update the student billing trigger to properly include `academic_year` and `title`
+-- 4. Update the student billing trigger to properly include `academic_year` and `title`
 CREATE OR REPLACE FUNCTION generate_student_bills()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -37,20 +38,21 @@ BEGIN
   final_tuition := (base_annual_tuition * proration_factor) * (1.0 - COALESCE(NEW.discount_percentage, 0) / 100.0);
 
   -- C. INSTALLMENTS
-  IF NEW.fee_structure = '2 Terms' THEN num_installments := 2;
-  ELSIF NEW.fee_structure = '3 Terms' OR NEW.fee_structure = 'Term' THEN num_installments := 3;
-  ELSIF NEW.fee_structure = '4 Terms' THEN num_installments := 4;
-  ELSIF NEW.fee_structure = '5 Terms' THEN num_installments := 5;
-  ELSIF NEW.fee_structure = '6 Terms' THEN num_installments := 6;
-  ELSIF NEW.fee_structure = 'Monthly' THEN num_installments := 10;
+  IF NEW.payment_structure = '2 Terms' OR NEW.payment_structure = '2 installments' THEN num_installments := 2;
+  ELSIF NEW.payment_structure = '3 Terms' OR NEW.payment_structure = '3 installments' OR NEW.payment_structure = 'Term' THEN num_installments := 3;
+  ELSIF NEW.payment_structure = '4 Terms' OR NEW.payment_structure = '4 installments' THEN num_installments := 4;
+  ELSIF NEW.payment_structure = '5 Terms' OR NEW.payment_structure = '5 installments' THEN num_installments := 5;
+  ELSIF NEW.payment_structure = '6 Terms' OR NEW.payment_structure = '6 installments' THEN num_installments := 6;
+  ELSIF NEW.payment_structure = 'Monthly' THEN num_installments := 10;
   ELSE num_installments := 1; 
   END IF;
 
   -- D. GENERATE INVOICES
   FOR i IN 1..num_installments LOOP
-    INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
+    INSERT INTO fee_invoices (student_id, title, description, amount, status, due_date, academic_year)
     VALUES (
       NEW.id, 
+      'Installment ' || i || ' of ' || num_installments, 
       'Installment ' || i || ' of ' || num_installments, 
       (final_tuition / num_installments::NUMERIC), 
       'pending', 

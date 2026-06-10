@@ -39,8 +39,23 @@ export function ParentFees() {
     amount: inv.amount,
     dueDate: inv.due_date,
     status: inv.status,
-    description: inv.description
+    description: inv.description || inv.title || 'General Tuition Fee'
   }));
+
+  // Sort invoices chronologically by due date so we handle installment progression in correct order
+  const chronSortedInvoices = [...myInvoices].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  
+  // Find the index of the first unpaid/pending invoice
+  const firstUnpaidIndex = chronSortedInvoices.findIndex((inv: any) => inv.status !== 'paid');
+  
+  // Filter invoices to render: show all paid ones, plus ONLY the first unpaid/pending installment!
+  const visibleInvoices = chronSortedInvoices.filter((inv: any, idx: number) => {
+    if (inv.status === 'paid') return true;
+    return idx === firstUnpaidIndex;
+  });
+
+  const activeUnpaidInvoice = visibleInvoices.find((inv: any) => inv.status !== 'paid');
+  const activeAmountDue = activeUnpaidInvoice ? activeUnpaidInvoice.amount : 0;
 
   const { data: studentDetails } = useSWR(
     user?.studentId ? ['student_details', user.studentId] : null,
@@ -54,7 +69,7 @@ export function ParentFees() {
     }
   );
 
-  const pendingTotal = studentDetails?.total_due || 0;
+  const pendingTotal = activeAmountDue;
 
   useEffect(() => {
     // Real-time subscription for parent's student invoices
@@ -92,18 +107,15 @@ export function ParentFees() {
           referenceNumber: `ONLINE-${Date.now()}`,
           recordedBy: user.id
         });
-      } else {
-        // Pay all pending invoices
-        const pendingInvoices = myInvoices.filter((inv: any) => inv.status !== 'paid');
-        for (const inv of pendingInvoices) {
-          await recordPayment({
-            invoiceId: inv.id,
-            amount: inv.amount,
-            paymentMethod: 'Card',
-            referenceNumber: `ONLINE-BATCH-${Date.now()}`,
-            recordedBy: user.id
-          });
-        }
+      } else if (activeUnpaidInvoice) {
+        // Pay active unpaid invoice
+        await recordPayment({
+          invoiceId: activeUnpaidInvoice.id,
+          amount: activeUnpaidInvoice.amount,
+          paymentMethod: 'Card',
+          referenceNumber: `ONLINE-${Date.now()}`,
+          recordedBy: user.id
+        });
       }
       
       mutate(['parent_invoices', page, user?.studentId]);
@@ -222,9 +234,9 @@ export function ParentFees() {
                 </div>
               ))}
             </div>
-          ) : myInvoices.length === 0 ? (
+          ) : visibleInvoices.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground font-medium">{t('no_invoices_found')}</div>
-          ) : myInvoices.map((invoice: any) => (
+          ) : visibleInvoices.map((invoice: any) => (
           <div key={invoice.id} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:shadow-md transition-all">
             <div className="flex items-start gap-5">
               <div className={`mt-1 p-4 rounded-2xl shrink-0 shadow-inner ${
