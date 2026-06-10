@@ -36,13 +36,14 @@ BEGIN
 
   -- 4. GENERATE INVOICES
   FOR i IN 1..num_installments LOOP
-    INSERT INTO fee_invoices (student_id, title, amount, status, due_date)
+    INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
     VALUES (
       NEW.id, 
       'Installment ' || i || ' of ' || num_installments, 
       final_tuition / num_installments::NUMERIC, 
       'pending', 
-      CURRENT_DATE + ((i - 1) * (300 / num_installments) || ' days')::INTERVAL
+      CURRENT_DATE + ((i - 1) * (300 / num_installments) || ' days')::INTERVAL,
+      NEW.academic_year
     );
   END LOOP;
 

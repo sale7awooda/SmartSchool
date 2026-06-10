@@ -23,16 +23,16 @@ BEGIN
   -- We split the base tuition into 3 terms automatically to track remaining payments.
 
   -- Term 1 (Due in 30 days)
-  INSERT INTO fee_invoices (student_id, title, amount, status, due_date)
-  VALUES (NEW.id, 'Term 1 Tuition Fee - ' || NEW.academic_year, base_tuition / 3, 'pending', CURRENT_DATE + INTERVAL '30 days');
+  INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
+  VALUES (NEW.id, 'Term 1 Tuition Fee - ' || NEW.academic_year, base_tuition / 3, 'pending', CURRENT_DATE + INTERVAL '30 days', NEW.academic_year);
 
   -- Term 2 (Due in 120 days)
-  INSERT INTO fee_invoices (student_id, title, amount, status, due_date)
-  VALUES (NEW.id, 'Term 2 Tuition Fee - ' || NEW.academic_year, base_tuition / 3, 'pending', CURRENT_DATE + INTERVAL '120 days');
+  INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
+  VALUES (NEW.id, 'Term 2 Tuition Fee - ' || NEW.academic_year, base_tuition / 3, 'pending', CURRENT_DATE + INTERVAL '120 days', NEW.academic_year);
 
   -- Term 3 (Due in 210 days)
-  INSERT INTO fee_invoices (student_id, title, amount, status, due_date)
-  VALUES (NEW.id, 'Term 3 Tuition Fee - ' || NEW.academic_year, base_tuition / 3, 'pending', CURRENT_DATE + INTERVAL '210 days');
+  INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
+  VALUES (NEW.id, 'Term 3 Tuition Fee - ' || NEW.academic_year, base_tuition / 3, 'pending', CURRENT_DATE + INTERVAL '210 days', NEW.academic_year);
 
   -- Update the student's running balance cache
   UPDATE students SET total_due = base_tuition WHERE id = NEW.id;

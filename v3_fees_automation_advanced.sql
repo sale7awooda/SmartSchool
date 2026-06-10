@@ -42,22 +42,22 @@ BEGIN
 
   -- C. GENERATE INVOICES BASED ON FEE STRUCTURE
   IF NEW.fee_structure = 'Full Year' THEN
-    INSERT INTO fee_invoices (student_id, title, amount, status, due_date)
-    VALUES (NEW.id, 'Annual Tuition Fee', final_tuition, 'pending', CURRENT_DATE + INTERVAL '15 days');
+    INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
+    VALUES (NEW.id, 'Annual Tuition Fee', final_tuition, 'pending', CURRENT_DATE + INTERVAL '15 days', NEW.academic_year);
 
   ELSIF NEW.fee_structure = 'Monthly' THEN
     -- Generate 10 monthly invoices
     FOR i IN 1..10 LOOP
-      INSERT INTO fee_invoices (student_id, title, amount, status, due_date)
-      VALUES (NEW.id, 'Month ' || i || ' Tuition', final_tuition / 10.0, 'pending', CURRENT_DATE + (i * 30 || ' days')::INTERVAL);
+      INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
+      VALUES (NEW.id, 'Month ' || i || ' Tuition', final_tuition / 10.0, 'pending', CURRENT_DATE + (i * 30 || ' days')::INTERVAL, NEW.academic_year);
     END LOOP;
 
   ELSE
     -- Default to 'Term' (3 installments)
-    INSERT INTO fee_invoices (student_id, title, amount, status, due_date)
-    VALUES (NEW.id, 'Term 1 Tuition', final_tuition / 3.0, 'pending', CURRENT_DATE + INTERVAL '15 days'),
-           (NEW.id, 'Term 2 Tuition', final_tuition / 3.0, 'pending', CURRENT_DATE + INTERVAL '120 days'),
-           (NEW.id, 'Term 3 Tuition', final_tuition / 3.0, 'pending', CURRENT_DATE + INTERVAL '210 days');
+    INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
+    VALUES (NEW.id, 'Term 1 Tuition', final_tuition / 3.0, 'pending', CURRENT_DATE + INTERVAL '15 days', NEW.academic_year),
+           (NEW.id, 'Term 2 Tuition', final_tuition / 3.0, 'pending', CURRENT_DATE + INTERVAL '120 days', NEW.academic_year),
+           (NEW.id, 'Term 3 Tuition', final_tuition / 3.0, 'pending', CURRENT_DATE + INTERVAL '210 days', NEW.academic_year);
   END IF;
 
   -- Update running ledger balance

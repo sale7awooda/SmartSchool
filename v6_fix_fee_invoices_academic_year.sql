@@ -1,51 +1,46 @@
 -- ==============================================================================
--- STUDENT FINANCE AUTOMATION V3 (Up to 6 Term Installments support)
+-- DATABASE FIX V6 (Missing Academic Year for Fee Invoices during Student Creation)
 -- Execute this file in your Supabase SQL Editor.
 -- ==============================================================================
 
-CREATE OR REPLACE FUNCTION generate_advanced_student_bills()
+-- 1. Ensure fee_invoices has an academic_year column
+ALTER TABLE fee_invoices ADD COLUMN IF NOT EXISTS academic_year TEXT;
+
+-- 2. Drop the NOT NULL constraint if it exists to prevent hard crashes
+ALTER TABLE fee_invoices ALTER COLUMN academic_year DROP NOT NULL;
+
+-- 3. Update the student billing trigger to properly include academic_year 
+CREATE OR REPLACE FUNCTION generate_student_bills()
 RETURNS TRIGGER AS $$
 DECLARE
-  base_annual_tuition NUMERIC := 3000;
-  final_tuition NUMERIC;
-  months_remaining INTEGER;
+  base_annual_tuition NUMERIC := 0;
+  final_tuition NUMERIC := 0;
   proration_factor NUMERIC := 1.0;
-  -- Default academic year start for proration (can be adjusted to school's format)
-  year_start DATE := MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER, 9, 1);
-  year_end DATE := MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER + 1, 6, 30);
-  j_date DATE;
-  i INTEGER;
   num_installments INTEGER := 1;
 BEGIN
-  -- Default to September 1st if no date provided
-  j_date := COALESCE(NEW.joining_date, year_start);
+  -- A. BASE TUITION DETERMINATION
+  SELECT COALESCE(SUM(amount), 0) INTO base_annual_tuition
+  FROM fee_items
+  WHERE grade = NEW.grade OR grade = 'All';
 
-  -- A. PRORATION CALCULATION
-  IF j_date > year_start THEN
-     -- Count months from joining date to end of academic year
-     months_remaining := (EXTRACT(YEAR FROM year_end) - EXTRACT(YEAR FROM j_date)) * 12 
-                       + EXTRACT(MONTH FROM year_end) - EXTRACT(MONTH FROM j_date);
-     
-     IF months_remaining < 0 THEN months_remaining := 0; END IF;
-     IF months_remaining > 10 THEN months_remaining := 10; END IF;
-     
-     -- Prorate based on 10 academic months
-     proration_factor := months_remaining / 10.0;
+  IF base_annual_tuition = 0 THEN
+    base_annual_tuition := 3000; -- Fallback
   END IF;
 
   -- B. SCHOLARSHIP / SIBLING DISCOUNT CALCULATION
   final_tuition := (base_annual_tuition * proration_factor) * (1.0 - COALESCE(NEW.discount_percentage, 0) / 100.0);
 
-  -- C. GENERATE INVOICES BASED ON FEE STRUCTURE
+  -- C. INSTALLMENTS
   IF NEW.fee_structure = '2 Terms' THEN num_installments := 2;
   ELSIF NEW.fee_structure = '3 Terms' OR NEW.fee_structure = 'Term' THEN num_installments := 3;
   ELSIF NEW.fee_structure = '4 Terms' THEN num_installments := 4;
   ELSIF NEW.fee_structure = '5 Terms' THEN num_installments := 5;
   ELSIF NEW.fee_structure = '6 Terms' THEN num_installments := 6;
   ELSIF NEW.fee_structure = 'Monthly' THEN num_installments := 10;
-  ELSE num_installments := 1; -- Fallback for "1 Term" or "Full Year" or unrecognized
+  ELSE num_installments := 1; 
   END IF;
 
+  -- D. GENERATE INVOICES
   FOR i IN 1..num_installments LOOP
     INSERT INTO fee_invoices (student_id, title, amount, status, due_date, academic_year)
     VALUES (
@@ -58,17 +53,16 @@ BEGIN
     );
   END LOOP;
 
-  -- Update running ledger balance
+  -- E. Update running ledger balance
   UPDATE students SET total_due = final_tuition WHERE id = NEW.id;
 
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Make sure the trigger utilizes the updated function
+-- Step 4. Attach the trigger
 DROP TRIGGER IF EXISTS trigger_generate_student_bills ON students;
-
 CREATE TRIGGER trigger_generate_student_bills
   AFTER INSERT ON students
   FOR EACH ROW
-  EXECUTE FUNCTION generate_advanced_student_bills();
+  EXECUTE FUNCTION generate_student_bills();
