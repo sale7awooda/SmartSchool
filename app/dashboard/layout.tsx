@@ -99,7 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: t('visitors'), href: '/dashboard/visitors', icon: UserCheck, show: can('view', 'visitors') },
       { name: t('inventory'), href: '/dashboard/inventory', icon: Package, show: can('view', 'inventory') },
       { name: t('analytics'), href: '/dashboard/analytics', icon: TrendingUp, show: can('view', 'analytics') },
-      { name: t('communication'), href: '/dashboard/communication', icon: MessageSquare, show: can('view', 'communication') },
+      { name: t('communication'), href: '/dashboard/communication', icon: Bell, show: can('view', 'communication') },
       { name: t('settings'), href: '/dashboard/settings', icon: Settings, show: can('view', 'settings') },
     ];
     return items.filter(item => item.show);
@@ -273,7 +273,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {[
             { id: 'dashboard', name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
             { id: 'classes', name: t('attendance'), href: '/dashboard/attendance', icon: CalendarCheck },
-            { id: 'messages', name: t('communication'), href: '/dashboard/communication', icon: MessageSquare },
+            { id: 'messages', name: t('communication'), href: '/dashboard/communication', icon: Bell },
             { id: 'profile', name: t('settings'), href: '/dashboard/settings', icon: Settings },
           ].map((item) => {
             const isActive = item.href === '/dashboard' 

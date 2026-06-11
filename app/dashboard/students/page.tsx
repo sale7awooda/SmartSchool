@@ -621,7 +621,7 @@ export default function StudentsPage() {
                           </td>
                           <td className="px-6 py-4 text-right rtl:text-left">
                             <div className="flex items-center justify-end gap-2 rtl:justify-start">
-                              {isAdmin && (
+                              {isAdmin && mainTab !== 'history' && (
                                 <>
                                   <button 
                                     onClick={(e) => {
@@ -643,6 +643,17 @@ export default function StudentsPage() {
                                     <Trash2 size={18} />
                                   </button>
                                 </>
+                              )}
+                              {isAdmin && mainTab === 'history' && (
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRestoreStudent(student.id);
+                                  }}
+                                  className="p-2 text-emerald-500 hover:bg-emerald-500/10 transition-colors rounded-lg border border-emerald-500/30 flex items-center gap-2 text-sm font-bold shadow-sm"
+                                >
+                                  {t('restore') || 'Restore'}
+                                </button>
                               )}
                             </div>
                           </td>

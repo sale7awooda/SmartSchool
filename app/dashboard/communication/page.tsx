@@ -16,19 +16,13 @@ export default function CommunicationPage() {
   const { user } = useAuth();
   const { can, isAdmin } = usePermissions();
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'notices' | 'messages' | 'broadcasts'>('notices');
+  const [activeTab, setActiveTab] = useState<'notices' | 'broadcasts'>('notices');
   
   // Notices State
   const [notices, setNotices] = useState<Notice[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newNotice, setNewNotice] = useState({ title: '', content: '', targetAudience: 'all', isImportant: false });
-
-  // Messages State
-  const [chatUsers, setChatUsers] = useState<User[]>([]);
-  const [activeChatUser, setActiveChatUser] = useState<User | null>(null);
-  const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState<any[]>([]);
 
   // Broadcast State
   const [broadcastType, setBroadcastType] = useState<'whatsapp' | 'push' | 'email'>('whatsapp');
@@ -44,9 +38,6 @@ export default function CommunicationPage() {
     const fetchInitialData = async () => {
       const fetchedNotices = await getNotices();
       setNotices(fetchedNotices);
-
-      const users = await getUsersForChat();
-      setChatUsers(users.filter((u: any) => u.id !== user.id));
     };
 
     fetchInitialData();
@@ -61,31 +52,10 @@ export default function CommunicationPage() {
       })
       .subscribe();
 
-    const messagesChannel = supabase
-      .channel('public:messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const newMessage = payload.new;
-        if (newMessage.receiver_id === user.id || newMessage.sender_id === user.id) {
-          setMessages(prev => [...prev, newMessage]);
-        }
-      })
-      .subscribe();
-
     return () => {
       supabase.removeChannel(noticesChannel);
-      supabase.removeChannel(messagesChannel);
     };
   }, [user]);
-
-  useEffect(() => {
-    if (activeChatUser && user) {
-      const loadMessages = async () => {
-        const msgs = await getMessages(user.id, activeChatUser.id);
-        setMessages(msgs);
-      };
-      loadMessages();
-    }
-  }, [activeChatUser, user]);
 
   if (!user) return null;
 
@@ -93,7 +63,7 @@ export default function CommunicationPage() {
     return <div className="p-4">{t('no_permission')}</div>;
   }
 
-  const canCreateNotice = can('create', 'communication');
+  const canCreateNotice = isAdmin();
 
   const visibleNotices = notices.filter(notice => {
     if (notice.targetAudience === 'all') return true;
@@ -197,12 +167,6 @@ export default function CommunicationPage() {
           >
             {t('notice_board')}
           </button>
-          <button 
-            onClick={() => setActiveTab('messages')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'messages' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {t('direct_messages')}
-          </button>
           {isAdmin() && (
             <button 
               onClick={() => setActiveTab('broadcasts')}
@@ -267,107 +231,7 @@ export default function CommunicationPage() {
         </div>
       )}
 
-      {/* Messages Tab */}
-      {activeTab === 'messages' && (
-        <div className="flex-1 bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden flex h-full min-h-[500px] relative">
-          {/* Chat List - Hidden on mobile if active chat exists */}
-          <div className={`w-full md:w-1/3 border-r border-border flex flex-col bg-muted/30 rtl:border-r-0 rtl:border-l ${activeChatUser ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-4 border-b border-border">
-              <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
-                <input 
-                  type="text" 
-                  placeholder={t('search_messages')} 
-                  className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground rtl:pl-4 rtl:pr-10"
-                />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {chatUsers.map(chatUser => (
-                <button 
-                  key={chatUser.id}
-                  onClick={() => setActiveChatUser(chatUser)}
-                  className={`w-full text-left p-5 border-b border-border transition-colors flex items-start gap-4 rtl:text-right ${activeChatUser?.id === chatUser.id ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-1.5">
-                      <h3 className="font-bold text-foreground text-base truncate">{chatUser.name}</h3>
-                    </div>
-                    <p className="text-xs font-bold text-primary">{t(chatUser.role)}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Chat Window - Hidden on mobile if NO active chat exists */}
-          <div className={`flex-1 flex flex-col bg-card w-full absolute inset-0 md:relative md:flex z-10 ${!activeChatUser ? 'hidden md:flex' : 'flex'}`}>
-            {activeChatUser ? (
-              <>
-                <div className="p-4 border-b border-border flex items-center gap-3 bg-card sticky top-0 z-20 shadow-sm">
-                  <button 
-                    onClick={() => setActiveChatUser(null)}
-                    className="md:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full active:scale-95 transition-all"
-                  >
-                    <ChevronLeft size={24} />
-                  </button>
-                  <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
-                    {activeChatUser.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground">{activeChatUser.name}</h3>
-                    <p className="text-xs font-medium text-muted-foreground">{t(activeChatUser.role)}</p>
-                  </div>
-                </div>
-                
-                <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar space-y-6 bg-muted/20 pb-safe">
-                  {messages.map(msg => {
-                    const isMe = msg.sender_id === user.id;
-                    return (
-                      <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                        <div className={`max-w-[85%] px-5 py-3.5 rounded-2xl ${
-                          isMe 
-                            ? 'bg-primary text-primary-foreground rounded-br-sm rtl:rounded-br-2xl rtl:rounded-bl-sm' 
-                            : 'bg-card border border-border shadow-sm text-foreground rounded-bl-sm rtl:rounded-bl-2xl rtl:rounded-br-sm'
-                        }`}>
-                          <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
-                        </div>
-                        <span className="text-[10px] font-bold text-muted-foreground mt-1.5 px-1">
-                          {new Date(msg.created_at).toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="p-4 border-t border-border bg-card pb-safe lg:pb-4">
-                  <form onSubmit={handleSendMessage} className="flex items-center gap-3 relative">
-                    <input 
-                      type="text" 
-                      value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder={t('type_message_placeholder')} 
-                      className="flex-1 bg-muted/50 border border-border rounded-full px-5 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
-                    />
-                    <button 
-                      type="submit"
-                      disabled={!messageInput.trim()}
-                      className="p-3 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 rtl:rotate-180"
-                    >
-                      <Send size={18} className="translate-x-0.5" />
-                    </button>
-                  </form>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center flex-col text-muted-foreground bg-card">
-                <MessageSquare size={48} className="mb-4 opacity-20" />
-                <p>{t('select_user_to_chat')}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Broadcasts Tab (Admin Only) */}
       {activeTab === 'broadcasts' && isAdmin() && (
