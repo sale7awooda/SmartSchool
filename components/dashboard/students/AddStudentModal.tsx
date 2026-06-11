@@ -333,8 +333,8 @@ export function AddStudentModal({
                       className={`w-full px-4 py-3 rounded-xl border bg-muted/50 text-foreground focus:bg-background focus:ring-4 outline-none transition-all font-medium ${formErrors.grade ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-border focus:border-primary focus:ring-primary/20'}`}
                     >
                       <option value="">{t('select_grade')}</option>
-                      {classesList.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      {classesList.map((c, idx) => (
+                        <option key={`${c}-${idx}`} value={c}>{c}</option>
                       ))}
                     </select>
                     {formErrors.grade && <p className="text-xs text-red-500 font-medium">{formErrors.grade}</p>}
@@ -401,9 +401,9 @@ export function AddStudentModal({
                       </div>
                       {foundParents.length > 0 && parentSearch.length >= 2 && (
                         <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-                          {foundParents.map(p => (
+                          {foundParents.map((p, idx) => (
                             <button
-                              key={p.id}
+                              key={`${p.id || idx}-${idx}`}
                               type="button"
                               onClick={() => {
                                 setFormData(prev => ({ 

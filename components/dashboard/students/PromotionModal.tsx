@@ -87,8 +87,8 @@ export function PromotionModal({
                         className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                       >
                         <option value="">{t('select')} {promotionType === 'grade' ? t('grade') : t('class')}</option>
-                        {classesList.map((c: string) => (
-                          <option key={c} value={c}>{c}</option>
+                        {classesList.map((c: string, idx: number) => (
+                          <option key={`${c}-${idx}`} value={c}>{c}</option>
                         ))}
                       </select>
                     )}
@@ -102,8 +102,8 @@ export function PromotionModal({
                       className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary outline-none transition-all font-medium"
                     >
                       <option value="">{t('select_target_grade')}</option>
-                      {classesList.map((c: string) => (
-                        <option key={c} value={c}>{c}</option>
+                      {classesList.map((c: string, idx: number) => (
+                        <option key={`${c}-${idx}`} value={c}>{c}</option>
                       ))}
                       <option value="Graduated">{t('graduated_completed')}</option>
                     </select>

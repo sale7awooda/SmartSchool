@@ -215,8 +215,8 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                 className="px-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="">{t('select_grade') || 'Select Grade'}</option>
-                {classesList.map((g: string) => (
-                  <option key={g} value={g}>{g}</option>
+                {classesList.map((g: string, idx: number) => (
+                  <option key={`${g}-${idx}`} value={g}>{g}</option>
                 ))}
               </select>
             )}
@@ -313,8 +313,8 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
                             onChange={(e) => setNextGrades({ ...nextGrades, [student.id]: e.target.value })}
                             className="px-3 py-1.5 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-32"
                           >
-                            {classesList.map((g: string) => (
-                              <option key={g} value={g}>{g}</option>
+                            {classesList.map((g: string, idx: number) => (
+                              <option key={`${g}-${idx}`} value={g}>{g}</option>
                             ))}
                             <option value="Graduated">{t('graduated') || 'Graduated'}</option>
                           </select>

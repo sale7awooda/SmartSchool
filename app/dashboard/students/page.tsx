@@ -493,7 +493,7 @@ export default function StudentsPage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase">{t('grade') || 'Grade'}</label>
                     <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
                       <option value="">{t('all_grades') || 'All Grades'}</option>
-                      {classesList.map((c: string) => <option key={c} value={c}>{c}</option>)}
+                      {classesList.map((c: string, idx: number) => <option key={`${c}-${idx}`} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -530,9 +530,9 @@ export default function StudentsPage() {
                       />
                       {parentSearch.length >= 2 && foundParents.length > 0 && !filterParentId && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-40 overflow-auto">
-                          {foundParents.map((p: any) => (
+                          {foundParents.map((p: any, idx: number) => (
                             <button
-                              key={p.id}
+                              key={`${p.id || idx}-${idx}`}
                               onClick={() => {
                                 setFilterParentId(p.id);
                                 setParentSearch(p.name);
@@ -590,9 +590,9 @@ export default function StudentsPage() {
                         </td>
                       </tr>
                     ) : (
-                      students.map((student: Student & { parents?: any[] }) => (
+                      students.map((student: Student & { parents?: any[] }, idx: number) => (
                         <tr 
-                          key={student.id} 
+                          key={`${student.id || idx}-${idx}`} 
                           onClick={() => setSelectedPerson(student)}
                           className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer group"
                         >
@@ -732,9 +732,9 @@ export default function StudentsPage() {
                         </td>
                       </tr>
                     ) : (
-                      students.map((student: Student) => (
+                      students.map((student: Student, idx: number) => (
                         <tr 
-                          key={student.id} 
+                          key={`${student.id || idx}-${idx}`} 
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
