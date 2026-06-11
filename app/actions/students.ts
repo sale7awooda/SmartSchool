@@ -123,6 +123,93 @@ export async function processUpdateStudentAction(
       await supabase.from('users').update({ name: updateData.name }).eq('id', student.user_id);
     }
 
+    // Recalculate invoices when fee or discount updates
+    try {
+      const adminClient = createAdminClient();
+      
+      // Fetch existing invoices
+      const { data: existingInvoices } = await adminClient
+        .from('fee_invoices')
+        .select('*')
+        .eq('student_id', student.id);
+
+      if (existingInvoices && existingInvoices.length > 0) {
+        const paidInvoices = existingInvoices.filter(inv => inv.status === 'paid');
+        const paidAmount = paidInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+
+        const baseFee = student.base_fee_amount || 3000;
+        const discountPct = student.discount_percentage || 0;
+        const finalAnnualFee = baseFee * (1.0 - (discountPct / 100.0));
+        const remainingToPay = Math.max(0, finalAnnualFee - paidAmount);
+
+        // Delete existing unpaid (pending & overdue) bills
+        await adminClient
+          .from('fee_invoices')
+          .delete()
+          .eq('student_id', student.id)
+          .in('status', ['pending', 'overdue']);
+
+        // Calculate installment numbers
+        const paymentStr = student.payment_structure || 'Term';
+        let numInstallments = 1;
+        const digitsMatch = paymentStr.match(/\d+/);
+        
+        if (digitsMatch) {
+          numInstallments = parseInt(digitsMatch[0], 10);
+        } else if (paymentStr.toLowerCase().includes('term')) {
+          numInstallments = 3;
+        } else if (paymentStr.toLowerCase().includes('monthly')) {
+          numInstallments = 10;
+        }
+
+        const unpaidInstallmentsCount = Math.max(1, numInstallments - paidInvoices.length);
+        const baseInstallment = Math.floor((remainingToPay / unpaidInstallmentsCount) * 100) / 100;
+        const lastInstallment = Math.round((remainingToPay - (baseInstallment * (unpaidInstallmentsCount - 1))) * 100) / 100;
+        
+        const now = new Date();
+        const invoicePromises = [];
+
+        for (let j = 0; j < unpaidInstallmentsCount; j++) {
+          const dueDate = new Date(now);
+          dueDate.setMonth(now.getMonth() + j);
+          
+          const installmentIndex = paidInvoices.length + j + 1;
+          const amountForThisInstallment = j === (unpaidInstallmentsCount - 1) ? lastInstallment : baseInstallment;
+
+          if (amountForThisInstallment > 0) {
+            invoicePromises.push(
+              adminClient
+                .from('fee_invoices')
+                .insert({
+                  student_id: student.id,
+                  title: `Installment ${installmentIndex} of ${numInstallments}`,
+                  description: `Installment ${installmentIndex} of ${numInstallments}`,
+                  amount: amountForThisInstallment,
+                  status: 'pending',
+                  due_date: dueDate.toISOString().split('T')[0],
+                  academic_year: student.academic_year || '2025-2026'
+                })
+            );
+          }
+        }
+
+        if (invoicePromises.length > 0) {
+          await Promise.all(invoicePromises);
+        }
+
+        // Update student total_due and total_paid balance
+        await adminClient
+          .from('students')
+          .update({ 
+            total_due: finalAnnualFee,
+            total_paid: paidAmount
+          })
+          .eq('id', student.id);
+      }
+    } catch (updateBillingError) {
+      console.error("[Billing Update Warning] Error during student update billing recalculation:", updateBillingError);
+    }
+
     // Handle Parent
     if (updateData.parentName && updateData.parentPhone) {
       const parentEmailToUse = updateData.parentEmail || `parent_${updateData.parentPhone.replace(/\D/g, '')}@school.com`;
@@ -464,7 +551,8 @@ export async function processCreateStudentAction(
           numInstallments = 10; // Monthly breakdown
         }
         
-        const installmentAmount = Math.round((finalAnnualFee / numInstallments) * 100) / 100;
+        const baseInstallment = Math.floor((finalAnnualFee / numInstallments) * 100) / 100;
+        const lastInstallment = Math.round((finalAnnualFee - (baseInstallment * (numInstallments - 1))) * 100) / 100;
         const now = new Date();
         const invoicePromises = [];
         
@@ -472,6 +560,7 @@ export async function processCreateStudentAction(
           // Calculate due_date month-by-month
           const dueDate = new Date(now);
           dueDate.setMonth(now.getMonth() + (i - 1));
+          const amountForThisInstallment = i === numInstallments ? lastInstallment : baseInstallment;
           
           invoicePromises.push(
             adminClient
@@ -480,7 +569,7 @@ export async function processCreateStudentAction(
                 student_id: student.id,
                 title: `Installment ${i} of ${numInstallments}`,
                 description: `Installment ${i} of ${numInstallments}`,
-                amount: installmentAmount,
+                amount: amountForThisInstallment,
                 status: 'pending',
                 due_date: dueDate.toISOString().split('T')[0],
                 academic_year: student.academic_year || studentData.academicYear || '2025-2026'

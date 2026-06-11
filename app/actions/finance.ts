@@ -127,8 +127,8 @@ export async function processVoidInvoiceAction(
 const PaymentSchema = z.object({
   invoiceId: z.string().uuid("Invalid invoice ID format"),
   amount: z.number().positive("Amount must be greater than zero"),
-  paymentMethod: z.enum(['Cash', 'Credit Card', 'Bank Transfer', 'Cheque']),
-  referenceNumber: z.string().max(50, "Reference number too long").optional(),
+  paymentMethod: z.enum(['Cash', 'Credit Card', 'Bank Transfer', 'Cheque', 'Card']),
+  referenceNumber: z.string().max(50, "Notes too long").optional().or(z.literal('')),
   recordedBy: z.string().uuid("Invalid user ID")
 });
 

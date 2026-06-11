@@ -25,14 +25,23 @@ export function AccountantFees() {
   const [page, setPage] = useState(1);
   const limit = 10;
   
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'overdue' | 'structure' | 'payroll'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'overdue' | 'paid' | 'void' | 'structure' | 'payroll'>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<FeeInvoice | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<string | null>(null);
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     paymentMethod: 'Cash',
     referenceNumber: ''
   });
+
+  useEffect(() => {
+    if (selectedInvoice) {
+      setPaymentAmount(selectedInvoice.amount.toString());
+    } else {
+      setPaymentAmount('');
+    }
+  }, [selectedInvoice]);
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   const [isVoidingInvoice, setIsVoidingInvoice] = useState(false);
@@ -164,7 +173,7 @@ export function AccountantFees() {
     try {
       const formData = new FormData();
       formData.append('invoiceId', selectedInvoice.id);
-      formData.append('amount', selectedInvoice.amount.toString());
+      formData.append('amount', paymentAmount || selectedInvoice.amount.toString());
       formData.append('paymentMethod', paymentForm.paymentMethod);
       formData.append('referenceNumber', paymentForm.referenceNumber);
       formData.append('recordedBy', user.id);
@@ -433,7 +442,7 @@ export function AccountantFees() {
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {(['all', 'pending', 'overdue', 'payroll', 'structure'] as const).map((tab) => (
+            {(['all', 'pending', 'overdue', 'paid', 'void', 'payroll', 'structure'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -443,7 +452,7 @@ export function AccountantFees() {
                     : 'bg-background border border-border text-muted-foreground hover:bg-accent hover:border-accent-foreground/20'
                 }`}
               >
-                {t(tab)}
+                {tab === 'void' ? 'Void / Refund' : tab === 'paid' ? 'Paid Invoices' : t(tab)}
               </button>
             ))}
           </div>
@@ -835,9 +844,17 @@ export function AccountantFees() {
               </div>
               
               <form onSubmit={handleRecordPayment} className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar">
-                <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 mb-6 flex items-center justify-between">
-                  <span className="font-bold text-foreground">{t('amount_to_pay')}</span>
-                  <span className="font-black text-primary text-2xl">${selectedInvoice.amount}</span>
+                <div>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('amount_to_pay') || 'Amount to Pay'}</label>
+                  <input 
+                    required 
+                    type="number" 
+                    step="0.01"
+                    min="0.01"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-semibold text-foreground placeholder:text-muted-foreground" 
+                  />
                 </div>
 
                 <div>
@@ -855,10 +872,10 @@ export function AccountantFees() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">{t('reference_number')}</label>
+                  <label className="block text-sm font-bold text-foreground mb-2">{t('notes') || 'Notes'}</label>
                   <input 
                     type="text" 
-                    placeholder={t('reference_number_placeholder')} 
+                    placeholder={t('notes_placeholder') || 'Enter payment notes...'} 
                     value={paymentForm.referenceNumber}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, referenceNumber: e.target.value }))}
                     className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 

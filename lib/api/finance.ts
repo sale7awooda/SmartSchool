@@ -32,9 +32,11 @@ export async function getPaginatedInvoices(page: number = 1, limit: number = 10,
       query = query.eq('status', 'pending');
     } else if (status === 'paid') {
       query = query.eq('status', 'paid');
+    } else if (status === 'void' || status === 'voided') {
+      query = query.eq('status', 'void');
     }
   } else {
-    // By default, hide void invoices
+    // By default, hide void invoices unless specified
     query = query.neq('status', 'void');
   }
 
