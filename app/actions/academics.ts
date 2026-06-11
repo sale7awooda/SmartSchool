@@ -140,3 +140,89 @@ export async function processSaveGradesAction(
 
   return { success: true, message: "Grades saved successfully." };
 }
+
+export async function runPublicationsMigration(): Promise<boolean> {
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const adminClient = createAdminClient();
+  const sql = `
+    CREATE TABLE IF NOT EXISTS report_card_publications (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+      class_name TEXT NOT NULL,
+      term TEXT NOT NULL,
+      is_published BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      UNIQUE(student_id, term)
+    );
+  `;
+  try {
+    const { error } = await adminClient.rpc('exec_sql', { sql_string: sql });
+    if (error) {
+       console.warn("Migration warning (exec_sql):", error);
+    }
+    return true;
+  } catch (err) {
+    console.warn("Migration error:", err);
+    return false;
+  }
+}
+
+export async function publishReportCard(studentId: string, className: string, term: string, isPublished: boolean): Promise<boolean> {
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const adminClient = createAdminClient();
+  try {
+    if (isPublished) {
+      const { error } = await adminClient
+        .from('report_card_publications')
+        .upsert({
+          student_id: studentId,
+          class_name: className,
+          term: term,
+          is_published: true
+        }, { onConflict: 'student_id, term' });
+      if (error) throw error;
+    } else {
+      const { error } = await adminClient
+        .from('report_card_publications')
+        .delete()
+        .eq('student_id', studentId)
+        .eq('term', term);
+      if (error) throw error;
+    }
+    return true;
+  } catch (err) {
+    console.error("Error setting publish status:", err);
+    return false;
+  }
+}
+
+export async function publishClassReportCards(className: string, term: string, studentIds: string[], isPublished: boolean): Promise<boolean> {
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const adminClient = createAdminClient();
+  try {
+    if (isPublished) {
+      const payload = studentIds.map(sid => ({
+        student_id: sid,
+        class_name: className,
+        term: term,
+        is_published: true
+      }));
+      const { error } = await adminClient
+        .from('report_card_publications')
+        .upsert(payload, { onConflict: 'student_id, term' });
+      if (error) throw error;
+    } else {
+      const { error } = await adminClient
+        .from('report_card_publications')
+        .delete()
+        .eq('class_name', className)
+        .eq('term', term);
+      if (error) throw error;
+    }
+    return true;
+  } catch (err) {
+    console.error("Error publishing class report cards:", err);
+    return false;
+  }
+}
+
