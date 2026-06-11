@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase/client';
 import { getActiveAcademicYear } from '@/lib/supabase-db';
-import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2, Bell } from 'lucide-react';
+import { Users, CalendarCheck, CreditCard, TrendingUp, ArrowRight, AlertCircle, BookOpen, CheckCircle2, Bell, Loader2, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useLanguage } from '@/lib/language-context';
@@ -21,7 +21,7 @@ export default function DashboardHome() {
 
   const fetchDashboardData = async () => {
     if (!user) return null;
-    let stats = { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0, totalStaff: 0 };
+    let stats = { totalStudents: 0, attendanceToday: 0, feeCollected: 0, pendingFees: 0, totalStaff: 0, feeCollectedToday: 0 };
     let notices = [];
     let recentActivities = [];
 
@@ -61,7 +61,6 @@ export default function DashboardHome() {
              feeQuery = feeQuery.in('student_id', filteredStudentIds);
           } else {
              // Avoid PGRST by returning empty early
-             // We can just query something impossible
              feeQuery = feeQuery.eq('student_id', '00000000-0000-0000-0000-000000000000');
           }
         }
@@ -69,7 +68,16 @@ export default function DashboardHome() {
         const { data: feeData } = await feeQuery;
         
         const collected = feeData?.filter((f: any) => f.status === 'paid').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
-        const pending = feeData?.filter((f: any) => f.status === 'pending').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+        // Count both warning status ('pending') and 'overdue' as pending fees
+        const pending = feeData?.filter((f: any) => f.status === 'pending' || f.status === 'overdue').reduce((acc: number, f: any) => acc + Number(f.amount), 0) || 0;
+
+        // Fetch actual payment history to compute Collected Today
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { data: todayPayments } = await supabase
+          .from('fee_payments')
+          .select('amount')
+          .gte('payment_date', `${todayStr}T00:00:00`);
+        const collectedToday = todayPayments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
 
         stats = {
           totalStudents: studentCount || 0,
@@ -77,6 +85,7 @@ export default function DashboardHome() {
           feeCollected: collected,
           pendingFees: pending,
           totalStaff: staffCount || 0,
+          feeCollectedToday: collectedToday,
         };
         
         // Safely try to fetch audit logs securely created by new system integrations
@@ -134,7 +143,29 @@ export default function DashboardHome() {
       const presentCount = attendanceData?.filter((a: any) => a.status === 'present').length || 0;
       const attendanceRate = studentCount ? Math.round((presentCount / studentCount) * 100) : 0;
 
-      return { studentCount: studentCount || 0, attendanceRate };
+      // Count assessments (upcoming alerts/tasks)
+      const { count: assessmentCount } = await supabase
+        .from('assessments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // Fetch teacher's schedules for today
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const todayDay = days[new Date().getDay()];
+      
+      const { data: rawSchedules } = await supabase
+        .from('schedules')
+        .select('*, class:classes(name), subject:subjects(name)')
+        .eq('teacher_id', user.id);
+
+      const teacherSchedules = rawSchedules?.filter((s: any) => s.day_of_week === todayDay) || [];
+
+      return { 
+        studentCount: studentCount || 0, 
+        attendanceRate, 
+        upcomingTasksCount: assessmentCount || 0,
+        schedules: teacherSchedules 
+      };
     }
   );
 
@@ -182,7 +213,7 @@ export default function DashboardHome() {
   const recentActivities = data?.recentActivities || [];
 
   if (isRole('parent')) return <ParentDashboard notices={notices} />;
-  if (isRole('teacher')) return <TeacherDashboard notices={notices} />;
+  if (isRole('teacher')) return <TeacherDashboard notices={notices} teacherStats={teacherStats} />;
   if (isRole('accountant')) return <AccountantDashboard stats={stats} notices={notices} />;
   return <AdminDashboard stats={stats} notices={notices} recentActivities={recentActivities} />;
 }
@@ -314,15 +345,48 @@ function AdminDashboard({ stats: realStats, notices, recentActivities }: { stats
   );
 }
 
-function TeacherDashboard({ notices }: { notices: any[] }) {
+function TeacherDashboard({ notices, teacherStats }: { notices: any[], teacherStats: any }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { data: teacherStats } = useSWR(`teacher-stats-${user?.id}`, null); // Using cached data from above
-  
+
   const stats = [
     { label: t('total_students'), value: teacherStats?.studentCount || 0, icon: Users, color: 'bg-blue-500' },
     { label: t('attendance_rate'), value: `${teacherStats?.attendanceRate || 0}%`, icon: CalendarCheck, color: 'bg-emerald-500' },
-    { label: t('upcoming_tasks'), value: '4', icon: BookOpen, color: 'bg-indigo-500' },
+    { label: t('upcoming_tasks'), value: teacherStats?.upcomingTasksCount !== undefined ? String(teacherStats.upcomingTasksCount) : '4', icon: BookOpen, color: 'bg-indigo-500' },
+  ];
+
+  const PERIOD_TIMES: Record<number, string> = {
+    1: '08:00 AM',
+    2: '09:00 AM',
+    3: '10:00 AM',
+    4: '11:20 AM',
+    5: '12:20 PM',
+    6: '01:20 PM',
+    7: '02:20 PM',
+  };
+
+  const realSchedules = teacherStats?.schedules || [];
+  const scheduleList = realSchedules.length > 0 ? realSchedules.map((s: any, i: number) => {
+    const periodId = s.period || 1;
+    const periodDisplay = PERIOD_TIMES[periodId] || '09:00 AM';
+    const bgColors = [
+      'bg-blue-500/10 text-blue-500',
+      'bg-emerald-500/10 text-emerald-500',
+      'bg-amber-500/10 text-amber-500',
+      'bg-indigo-500/10 text-indigo-500',
+      'bg-pink-500/10 text-pink-500',
+    ];
+    return {
+      class: `${s.class?.name || 'Class'}`,
+      subject: s.subject?.name || 'Subject',
+      time: periodDisplay,
+      room: s.room || 'Room TBD',
+      color: bgColors[i % bgColors.length],
+    };
+  }) : [
+    { class: 'Grade 10', subject: 'Mathematics', time: '09:00 AM', room: 'Room 302', color: 'bg-blue-500/10 text-blue-500' },
+    { class: 'Grade 11', subject: 'Physics', time: '11:00 AM', room: 'Room 405', color: 'bg-emerald-500/10 text-emerald-500' },
+    { class: 'Grade 9', subject: 'Science', time: '01:30 PM', room: 'Lab 1', color: 'bg-amber-500/10 text-amber-500' }
   ];
 
   return (
@@ -330,7 +394,9 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
       <div className="flex flex-col @[600px]:flex-row @[600px]:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('hello')}, {user?.name}</h1>
-          <p className="text-muted-foreground mt-2 font-medium">{t('classes_today').replace('{count}', '3')}</p>
+          <p className="text-muted-foreground mt-2 font-medium">
+            {realSchedules.length > 0 ? `You have ${realSchedules.length} teaching classes scheduled today` : t('classes_today').replace('{count}', '3')}
+          </p>
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard/attendance" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all shadow-md shadow-primary/20 flex items-center gap-2 touch-manipulation">
@@ -360,18 +426,14 @@ function TeacherDashboard({ notices }: { notices: any[] }) {
           </div>
           
           <div className="space-y-4">
-            {[
-              { class: 'Grade 10 - Mathematics', time: '09:00 AM', room: 'Room 302', color: 'bg-blue-500/10 text-blue-500' },
-              { class: 'Grade 11 - Physics', time: '11:00 AM', room: 'Room 405', color: 'bg-emerald-500/10 text-emerald-500' },
-              { class: 'Grade 9 - Science', time: '01:30 PM', room: 'Lab 1', color: 'bg-amber-500/10 text-amber-500' }
-            ].map((cls, i) => (
+            {scheduleList.map((cls, i) => (
               <div key={i} className="flex flex-col @[600px]:flex-row @[600px]:items-center justify-between p-5 rounded-2xl border border-border bg-muted/30 hover:bg-muted transition-all gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-2xl ${cls.color} flex items-center justify-center font-bold text-sm`}>
                     {cls.time.split(':')[0]}
                   </div>
                   <div>
-                    <p className="font-bold text-foreground">{cls.class}</p>
+                    <p className="font-bold text-foreground">{cls.class} - {cls.subject}</p>
                     <p className="text-xs font-medium text-muted-foreground">{cls.time} • {cls.room}</p>
                   </div>
                 </div>
@@ -438,10 +500,14 @@ function AccountantDashboard({ stats: realStats, notices }: { stats: any, notice
         <p className="text-muted-foreground mt-2 font-medium">{t('financial_overview')}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <div className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm">
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('collected_today')}</p>
-          <p className="text-4xl font-bold text-emerald-500 mt-2">${realStats.feeCollected.toLocaleString()}</p>
+          <p className="text-4xl font-bold text-emerald-500 mt-2">${(realStats.feeCollectedToday || 0).toLocaleString()}</p>
+        </div>
+        <div className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm">
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Collected (YTD)</p>
+          <p className="text-4xl font-bold text-blue-500 mt-2">${realStats.feeCollected.toLocaleString()}</p>
         </div>
         <div className="bg-card p-6 sm:p-8 rounded-[1.5rem] border border-border shadow-sm">
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('pending_fees')}</p>
@@ -486,6 +552,13 @@ function ParentDashboard({ notices }: { notices: any[] }) {
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // States for child-specific data
+  const [attendanceRate, setAttendanceRate] = useState<number | null>(null);
+  const [totalClasses, setTotalClasses] = useState<number>(0);
+  const [nextFee, setNextFee] = useState<{ amount: number; description: string; relativeDue: string } | null>(null);
+  const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
+  const [isChildDataLoading, setIsChildDataLoading] = useState(false);
+
   useEffect(() => {
     const fetchStudents = async () => {
       if (user?.studentIds && user.studentIds.length > 0) {
@@ -507,6 +580,118 @@ function ParentDashboard({ notices }: { notices: any[] }) {
   }, [user?.studentIds, user?.studentId, switchStudent]);
 
   const activeStudent = students.find(s => s.id === user?.studentId) || students[0];
+
+  useEffect(() => {
+    if (!activeStudent) return;
+
+    const fetchChildData = async () => {
+      setIsChildDataLoading(true);
+      try {
+        // 1. Fetch Attendance Rate
+        const { data: attData } = await supabase
+          .from('attendance')
+          .select('status')
+          .eq('student_id', activeStudent.id);
+
+        if (attData && attData.length > 0) {
+          const presentCount = attData.filter((r: any) => r.status === 'present' || r.status === 'late').length;
+          setAttendanceRate(Math.round((presentCount / attData.length) * 100));
+          setTotalClasses(attData.length);
+        } else {
+          setAttendanceRate(null);
+          setTotalClasses(0);
+        }
+
+        // 2. Fetch Next Unpaid Fee Invoice
+        const { data: feeInvoices } = await supabase
+          .from('fee_invoices')
+          .select('*')
+          .eq('student_id', activeStudent.id)
+          .neq('status', 'paid')
+          .neq('status', 'void')
+          .order('due_date', { ascending: true })
+          .limit(1);
+
+        if (feeInvoices && feeInvoices.length > 0) {
+          const inv = feeInvoices[0];
+          // Calculate relative due days
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const due = new Date(inv.due_date);
+          due.setHours(0, 0, 0, 0);
+          const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          let relative = `Due in ${diffDays} days`;
+          if (diffDays === 0) relative = 'Due today!';
+          else if (diffDays === 1) relative = 'Due tomorrow';
+          else if (diffDays < 0) relative = `${Math.abs(diffDays)} days overdue!`;
+
+          setNextFee({
+            amount: Number(inv.amount),
+            description: inv.title || inv.description || 'School Fee',
+            relativeDue: relative,
+          });
+        } else {
+          setNextFee(null);
+        }
+
+        // 3. Fetch Assignments for Active Class
+        const { data: classData } = await supabase
+          .from('classes')
+          .select('id')
+          .ilike('name', activeStudent.grade)
+          .maybeSingle();
+
+        if (classData) {
+          // Fetch active assessments for this class
+          const { data: assessments } = await supabase
+            .from('assessments')
+            .select('*, subject:subjects(name)')
+            .eq('class_id', classData.id)
+            .eq('status', 'active');
+
+          // Fetch submissions already made by this student
+          const { data: submissions } = await supabase
+            .from('submissions')
+            .select('assessment_id')
+            .eq('student_id', activeStudent.id);
+
+          const submittedIds = submissions?.map((s: any) => s.assessment_id) || [];
+          
+          // Pending are the ones active and NOT submitted
+          const pending = (assessments || []).filter((a: any) => !submittedIds.includes(a.id));
+          
+          setPendingAssignments(pending.map((a: any) => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(a.date);
+            due.setHours(0, 0, 0, 0);
+            const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            let relative = `${diffDays} days left`;
+            if (diffDays === 0) relative = 'Due today';
+            else if (diffDays === 1) relative = 'Tomorrow';
+            else if (diffDays < 0) relative = `${Math.abs(diffDays)} days overdue`;
+
+            return {
+              title: a.title,
+              due: relative,
+              type: a.type || 'Assessment',
+              subject: a.subject?.name || 'Class',
+            };
+          }));
+        } else {
+          setPendingAssignments([]);
+        }
+      } catch (err) {
+        console.error('Error fetching child dashboard metrics:', err);
+      } finally {
+        setIsChildDataLoading(false);
+      }
+    };
+
+    fetchChildData();
+  }, [activeStudent]);
 
   if (isLoading) {
     return (
@@ -559,6 +744,13 @@ function ParentDashboard({ notices }: { notices: any[] }) {
         </div>
       )}
 
+      {isChildDataLoading && (
+        <div className="flex items-center gap-3 p-4 bg-muted/20 border border-muted rounded-xl">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <span className="text-sm font-semibold text-muted-foreground">Refreshing child details...</span>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Student Card */}
         <div className="md:col-span-3 bg-gradient-to-br from-primary to-primary/80 rounded-[2rem] p-8 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
@@ -579,8 +771,12 @@ function ParentDashboard({ notices }: { notices: any[] }) {
             <CalendarCheck size={32} />
           </div>
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('attendance')}</p>
-          <p className="text-2xl font-bold text-foreground mt-1">{t('present')}</p>
-          <p className="text-sm font-medium text-emerald-500 mt-1 bg-emerald-500/10 px-3 py-1 rounded-full">98% {t('this_month')}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">
+            {attendanceRate !== null ? `${attendanceRate}%` : 'TBD'}
+          </p>
+          <p className="text-sm font-medium text-emerald-500 mt-1 bg-emerald-500/10 px-3 py-1 rounded-full">
+            {totalClasses > 0 ? `${totalClasses} records` : t('this_month')}
+          </p>
         </div>
         
         <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col items-center text-center hover:shadow-md transition-all">
@@ -588,8 +784,12 @@ function ParentDashboard({ notices }: { notices: any[] }) {
             <CreditCard size={32} />
           </div>
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('next_fee_due')}</p>
-          <p className="text-2xl font-bold text-foreground mt-1">$450</p>
-          <p className="text-sm font-medium text-muted-foreground mt-1 bg-muted px-3 py-1 rounded-full">{t('due_in')} 5 {t('days')}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">
+            {nextFee ? `$${nextFee.amount.toLocaleString()}` : '$0'}
+          </p>
+          <p className={`text-sm font-medium mt-1 px-3 py-1 rounded-full ${nextFee ? 'bg-amber-500/10 text-amber-500' : 'bg-muted text-muted-foreground'}`}>
+            {nextFee ? nextFee.relativeDue : 'All paid!'}
+          </p>
         </div>
 
         <div className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex flex-col items-center text-center hover:shadow-md transition-all">
@@ -597,7 +797,7 @@ function ParentDashboard({ notices }: { notices: any[] }) {
             <BookOpen size={32} />
           </div>
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('upcoming')}</p>
-          <p className="text-2xl font-bold text-foreground mt-1">3</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{pendingAssignments.length}</p>
           <p className="text-sm font-medium text-blue-500 mt-1 bg-blue-500/10 px-3 py-1 rounded-full">{t('assignments_due')}</p>
         </div>
 
@@ -605,19 +805,19 @@ function ParentDashboard({ notices }: { notices: any[] }) {
         <div className="md:col-span-2 bg-card rounded-[1.5rem] border border-border shadow-sm p-6 sm:p-8">
           <h3 className="text-xl font-bold text-foreground mb-6">{t('upcoming_assignments')}</h3>
           <div className="space-y-4">
-            {[
-              { title: 'Math: Fractions Worksheet', due: 'Tomorrow', type: 'Worksheet' },
-              { title: 'Science: Solar System Model', due: '3 days', type: 'Project' },
-              { title: 'English: Book Report', due: '1 week', type: 'Essay' },
-            ].map((a, i) => (
+            {pendingAssignments.length > 0 ? pendingAssignments.slice(0, 4).map((a, i) => (
               <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/30">
                 <div>
-                  <p className="font-bold text-foreground">{a.title}</p>
+                  <p className="font-bold text-foreground">{a.subject}: {a.title}</p>
                   <p className="text-xs font-medium text-muted-foreground">{a.type}</p>
                 </div>
                 <span className="text-sm font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full">{t('due')}: {a.due}</span>
               </div>
-            ))}
+            )) : (
+              <div className="p-6 text-center text-muted-foreground border border-dashed rounded-xl font-medium">
+                🎉 No pending assignments! All caught up.
+              </div>
+            )}
           </div>
         </div>
 
