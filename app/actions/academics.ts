@@ -171,22 +171,25 @@ export async function publishReportCard(studentId: string, className: string, te
   const { createAdminClient } = await import('@/lib/supabase/server');
   const adminClient = createAdminClient();
   try {
+    await adminClient
+      .from('grades')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('term', term)
+      .is('subject_id', null);
+
     if (isPublished) {
       const { error } = await adminClient
-        .from('report_card_publications')
-        .upsert({
+        .from('grades')
+        .insert({
           student_id: studentId,
-          class_name: className,
+          subject_id: null,
+          academic_year: '2025-2026',
           term: term,
-          is_published: true
-        }, { onConflict: 'student_id, term' });
-      if (error) throw error;
-    } else {
-      const { error } = await adminClient
-        .from('report_card_publications')
-        .delete()
-        .eq('student_id', studentId)
-        .eq('term', term);
+          score: 1,
+          score_max: 1,
+          remarks: 'PUBLICATION_RECORD'
+        });
       if (error) throw error;
     }
     return true;
@@ -200,23 +203,26 @@ export async function publishClassReportCards(className: string, term: string, s
   const { createAdminClient } = await import('@/lib/supabase/server');
   const adminClient = createAdminClient();
   try {
+    await adminClient
+      .from('grades')
+      .delete()
+      .in('student_id', studentIds)
+      .eq('term', term)
+      .is('subject_id', null);
+
     if (isPublished) {
       const payload = studentIds.map(sid => ({
         student_id: sid,
-        class_name: className,
+        subject_id: null,
+        academic_year: '2025-2026',
         term: term,
-        is_published: true
+        score: 1,
+        score_max: 1,
+        remarks: 'PUBLICATION_RECORD'
       }));
       const { error } = await adminClient
-        .from('report_card_publications')
-        .upsert(payload, { onConflict: 'student_id, term' });
-      if (error) throw error;
-    } else {
-      const { error } = await adminClient
-        .from('report_card_publications')
-        .delete()
-        .eq('class_name', className)
-        .eq('term', term);
+        .from('grades')
+        .insert(payload);
       if (error) throw error;
     }
     return true;

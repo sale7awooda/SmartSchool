@@ -50,7 +50,7 @@ export function PromotionsTab({ activeAcademicYear, mutateStudents, t }: any) {
       try {
         const studentIds = students.map((s:any) => s.id);
         if (studentIds.length === 0) return [];
-        const { data, error } = await supabase.from('grades').select('*').in('student_id', studentIds);
+        const { data, error } = await supabase.from('grades').select('*').in('student_id', studentIds).not('remarks', 'eq', 'PUBLICATION_RECORD');
         if (error) return [];
         return data;
       } catch (e) {

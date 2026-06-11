@@ -92,13 +92,20 @@ export function GradeCardsTab() {
     'report_card_publications_all',
     async () => {
       const { data, error } = await supabase
-        .from('report_card_publications')
-        .select('*');
+        .from('grades')
+        .select('*')
+        .eq('remarks', 'PUBLICATION_RECORD')
+        .is('subject_id', null);
       if (error) {
         console.warn('Could not fetch publications:', error);
         return [];
       }
-      return data || [];
+      return (data || []).map((g: any) => ({
+        id: g.id,
+        student_id: g.student_id,
+        term: g.term,
+        is_published: g.score === 1
+      }));
     }
   );
 
@@ -535,13 +542,13 @@ export function GradeCardsTab() {
 
   // Score mapping letters
   const getLetterGrade = (score: number) => {
-    if (score >= 96) return 'A+';
-    if (score >= 91) return 'A';
-    if (score >= 86) return 'B+';
-    if (score >= 81) return 'B';
-    if (score >= 76) return 'C';
-    if (score >= 70) return 'D';
-    return 'FAIL';
+    if (score >= 90) return 'A*';
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B';
+    if (score >= 60) return 'C';
+    if (score >= 50) return 'D';
+    if (score >= 40) return 'E';
+    return 'U';
   };
 
   // Template B calculations helper
@@ -580,9 +587,13 @@ export function GradeCardsTab() {
         name: sub.name,
         t1,
         t2,
+        m1,
+        m2,
+        m3,
+        m4,
         monthlyAvg,
         finalS,
-        obtained: rawObtained,
+         obtained: rawObtained,
         grade: rawObtained !== null ? getLetterGrade(rawObtained) : 'N/A'
       };
     });
@@ -1619,37 +1630,49 @@ export function GradeCardsTab() {
                           </div>
 
                           {/* Student Details Row */}
-                          <div className="border-y border-slate-300 py-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-serif italic text-slate-800">
-                            <div>Student: <span className="font-bold font-serif not-italic text-black text-sm">{selectedStudentForPrint.name}</span></div>
-                            <div>Grade: <span className="font-bold not-italic text-black text-sm uppercase">{selectedStudentForPrint.grade || 'General'}</span></div>
-                            <div>Roll No: <span className="font-bold not-italic text-black text-sm font-mono">{selectedStudentForPrint.roll_number ?? selectedStudentForPrint.rollNumber ?? 'T-491'}</span></div>
-                            <div>Year: <span className="font-bold not-italic text-black text-sm">2025-2026</span></div>
+                          <div className="border-y border-slate-300 py-3.5 space-y-2 text-xs font-serif italic text-slate-800">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                              <div>Student: <span className="font-bold font-serif not-italic text-black text-sm">{selectedStudentForPrint.name}</span></div>
+                              <div>Roll No: <span className="font-bold not-italic text-black text-sm font-mono">{selectedStudentForPrint.roll_number ?? selectedStudentForPrint.rollNumber ?? 'T-491'}</span></div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 pt-2 border-t border-dashed border-slate-200">
+                              <div>Grade: <span className="font-bold not-italic text-black text-sm uppercase">{selectedStudentForPrint.grade || 'General'}</span></div>
+                              <div>Year: <span className="font-bold not-italic text-black text-sm">2025-2026</span></div>
+                            </div>
                           </div>
 
                           {/* Comprehensive Term Comparison table */}
                           <div className="overflow-hidden border border-slate-400">
-                            <table className="w-full text-left text-xs bg-white font-serif">
+                            <table className="w-full text-left text-[11px] bg-white font-serif">
                               <thead>
                                 <tr className="bg-slate-100 text-[10px] uppercase font-bold tracking-wider border-b border-slate-400 text-slate-800">
-                                  <th className="px-4 py-3 border-r border-slate-400 leading-tight">Subject Scheme</th>
-                                  <th className="px-4 py-3 border-r border-slate-400 text-center">1st Term</th>
-                                  <th className="px-4 py-3 border-r border-slate-400 text-center">2nd Term</th>
-                                  <th className="px-4 py-3 border-r border-slate-400 text-center">Monthly Avg</th>
-                                  <th className="px-4 py-3 border-r border-slate-400 text-center">Final Exam</th>
-                                  <th className="px-4 py-3 text-center bg-slate-200/50">Obtained</th>
-                                  <th className="px-4 py-3 text-center">Grade</th>
+                                  <th className="px-3 py-3 border-r border-slate-400 leading-tight">Subject Scheme</th>
+                                  <th className="px-2 py-3 border-r border-slate-400 text-center">1st Term</th>
+                                  <th className="px-2 py-3 border-r border-slate-400 text-center">2nd Term</th>
+                                  <th className="px-1 py-3 border-r border-slate-400 text-center">M1</th>
+                                  <th className="px-1 py-3 border-r border-slate-400 text-center">M2</th>
+                                  <th className="px-1 py-3 border-r border-slate-400 text-center">M3</th>
+                                  <th className="px-1 py-3 border-r border-slate-400 text-center">M4</th>
+                                  <th className="px-2 py-3 border-r border-slate-400 text-center">Mo. Avg</th>
+                                  <th className="px-2 py-3 border-r border-slate-400 text-center">Final Exam</th>
+                                  <th className="px-3 py-3 text-center bg-slate-200/50">Obtained</th>
+                                  <th className="px-2 py-3 text-center">Grade</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {compileTemplateBRows.map(row => (
                                   <tr key={row.id} className="border-b border-slate-300">
-                                    <td className="px-4 py-2.5 border-r border-slate-300 font-bold not-italic text-black">{row.name}</td>
-                                    <td className="px-4 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.t1 ?? '-'}</td>
-                                    <td className="px-4 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.t2 ?? '-'}</td>
-                                    <td className="px-4 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.monthlyAvg ?? '-'}</td>
-                                    <td className="px-4 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.finalS ?? '-'}</td>
-                                    <td className="px-4 py-2.5 border-r border-slate-300 text-center font-extrabold text-black font-mono bg-slate-100/30 text-sm">{row.obtained ?? '-'}</td>
-                                    <td className="px-4 py-2.5 text-center font-serif font-black">{row.grade}</td>
+                                    <td className="px-3 py-2.5 border-r border-slate-300 font-bold not-italic text-black">{row.name}</td>
+                                    <td className="px-2 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.t1 ?? '-'}</td>
+                                    <td className="px-2 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.t2 ?? '-'}</td>
+                                    <td className="px-1 py-2.5 border-r border-slate-300 text-center font-mono text-slate-600">{row.m1 ?? '-'}</td>
+                                    <td className="px-1 py-2.5 border-r border-slate-300 text-center font-mono text-slate-600">{row.m2 ?? '-'}</td>
+                                    <td className="px-1 py-2.5 border-r border-slate-300 text-center font-mono text-slate-600">{row.m3 ?? '-'}</td>
+                                    <td className="px-1 py-2.5 border-r border-slate-300 text-center font-mono text-slate-600">{row.m4 ?? '-'}</td>
+                                    <td className="px-2 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.monthlyAvg ?? '-'}</td>
+                                    <td className="px-2 py-2.5 border-r border-slate-300 text-center font-mono text-slate-800">{row.finalS ?? '-'}</td>
+                                    <td className="px-3 py-2.5 border-r border-slate-300 text-center font-extrabold text-black font-mono bg-slate-100/30 text-sm">{row.obtained ?? '-'}</td>
+                                    <td className="px-2 py-2.5 text-center font-serif font-black">{row.grade}</td>
                                   </tr>
                                 ))}
                               </tbody>

@@ -241,7 +241,7 @@ export async function getSubmissionByAssessmentAndStudent(assessmentId: string, 
 
 export async function getAcademicStats(academicYear?: string) {
   try {
-    const { data: grades } = await supabase.from('grades').select('score');
+    const { data: grades } = await supabase.from('grades').select('score').not('remarks', 'eq', 'PUBLICATION_RECORD');
     const avg = grades && grades.length > 0 
       ? grades.reduce((acc, g) => acc + Number(g.score), 0) / grades.length 
       : 0;
