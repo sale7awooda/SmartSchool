@@ -393,6 +393,7 @@ export async function processCreateStudentAction(
     const { data: student, error: studentError } = await adminClient
       .from('students')
       .insert([{
+        user_id: user.id,
         name: studentData.name,
         grade: studentData.grade,
         roll_number: studentData.studentId,
