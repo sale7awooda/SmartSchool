@@ -49,76 +49,15 @@ export async function getAssessments() {
 }
 
 
-export async function createAssessment(assessmentData: any) {
-  const { questions, subject, grade, due_date, date, total_marks, type, teacher_id, ...mainData } = assessmentData;
+export async function createAssessment(assessmentData: any, questions?: any[]) {
+  const { createAssessmentAndQuestionsAction } = await import('@/app/actions/academics');
+  const res = await createAssessmentAndQuestionsAction(assessmentData, questions);
   
-  // Try to find subject and grade IDs
-  let subject_id = null;
-  let class_id = null;
-  
-  if (subject) {
-    const { data: sData } = await supabase.from('subjects').select('id').ilike('name', subject).maybeSingle();
-    if (sData) subject_id = sData.id;
+  if (!res.success) {
+    throw new Error(res.error || 'Failed to create assessment and questions');
   }
   
-  if (grade) {
-    const { data: cData } = await supabase.from('classes').select('id').ilike('name', grade).maybeSingle();
-    if (cData) class_id = cData.id;
-  }
-
-  const computedTotalMarks = questions ? questions.reduce((acc: number, q: any) => acc + (Number(q.marks) || Number(q.points) || 1), 0) : (total_marks || 0);
-
-  const payload = {
-    ...mainData,
-    subject_id,
-    class_id,
-    
-    
-    date: due_date || date, // Use date instead of due_date
-  };
-  
-  // 1. Create the assessment
-  const { data: assessment, error: assessmentError } = await supabase
-    .from('assessments')
-    .insert([payload])
-    .select()
-    .single();
-  
-  if (assessmentError) {
-    console.error("Assessment creation error:", assessmentError);
-    throw assessmentError;
-  }
-
-  // 2. Create questions if any
-  if (questions && questions.length > 0) {
-    const questionsWithId = questions.map((q: any, idx: number) => ({
-      assessment_id: assessment.id,
-      question: q.text || q.question,
-      type: q.type,
-      options: q.options ? JSON.stringify(q.options) : null,
-      correct_answer: q.correct_answers ? JSON.stringify(q.correct_answers) : q.correct_answer,
-      points: q.marks || q.points,
-      order: idx + 1
-    }));
-    
-    // We try to insert into assessment_questions, if it fails, try questions
-    let { error: questionsError } = await supabase
-      .from('assessment_questions')
-      .insert(questionsWithId);
-      
-    if (questionsError && questionsError.code === '42P01') {
-      questionsError = (await supabase.from('questions').insert(questionsWithId)).error;
-    }
-      
-    if (questionsError) {
-      console.error("Questions insert error:", questionsError);
-      // Rollback assessment (manual)
-      await supabase.from('assessments').delete().eq('id', assessment.id);
-      throw questionsError;
-    }
-  }
-  
-  return assessment;
+  return res.data;
 }
 
 

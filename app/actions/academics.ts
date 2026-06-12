@@ -232,3 +232,80 @@ export async function publishClassReportCards(className: string, term: string, s
   }
 }
 
+export async function createAssessmentAndQuestionsAction(assessmentData: any, questions?: any[]) {
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const adminClient = createAdminClient();
+
+  const { subject, grade, due_date, date, total_marks, ...mainData } = assessmentData;
+  
+  let subject_id = null;
+  let class_id = null;
+  
+  if (subject) {
+    const { data: sData } = await adminClient.from('subjects').select('id').ilike('name', subject).maybeSingle();
+    if (sData) subject_id = sData.id;
+  }
+  
+  if (grade) {
+    const { data: cData } = await adminClient.from('classes').select('id').ilike('name', grade).maybeSingle();
+    if (cData) class_id = cData.id;
+  }
+
+  const payload = {
+    ...mainData,
+    subject_id,
+    class_id,
+    date: due_date || date,
+    status: 'Published'
+  };
+
+  const { data: assessment, error: assessmentError } = await adminClient
+    .from('assessments')
+    .insert([payload])
+    .select()
+    .single();
+
+  if (assessmentError) {
+    console.error("Assessment creation error:", assessmentError);
+    return { success: false, error: assessmentError.message };
+  }
+
+  if (questions && questions.length > 0) {
+    const questionsWithId = questions.map((q: any, idx: number) => ({
+      assessment_id: assessment.id,
+      question: q.text || q.question,
+      type: q.type,
+      options: q.options ? JSON.stringify(q.options) : null,
+      correct_answer: q.correct_answers ? JSON.stringify(q.correct_answers) : q.correct_answer,
+      points: q.marks || q.points,
+      order: idx + 1
+    }));
+    
+    let { error: questionsError } = await adminClient
+      .from('assessment_questions')
+      .insert(questionsWithId);
+      
+    if (questionsError && questionsError.code === '42P01') {
+      questionsError = (await adminClient.from('questions').insert(questionsWithId)).error;
+    }
+      
+    if (questionsError) {
+      console.error("Questions insert error:", questionsError);
+      await adminClient.from('assessments').delete().eq('id', assessment.id);
+      return { success: false, error: questionsError.message };
+    }
+  }
+
+  try {
+    const { logAudit } = await import('./audit');
+    await logAudit('ASSESSMENT_CREATED', mainData.createdBy || mainData.teacher_id, {
+      assessment_id: assessment.id,
+      title: assessment.title,
+      grade: assessment.grade || grade,
+      timestamp: new Date().toISOString()
+    });
+  } catch(e) {}
+  
+  return { success: true, data: assessment };
+}
+

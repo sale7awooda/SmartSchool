@@ -448,7 +448,7 @@ export function GradeCardsTab() {
     }
     const success = await publishReportCard(student.id, selectedGrade, pTerm, !isCurrentlyPublished);
     if (success) {
-      toast.success(`${pTerm} report visibility resolved for ${student.name}`);
+      toast.success(`${!isCurrentlyPublished ? 'Published' : 'Unpublished'} ${pTerm} report for ${student.name}`);
       mutatePublications();
     } else {
       toast.error("Could not reconcile publication registry state");
@@ -472,7 +472,7 @@ export function GradeCardsTab() {
     
     setIsPublishingAll(false);
     if (success) {
-      toast.success(`Published ${currentDbTerm} for all class attendees`);
+      toast.success(`${publishState ? 'Published' : 'Unpublished'} ${currentDbTerm} for all class attendees`);
       mutatePublications();
     } else {
       toast.error("Mass updates declined by system security rules");
