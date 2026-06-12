@@ -20,12 +20,16 @@ const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 const DAYS = ALL_DAYS;
 const SYSTEM_TEACHERS = ['Mr. Smith', 'Mrs. Davis', 'Dr. Brown', 'Ms. Wilson', 'Mr. Taylor', 'Ms. Anderson', 'Mr. Thomas', 'Mrs. Jackson', 'Mr. White'];
 const COLORS = [
-  'bg-blue-500/20 text-blue-800 border-blue-200', 
-  'bg-emerald-500/20 text-emerald-800 border-emerald-500/20', 
-  'bg-purple-500/20 text-purple-800 border-purple-500/20', 
-  'bg-amber-100 text-amber-800 border-amber-500/20', 
-  'bg-pink-100 text-pink-800 border-pink-200', 
-  'bg-orange-100 text-orange-800 border-orange-200'
+  'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100', 
+  'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100', 
+  'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100', 
+  'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100', 
+  'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100', 
+  'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100',
+  'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100',
+  'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100',
+  'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100',
+  'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
 ];
 
 const getColorForSubject = (subject: string) => {
@@ -401,6 +405,10 @@ export default function TimetableWizard() {
                 !(mapping.linkedGrade === s.grade && s.subject === mapping.subject)
               );
 
+              // Limit same subject to 2 periods per day per grade
+              const subjectCountToday = newSchedule.filter(s => s.day === testDay && s.grade === mapping.grade && s.subject === mapping.subject).length;
+              const isTooManyToday = subjectCountToday >= 2;
+
               const hasPrev1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 1);
               const hasPrev2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 2);
               const hasNext1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 1);
@@ -408,7 +416,7 @@ export default function TimetableWizard() {
               
               const willExceedConsecutive = !ignoreConsecutive && ((hasPrev1 && hasPrev2) || (hasNext1 && hasNext2) || (hasPrev1 && hasNext1));
 
-              if (!isClassOccupied && !isTeacherOccupied && !willExceedConsecutive) {
+              if (!isClassOccupied && !isTeacherOccupied && !willExceedConsecutive && !isTooManyToday) {
                 
                 // Handle double periods
                 if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
@@ -1037,23 +1045,29 @@ export default function TimetableWizard() {
                                             }`}
                                             style={provided.draggableProps.style}
                                           >
-                                            <div>
-                                              <div className="flex items-start justify-between">
-                                                <h4 className="font-bold text-xs leading-tight">{classData.subject}</h4>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center justify-between mb-1.5">
+                                                <h4 className="font-bold text-sm truncate leading-tight group-hover:text-primary transition-colors">{classData.subject}</h4>
                                                 <button 
                                                   onClick={(e) => { 
                                                     e.stopPropagation(); 
                                                     setSchedule(schedule.filter(s => s.id !== classData.id)); 
                                                   }}
-                                                  className="opacity-0 hover:opacity-100 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
+                                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-black/5 rounded-md text-muted-foreground hover:text-rose-500 transition-all shrink-0"
                                                 >
-                                                  <X size={12} />
+                                                  <X size={14} />
                                                 </button>
                                               </div>
+                                              <div className="flex items-center gap-1.5 text-[10px] font-medium opacity-70 truncate px-1 py-0.5 rounded bg-white/30 w-fit max-w-full">
+                                                <UserIcon size={10} className="shrink-0" />
+                                                <span className="truncate">{classData.teacher}</span>
+                                              </div>
                                             </div>
-                                            <p className="text-[10px] font-medium opacity-90 mt-2 flex items-center gap-1 truncate">
-                                              <UserIcon size={10} /> {classData.teacher}
-                                            </p>
+                                            <div className="mt-2 flex items-center justify-end">
+                                              <div className="px-1.5 py-0.5 rounded-md bg-white/40 backdrop-blur-sm border border-black/5 text-[8px] font-bold uppercase tracking-wider opacity-60">
+                                                P{classData.period}
+                                              </div>
+                                            </div>
                                           </div>
                                         )}
                                       </Draggable>
