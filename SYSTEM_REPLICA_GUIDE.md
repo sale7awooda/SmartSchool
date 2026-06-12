@@ -83,6 +83,9 @@ Never use `sm:` or `md:` breakpoints on micro-components like a `StudentCard` or
 
 ### 4.1 Authentication & Biometrics
 - **Flow**: User enters credentials -> JWT issued -> stored in HTTP-only cookie + local Supabase session.
+- **Default Provisioning Rules (Students/Parents)**: 
+  - *Student*: Auto-provisioned with email `student_{id}@school.com` and password `password123`. The custom AuthContext intercepts logins so a student can simply type their ID (e.g. `STU001`) without the `@school.com` suffix.
+  - *Parent*: Auto-provisioned with the provided parent email (or fallback `parent_{phone}@school.com`) and password set to their raw phone number digits (or fallback `password123`).
 - **Edge Upgrade**: Upon successful login, invoke WebAuthn (`navigator.credentials.create()`) to store the device's Face ID / Touch ID passkey. Subsequent logins skip passwords entirely.
 - **Context**: State managed by `<AuthContext.Provider>` which protects `/dashboard/*` routes.
 

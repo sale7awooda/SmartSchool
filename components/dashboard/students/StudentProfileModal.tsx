@@ -357,8 +357,8 @@ export function StudentProfileModal({
                   <div className="space-y-6">
                     {assessmentRecords.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {assessmentRecords.map((submission: any) => (
-                          <div key={submission.id} className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
+                        {assessmentRecords.map((submission: any, idx: number) => (
+                          <div key={submission.id || `assessment-${idx}`} className="bg-card dark:bg-slate-900 p-5 rounded-2xl border border-border dark:border-slate-800 shadow-sm">
                             <div className="flex justify-between items-start mb-3">
                               <h3 className="font-bold text-foreground">{submission.assessment?.title || 'Unknown Assessment'}</h3>
                               <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
@@ -412,9 +412,9 @@ export function StudentProfileModal({
 
                     {sortedTransactions.length > 0 ? (
                       <div className="space-y-3">
-                        {sortedTransactions.map((invoice: any) => (
+                        {sortedTransactions.map((invoice: any, idx: number) => (
                           <div 
-                            key={invoice.id} 
+                            key={invoice.id || `invoice-${idx}`} 
                             onClick={() => setSelectedTransaction(invoice)}
                             className="bg-card dark:bg-slate-900 p-4 rounded-xl border border-border flex flex-col sm:flex-row justify-between items-center gap-4 cursor-pointer hover:bg-muted/30 dark:hover:bg-slate-800 transition-all hover:scale-[1.01] active:scale-[0.99] group"
                           >

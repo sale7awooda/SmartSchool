@@ -74,6 +74,10 @@ The goal is to shift from a traditional cloud-dependent web application (SWR + h
 
 **Tech Stack**: Supabase Auth (Native Passkey Support) + WebAuthn.
 
+### Credential Provisioning Rules:
+- **Students**: Automatically assigned login identities as `student_<student_id>@school.com` (password: `password123`). The UI intercepts bare IDs (e.g., `STU001`) and reformats them for convenience.
+- **Parents**: Provided their real email, or fallback to `parent_<phone>@school.com`. Passwords default to the phone digits or `password123`.
+
 ### Logic Flow:
 1. **Device Registration**: After standard Email/Password or standard OAuth login, prompt: "Enable Face ID / Fingerprint for faster login?"
 2. **Passkey Generation**: 
