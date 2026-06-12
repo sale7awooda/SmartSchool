@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
-import { Notice, User } from '@/types';
+import { Notice } from '@/types';
 import { useLanguage } from '@/lib/language-context';
-import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2, Send, Search, Smartphone, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bell, Plus, AlertCircle, Calendar, User as UserIcon, Loader2, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
-import { getNotices, createNotice, getMessages, sendMessage, getUsersForChat } from '@/lib/supabase-db';
-import { processCreateNoticeAction, processSendMessageAction } from '@/app/actions/communication';
+import { getNotices } from '@/lib/supabase-db';
+import { processCreateNoticeAction } from '@/app/actions/communication';
 
 export default function CommunicationPage() {
   const { user } = useAuth();
@@ -25,11 +25,9 @@ export default function CommunicationPage() {
   const [newNotice, setNewNotice] = useState({ title: '', content: '', targetAudience: 'all', isImportant: false });
 
   // Broadcast State
-  const [broadcastType, setBroadcastType] = useState<'whatsapp' | 'push' | 'email'>('whatsapp');
   const [broadcastMessage, setBroadcastMessage] = useState('');
-  const [whatsappTemplate, setWhatsappTemplate] = useState('urgent_alert');
+  const [pushTemplate, setPushTemplate] = useState('urgent_alert');
   const [pushPriority, setPushPriority] = useState('high');
-  const [emailSubject, setEmailSubject] = useState('');
   const [broadcastAudience, setBroadcastAudience] = useState('all');
 
   useEffect(() => {
@@ -106,45 +104,29 @@ export default function CommunicationPage() {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageInput.trim() || !activeChatUser || !user) return;
-    
-    const text = messageInput;
-    setMessageInput('');
-    
-    try {
-      const formData = new FormData();
-      formData.append('receiver_id', activeChatUser.id);
-      formData.append('content', text);
-      formData.append('senderBy', user.id);
 
-      const result = await processSendMessageAction({ success: false, message: '' }, formData);
-      
-      if (!result.success) {
-        toast.error(t('failed_to_send_message'));
-      }
-    } catch (error) {
-      toast.error(t('failed_to_send_message'));
-    }
-  };
 
   const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastMessage.trim()) return;
     
     setIsSubmitting(true);
+    let title = t('urgent_alert_template');
+    if (pushTemplate === 'school_closure') title = t('school_closure_template');
+    if (pushTemplate === 'event_reminder') title = t('event_reminder_template');
+    if (pushTemplate === 'custom') title = t('custom_message_template');
+
     try {
       await supabase.from('broadcasts').insert([{
-        title: emailSubject || 'Urgent Broadcast',
+        title: title,
         content: broadcastMessage,
-        type: broadcastType,
+        type: 'push',
         target_audience: broadcastAudience,
         sent_by: user.id
       }]);
       setBroadcastMessage('');
-      setEmailSubject('');
-      toast.success(`${t('urgent')} ${broadcastType.toUpperCase()} ${t('broadcast_sent_success')}`);
+      setPushTemplate('urgent_alert');
+      toast.success(`${t('urgent')} PUSH ${t('broadcast_sent_success')}`);
     } catch (error) {
       toast.error(t('failed_to_send_broadcast'));
     } finally {
@@ -245,104 +227,49 @@ export default function CommunicationPage() {
           </div>
 
           <form onSubmit={handleSendBroadcast} className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-foreground mb-3">{t('delivery_method')}</label>
-              <div className="grid grid-cols-3 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setBroadcastType('whatsapp')}
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                    broadcastType === 'whatsapp' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-border bg-card text-muted-foreground hover:border-border/80'
-                  }`}
-                >
-                  <MessageSquare size={24} />
-                  <span className="font-bold text-sm">{t('whatsapp')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBroadcastType('push')}
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                    broadcastType === 'push' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:border-border/80'
-                  }`}
-                >
-                  <Bell size={24} />
-                  <span className="font-bold text-sm">{t('app_push')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBroadcastType('email')}
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                    broadcastType === 'email' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:border-border/80'
-                  }`}
-                >
-                  <Mail size={24} />
-                  <span className="font-bold text-sm">{t('email_alert')}</span>
-                </button>
-              </div>
-            </div>
-
             {/* Method Specific Options */}
-            <div className="p-4 bg-muted/50 rounded-xl border border-border">
-              {broadcastType === 'whatsapp' && (
-                <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">{t('message_template')}</label>
-                  <select 
-                    value={whatsappTemplate}
-                    onChange={(e) => setWhatsappTemplate(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-card focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all font-medium text-foreground"
-                  >
-                    <option value="urgent_alert">{t('urgent_alert_template')}</option>
-                    <option value="school_closure">{t('school_closure_template')}</option>
-                    <option value="event_reminder">{t('event_reminder_template')}</option>
-                    <option value="custom">{t('custom_message_template')}</option>
-                  </select>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('whatsapp_template_notice')}</p>
-                </div>
-              )}
+            <div className="p-4 bg-muted/50 rounded-xl border border-border space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('message_template')}</label>
+                <select 
+                  value={pushTemplate}
+                  onChange={(e) => setPushTemplate(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground"
+                >
+                  <option value="urgent_alert">{t('urgent_alert_template')}</option>
+                  <option value="school_closure">{t('school_closure_template')}</option>
+                  <option value="event_reminder">{t('event_reminder_template')}</option>
+                  <option value="custom">{t('custom_message_template')}</option>
+                </select>
+              </div>
 
-              {broadcastType === 'push' && (
-                <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">{t('notification_priority')}</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name="pushPriority" 
-                        value="high"
-                        checked={pushPriority === 'high'}
-                        onChange={(e) => setPushPriority(e.target.value)}
-                        className="w-4 h-4 text-primary focus:ring-primary border-border" 
-                      />
-                      <span className="text-sm font-medium text-foreground">{t('high_priority_desc')}</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name="pushPriority" 
-                        value="normal"
-                        checked={pushPriority === 'normal'}
-                        onChange={(e) => setPushPriority(e.target.value)}
-                        className="w-4 h-4 text-primary focus:ring-primary border-border" 
-                      />
-                      <span className="text-sm font-medium text-foreground">{t('normal')}</span>
-                    </label>
-                  </div>
+              <div>
+                <label className="block text-sm font-bold text-foreground mb-2">{t('notification_priority')}</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer border border-border p-3 rounded-xl flex-1 bg-card hover:bg-muted/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      name="pushPriority" 
+                      value="high"
+                      checked={pushPriority === 'high'}
+                      onChange={(e) => setPushPriority(e.target.value)}
+                      className="w-4 h-4 text-primary focus:ring-primary border-border" 
+                    />
+                    <span className="text-sm font-medium text-foreground">{t('high_priority_desc')}</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer border border-border p-3 rounded-xl flex-1 bg-card hover:bg-muted/50 transition-colors">
+                    <input 
+                      type="radio" 
+                      name="pushPriority" 
+                      value="normal"
+                      checked={pushPriority === 'normal'}
+                      onChange={(e) => setPushPriority(e.target.value)}
+                      className="w-4 h-4 text-primary focus:ring-primary border-border" 
+                    />
+                    <span className="text-sm font-medium text-foreground">{t('normal')}</span>
+                  </label>
                 </div>
-              )}
-
-              {broadcastType === 'email' && (
-                <div>
-                  <label className="block text-sm font-bold text-foreground mb-2">{t('email_subject')}</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    placeholder={t('email_subject_placeholder')} 
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium text-foreground" 
-                  />
-                </div>
-              )}
+              </div>
             </div>
 
             <div>
@@ -371,10 +298,10 @@ export default function CommunicationPage() {
               />
               <div className="flex justify-between items-center mt-2">
                 <p className="text-xs font-bold text-muted-foreground">
-                  {broadcastType === 'whatsapp' ? t('whatsapp_concise') : t('message_length_limit')}
+                  {t('message_length_limit')}
                 </p>
-                <p className={`text-xs font-bold ${broadcastMessage.length > (broadcastType === 'whatsapp' ? 1024 : 500) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {broadcastMessage.length} / {broadcastType === 'whatsapp' ? '1024' : '500'} {t('chars')}
+                <p className={`text-xs font-bold ${broadcastMessage.length > 500 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {broadcastMessage.length} / 500 {t('chars')}
                 </p>
               </div>
             </div>
