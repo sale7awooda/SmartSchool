@@ -334,99 +334,123 @@ export default function TimetableWizard() {
   const handleGenerateTimetable = () => {
     setIsGenerating(true);
     setTimeout(() => {
-      const newSchedule: any[] = [];
-      let idCounter = 1;
+      let bestSchedule: any[] = [];
+      let maxPlaced = 0;
 
-      // Sort mappings to handle linked grades and double periods first
-      const sortedMappings = [...mappings].sort((a, b) => {
-        if (a.linkedGrade && !b.linkedGrade) return -1;
-        if (!a.linkedGrade && b.linkedGrade) return 1;
-        if (a.doublePeriods && !b.doublePeriods) return -1;
-        if (!a.doublePeriods && b.doublePeriods) return 1;
-        return b.classesPerWeek - a.classesPerWeek;
-      });
+      for (let attempt = 0; attempt < 50; attempt++) {
+        const newSchedule: any[] = [];
+        let idCounter = 1;
 
-      sortedMappings.forEach((mapping) => {
-        const color = getColorForSubject(mapping.subject);
-        let classesPlaced = 0;
-
-        // Build list of all possible slots
-        let allSlots: {day: string, period: number}[] = [];
-        activeDays.forEach(day => {
-          let validPeriods = Array.from({ length: constraints.periodsPerDay }, (_, i) => i + 1);
-          if (mapping.beforeBreakfast) {
-             validPeriods = [1, 2];
-          }
-          validPeriods.forEach(period => {
-            allSlots.push({ day, period });
-          });
+        // Sort mappings to handle linked grades and double periods first, then random
+        const sortedMappings = [...mappings].sort((a, b) => {
+          if (a.linkedGrade && !b.linkedGrade) return -1;
+          if (!a.linkedGrade && b.linkedGrade) return 1;
+          if (a.doublePeriods && !b.doublePeriods) return -1;
+          if (!a.doublePeriods && b.doublePeriods) return 1;
+          if (b.classesPerWeek !== a.classesPerWeek) return b.classesPerWeek - a.classesPerWeek;
+          return Math.random() - 0.5; // tie-breaker randomness
         });
 
-        // Shuffle slots for randomness
-        allSlots.sort(() => Math.random() - 0.5);
+        sortedMappings.forEach((mapping) => {
+          const color = getColorForSubject(mapping.subject);
+          let classesPlaced = 0;
 
-        for (const slot of allSlots) {
-          if (classesPlaced >= mapping.classesPerWeek) break;
+          // Build list of all possible slots
+          let allSlots: {day: string, period: number}[] = [];
+          activeDays.forEach(day => {
+            let validPeriods = Array.from({ length: constraints.periodsPerDay }, (_, i) => i + 1);
+            if (mapping.beforeBreakfast) {
+               validPeriods = [1, 2];
+            }
+            validPeriods.forEach(period => {
+              allSlots.push({ day, period });
+            });
+          });
 
-          const testDay = slot.day;
-          const testPeriod = slot.period;
+          // Shuffle slots for randomness
+          allSlots.sort(() => Math.random() - 0.5);
 
-          const isClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === testPeriod);
-          
-          const isTeacherOccupied = newSchedule.some(s => 
-            s.day === testDay && 
-            s.teacher === mapping.teacher && 
-            s.period === testPeriod &&
-            !(mapping.linkedGrade === s.grade && s.subject === mapping.subject)
-          );
+          for (const slot of allSlots) {
+            if (classesPlaced >= mapping.classesPerWeek) break;
 
-          const hasPrev1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 1);
-          const hasPrev2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 2);
-          const hasNext1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 1);
-          const hasNext2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 2);
-          
-          const willExceedConsecutive = (hasPrev1 && hasPrev2) || (hasNext1 && hasNext2) || (hasPrev1 && hasNext1);
+            const testDay = slot.day;
+            const testPeriod = slot.period;
 
-          if (!isClassOccupied && !isTeacherOccupied && !willExceedConsecutive) {
+            const isClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === testPeriod);
             
-            // Handle double periods
-            if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
-              const nextPeriod = testPeriod + 1;
-              if (nextPeriod <= constraints.periodsPerDay) {
-                const isNextClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === nextPeriod);
-                const isNextTeacherOccupied = newSchedule.some(s => s.day === testDay && s.teacher === mapping.teacher && s.period === nextPeriod);
-                
-                if (!isNextClassOccupied && !isNextTeacherOccupied) {
-                  newSchedule.push({
-                    id: `gen-${idCounter++}`, day: testDay, grade: mapping.grade, period: testPeriod, subject: mapping.subject, teacher: mapping.teacher, color
-                  });
-                  newSchedule.push({
-                    id: `gen-${idCounter++}`, day: testDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, color
-                  });
-                  classesPlaced += 2;
-                  continue;
+            const isTeacherOccupied = newSchedule.some(s => 
+              s.day === testDay && 
+              s.teacher === mapping.teacher && 
+              s.period === testPeriod &&
+              !(mapping.linkedGrade === s.grade && s.subject === mapping.subject)
+            );
+
+            const hasPrev1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 1);
+            const hasPrev2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 2);
+            const hasNext1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 1);
+            const hasNext2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 2);
+            
+            const willExceedConsecutive = (hasPrev1 && hasPrev2) || (hasNext1 && hasNext2) || (hasPrev1 && hasNext1);
+
+            if (!isClassOccupied && !isTeacherOccupied && !willExceedConsecutive) {
+              
+              // Handle double periods
+              if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
+                const nextPeriod = testPeriod + 1;
+                if (nextPeriod <= constraints.periodsPerDay) {
+                  const isNextClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === nextPeriod);
+                  const isNextTeacherOccupied = newSchedule.some(s => s.day === testDay && s.teacher === mapping.teacher && s.period === nextPeriod);
+                  
+                  if (!isNextClassOccupied && !isNextTeacherOccupied) {
+                    newSchedule.push({
+                      id: `gen-${attempt}-${idCounter++}`, day: testDay, grade: mapping.grade, period: testPeriod, subject: mapping.subject, teacher: mapping.teacher, color
+                    });
+                    newSchedule.push({
+                      id: `gen-${attempt}-${idCounter++}`, day: testDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, color
+                    });
+                    classesPlaced += 2;
+                    continue;
+                  }
                 }
               }
+
+              // Normal placement
+              newSchedule.push({
+                id: `gen-${attempt}-${idCounter++}`,
+                day: testDay,
+                grade: mapping.grade,
+                period: testPeriod,
+                subject: mapping.subject,
+                teacher: mapping.teacher,
+                color: color
+              });
+              classesPlaced++;
             }
-
-            // Normal placement
-            newSchedule.push({
-              id: `gen-${idCounter++}`,
-              day: testDay,
-              grade: mapping.grade,
-              period: testPeriod,
-              subject: mapping.subject,
-              teacher: mapping.teacher,
-              color: color
-            });
-            classesPlaced++;
           }
-        }
-      });
+        });
 
-      setSchedule(newSchedule);
+        if (newSchedule.length > maxPlaced) {
+          maxPlaced = newSchedule.length;
+          bestSchedule = newSchedule;
+        }
+
+        // If we placed all classes, break early
+        const totalClassesToPlace = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
+        if (maxPlaced === totalClassesToPlace) {
+          break;
+        }
+      }
+
+      setSchedule(bestSchedule);
       setIsGenerating(false);
-    }, 1000);
+      
+      const totalClassesToPlace = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
+      if (maxPlaced < totalClassesToPlace) {
+        toast.warning(`Could only place ${maxPlaced} out of ${totalClassesToPlace} classes due to conflicts. Try manual allocation or loosening constraints.`);
+      } else {
+        toast.success(`Successfully generated timetable for all ${maxPlaced} classes!`);
+      }
+    }, 100);
   };
 
   const handleAddClass = () => {
@@ -1087,10 +1111,21 @@ export default function TimetableWizard() {
                     onChange={(e) => setSlotForm({...slotForm, mappingId: e.target.value})}
                     className="w-full p-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-primary"
                   >
-                    <option value="">Select a mapped subject...</option>
-                    {mappings.filter(m => m.grade === selectedSlot.grade).map(m => (
-                      <option key={m.id} value={m.id}>{m.subject} ({m.teacher})</option>
-                    ))}
+                      <option value="">Select a mapped subject...</option>
+                    {mappings
+                      .filter(m => m.grade === selectedSlot.grade)
+                      .filter(m => {
+                        const placedCount = schedule.filter(s => s.subject === m.subject && s.teacher === m.teacher && s.grade === m.grade).length;
+                        return placedCount < m.classesPerWeek;
+                      })
+                      .map(m => {
+                        const placedCount = schedule.filter(s => s.subject === m.subject && s.teacher === m.teacher && s.grade === m.grade).length;
+                        return (
+                          <option key={m.id} value={m.id}>
+                            {m.subject} ({m.teacher}) - {placedCount}/{m.classesPerWeek} placed
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
 
