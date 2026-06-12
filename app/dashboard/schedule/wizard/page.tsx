@@ -29,7 +29,11 @@ const COLORS = [
   'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100',
   'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100',
   'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100',
-  'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+  'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100',
+  'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100',
+  'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100',
+  'bg-lime-50 text-lime-700 border-lime-200 hover:bg-lime-100',
+  'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
 ];
 
 const getColorForSubject = (subject: string) => {
