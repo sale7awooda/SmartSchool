@@ -295,7 +295,18 @@ export default function TimetableWizard() {
       toast.error('Active academic year not found');
       return;
     }
+    setIsSubmitting(true);
     try {
+      // Create a draft first so we don't lose the original mappings configuration (e.g. classesPerWeek, rules) when returning to the wizard
+      const draftName = `Pre-Publish Draft ${new Date().toLocaleString()}`;
+      await saveScheduleDraft({
+        name: draftName,
+        constraints,
+        mappings,
+        schedule,
+        academic_year: activeAcademicYear.name
+      });
+
       const scheduleItems = schedule.map(s => ({
         class_id: classesData?.find((c: any) => c.name === s.grade)?.id || null,
         day_of_week: s.day,
@@ -310,6 +321,8 @@ export default function TimetableWizard() {
     } catch (error) {
       console.error('Error publishing schedule:', error);
       toast.error('Failed to publish schedule');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -336,115 +349,128 @@ export default function TimetableWizard() {
     setTimeout(() => {
       let bestSchedule: any[] = [];
       let maxPlaced = 0;
+      const totalClassesToPlace = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
 
-      for (let attempt = 0; attempt < 50; attempt++) {
-        const newSchedule: any[] = [];
-        let idCounter = 1;
+      const generateWithConstraints = (ignoreConsecutive: boolean, ignoreTeacher: boolean) => {
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const newSchedule: any[] = [];
+          let idCounter = 1;
 
-        // Sort mappings to handle linked grades and double periods first, then random
-        const sortedMappings = [...mappings].sort((a, b) => {
-          if (a.linkedGrade && !b.linkedGrade) return -1;
-          if (!a.linkedGrade && b.linkedGrade) return 1;
-          if (a.doublePeriods && !b.doublePeriods) return -1;
-          if (!a.doublePeriods && b.doublePeriods) return 1;
-          if (b.classesPerWeek !== a.classesPerWeek) return b.classesPerWeek - a.classesPerWeek;
-          return Math.random() - 0.5; // tie-breaker randomness
-        });
-
-        sortedMappings.forEach((mapping) => {
-          const color = getColorForSubject(mapping.subject);
-          let classesPlaced = 0;
-
-          // Build list of all possible slots
-          let allSlots: {day: string, period: number}[] = [];
-          activeDays.forEach(day => {
-            let validPeriods = Array.from({ length: constraints.periodsPerDay }, (_, i) => i + 1);
-            if (mapping.beforeBreakfast) {
-               validPeriods = [1, 2];
-            }
-            validPeriods.forEach(period => {
-              allSlots.push({ day, period });
-            });
+          // Sort mappings to handle linked grades and double periods first, then random
+          const sortedMappings = [...mappings].sort((a, b) => {
+            if (a.linkedGrade && !b.linkedGrade) return -1;
+            if (!a.linkedGrade && b.linkedGrade) return 1;
+            if (a.doublePeriods && !b.doublePeriods) return -1;
+            if (!a.doublePeriods && b.doublePeriods) return 1;
+            if (b.classesPerWeek !== a.classesPerWeek) return b.classesPerWeek - a.classesPerWeek;
+            return Math.random() - 0.5; // tie-breaker randomness
           });
 
-          // Shuffle slots for randomness
-          allSlots.sort(() => Math.random() - 0.5);
+          sortedMappings.forEach((mapping) => {
+            const color = getColorForSubject(mapping.subject);
+            let classesPlaced = 0;
 
-          for (const slot of allSlots) {
-            if (classesPlaced >= mapping.classesPerWeek) break;
+            // Build list of all possible slots
+            let allSlots: {day: string, period: number}[] = [];
+            activeDays.forEach(day => {
+              let validPeriods = Array.from({ length: constraints.periodsPerDay }, (_, i) => i + 1);
+              if (mapping.beforeBreakfast) {
+                 validPeriods = [1, 2];
+              }
+              validPeriods.forEach(period => {
+                allSlots.push({ day, period });
+              });
+            });
 
-            const testDay = slot.day;
-            const testPeriod = slot.period;
+            // Shuffle slots for randomness
+            allSlots.sort(() => Math.random() - 0.5);
 
-            const isClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === testPeriod);
-            
-            const isTeacherOccupied = newSchedule.some(s => 
-              s.day === testDay && 
-              s.teacher === mapping.teacher && 
-              s.period === testPeriod &&
-              !(mapping.linkedGrade === s.grade && s.subject === mapping.subject)
-            );
+            for (const slot of allSlots) {
+              if (classesPlaced >= mapping.classesPerWeek) break;
 
-            const hasPrev1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 1);
-            const hasPrev2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 2);
-            const hasNext1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 1);
-            const hasNext2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 2);
-            
-            const willExceedConsecutive = (hasPrev1 && hasPrev2) || (hasNext1 && hasNext2) || (hasPrev1 && hasNext1);
+              const testDay = slot.day;
+              const testPeriod = slot.period;
 
-            if (!isClassOccupied && !isTeacherOccupied && !willExceedConsecutive) {
+              const isClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === testPeriod);
               
-              // Handle double periods
-              if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
-                const nextPeriod = testPeriod + 1;
-                if (nextPeriod <= constraints.periodsPerDay) {
-                  const isNextClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === nextPeriod);
-                  const isNextTeacherOccupied = newSchedule.some(s => s.day === testDay && s.teacher === mapping.teacher && s.period === nextPeriod);
-                  
-                  if (!isNextClassOccupied && !isNextTeacherOccupied) {
-                    newSchedule.push({
-                      id: `gen-${attempt}-${idCounter++}`, day: testDay, grade: mapping.grade, period: testPeriod, subject: mapping.subject, teacher: mapping.teacher, color
-                    });
-                    newSchedule.push({
-                      id: `gen-${attempt}-${idCounter++}`, day: testDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, color
-                    });
-                    classesPlaced += 2;
-                    continue;
+              const isTeacherOccupied = !ignoreTeacher && newSchedule.some(s => 
+                s.day === testDay && 
+                s.teacher === mapping.teacher && 
+                s.period === testPeriod &&
+                !(mapping.linkedGrade === s.grade && s.subject === mapping.subject)
+              );
+
+              const hasPrev1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 1);
+              const hasPrev2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 2);
+              const hasNext1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 1);
+              const hasNext2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 2);
+              
+              const willExceedConsecutive = !ignoreConsecutive && ((hasPrev1 && hasPrev2) || (hasNext1 && hasNext2) || (hasPrev1 && hasNext1));
+
+              if (!isClassOccupied && !isTeacherOccupied && !willExceedConsecutive) {
+                
+                // Handle double periods
+                if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
+                  const nextPeriod = testPeriod + 1;
+                  if (nextPeriod <= constraints.periodsPerDay) {
+                    const isNextClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === nextPeriod);
+                    const isNextTeacherOccupied = !ignoreTeacher && newSchedule.some(s => s.day === testDay && s.teacher === mapping.teacher && s.period === nextPeriod);
+                    
+                    if (!isNextClassOccupied && !isNextTeacherOccupied) {
+                      newSchedule.push({
+                        id: `gen-${attempt}-${idCounter++}`, day: testDay, grade: mapping.grade, period: testPeriod, subject: mapping.subject, teacher: mapping.teacher, color
+                      });
+                      newSchedule.push({
+                        id: `gen-${attempt}-${idCounter++}`, day: testDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, color
+                      });
+                      classesPlaced += 2;
+                      continue;
+                    }
                   }
                 }
+
+                // Normal placement
+                newSchedule.push({
+                  id: `gen-${attempt}-${idCounter++}`,
+                  day: testDay,
+                  grade: mapping.grade,
+                  period: testPeriod,
+                  subject: mapping.subject,
+                  teacher: mapping.teacher,
+                  color: color
+                });
+                classesPlaced++;
               }
-
-              // Normal placement
-              newSchedule.push({
-                id: `gen-${attempt}-${idCounter++}`,
-                day: testDay,
-                grade: mapping.grade,
-                period: testPeriod,
-                subject: mapping.subject,
-                teacher: mapping.teacher,
-                color: color
-              });
-              classesPlaced++;
             }
+          });
+
+          if (newSchedule.length > maxPlaced) {
+            maxPlaced = newSchedule.length;
+            bestSchedule = newSchedule;
           }
-        });
 
-        if (newSchedule.length > maxPlaced) {
-          maxPlaced = newSchedule.length;
-          bestSchedule = newSchedule;
+          if (maxPlaced === totalClassesToPlace) {
+            break;
+          }
         }
+      };
 
-        // If we placed all classes, break early
-        const totalClassesToPlace = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
-        if (maxPlaced === totalClassesToPlace) {
-          break;
-        }
+      // Pass 1: Strict mode
+      generateWithConstraints(false, false);
+      
+      // Pass 2: Relaxed consecutive rule if strict failed
+      if (maxPlaced < totalClassesToPlace) {
+        generateWithConstraints(true, false);
+      }
+
+      // Pass 3: Relaxed teacher rule (last resort) to ensure minimal empty periods
+      if (maxPlaced < totalClassesToPlace) {
+        generateWithConstraints(true, true);
       }
 
       setSchedule(bestSchedule);
       setIsGenerating(false);
       
-      const totalClassesToPlace = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
       if (maxPlaced < totalClassesToPlace) {
         toast.warning(`Could only place ${maxPlaced} out of ${totalClassesToPlace} classes due to conflicts. Try manual allocation or loosening constraints.`);
       } else {
