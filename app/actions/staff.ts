@@ -10,6 +10,16 @@ const CreateStaffSchema = z.object({
   role: z.enum(['teacher', 'staff', 'accountant', 'admin']),
   phone: z.string().optional(),
   department: z.string().optional(),
+  designation: z.string().optional(),
+  address: z.string().optional(),
+  date_of_join: z.string().optional(),
+  salary: z.coerce.number().optional(),
+  can_mark_attendance: z.coerce.boolean().optional(),
+  education: z.string().optional(),
+  dob: z.string().optional(),
+  gender: z.string().optional(),
+  extra_info: z.string().optional(),
+  password: z.string().optional(),
   createdBy: z.string().uuid("Invalid user ID")
 });
 
@@ -29,6 +39,16 @@ export async function processCreateStaffAction(
     role: formData.get('role') as string,
     phone: (formData.get('phone') as string) || undefined,
     department: (formData.get('department') as string) || undefined,
+    designation: (formData.get('designation') as string) || undefined,
+    address: (formData.get('address') as string) || undefined,
+    date_of_join: (formData.get('date_of_join') as string) || undefined,
+    salary: formData.get('salary') || undefined,
+    can_mark_attendance: formData.get('can_mark_attendance') || undefined,
+    education: (formData.get('education') as string) || undefined,
+    dob: (formData.get('dob') as string) || undefined,
+    gender: (formData.get('gender') as string) || undefined,
+    extra_info: (formData.get('extra_info') as string) || undefined,
+    password: (formData.get('password') as string) || undefined,
     createdBy: formData.get('createdBy') as string,
   };
 
@@ -42,7 +62,7 @@ export async function processCreateStaffAction(
     };
   }
 
-  const { createdBy, ...staffData } = validatedFields.data;
+  const { createdBy, password, ...staffData } = validatedFields.data;
 
   const adminClient = createAdminClient();
   const supabase = await createClient();
@@ -56,7 +76,7 @@ export async function processCreateStaffAction(
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: staffData.email,
       email_confirm: true,
-      password: 'password123',
+      password: password || 'password123',
       user_metadata: { name: staffData.name, role: staffData.role }
     });
 
@@ -65,7 +85,7 @@ export async function processCreateStaffAction(
       
       const { data: fallbackAuthData, error: fallbackError } = await adminClient.auth.signUp({
         email: staffData.email,
-        password: 'password123',
+        password: password || 'password123',
         options: {
           data: { name: staffData.name, role: staffData.role }
         }

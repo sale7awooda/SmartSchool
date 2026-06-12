@@ -427,7 +427,7 @@ export async function processCreateStudentAction(
       const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
         email: studentEmail,
         email_confirm: true,
-        password: studentData.studentId,
+        password: 'password123',
         user_metadata: { name: studentData.name, role: 'student' }
       });
 
@@ -436,7 +436,7 @@ export async function processCreateStudentAction(
         // Fallback: Use standard signUp if service_role key is missing
         const { data: fallbackAuthData, error: fallbackError } = await adminClient.auth.signUp({
           email: studentEmail,
-          password: studentData.studentId,
+          password: 'password123',
           options: {
             data: { name: studentData.name, role: 'student' }
           }

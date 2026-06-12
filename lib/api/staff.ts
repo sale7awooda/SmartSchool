@@ -49,7 +49,7 @@ export async function getTeachers() {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('role', 'teacher');
+      .ilike('role', 'teacher');
     
     if (error) throw error;
     return data as User[];

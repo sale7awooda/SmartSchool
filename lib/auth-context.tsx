@@ -201,14 +201,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, isLoading, pathname, router]);
 
   const login = async (email: string, password = 'password123') => {
+    // Check if email is actually a student ID (no @ sign)
+    let loginEmail = email;
+    if (!email.includes('@')) {
+      loginEmail = `student_${email.trim().toLowerCase()}@school.com`;
+    }
+
     let { error, data } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
 
-    if (error && error.message.includes("Invalid login credentials")) {
+    if (error && error.message.includes("Invalid login credentials") && loginEmail.includes('@')) {
       try {
-        const studentEmails = await lookupStudentEmailsByParentEmail(email);
+        const studentEmails = await lookupStudentEmailsByParentEmail(loginEmail);
         let studentSuccess = false;
         
         for (const studentEmail of studentEmails) {

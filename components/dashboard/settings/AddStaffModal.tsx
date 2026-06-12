@@ -86,7 +86,17 @@ export function AddStaffModal({ onClose, onSuccess }: { onClose: () => void, onS
     email: '',
     role: 'teacher',
     phone: '',
-    department: 'Academics'
+    department: 'Academics',
+    designation: '',
+    address: '',
+    date_of_join: '',
+    salary: '',
+    can_mark_attendance: true,
+    education: '',
+    dob: '',
+    gender: 'Male',
+    extra_info: '',
+    password: ''
   });
 
   const { user } = useAuth();
@@ -102,6 +112,16 @@ export function AddStaffModal({ onClose, onSuccess }: { onClose: () => void, onS
       actionFormData.append('role', formData.role);
       actionFormData.append('phone', formData.phone);
       actionFormData.append('department', formData.department);
+      if (formData.designation) actionFormData.append('designation', formData.designation);
+      if (formData.address) actionFormData.append('address', formData.address);
+      if (formData.date_of_join) actionFormData.append('date_of_join', formData.date_of_join);
+      if (formData.salary) actionFormData.append('salary', formData.salary);
+      actionFormData.append('can_mark_attendance', formData.can_mark_attendance.toString());
+      if (formData.education) actionFormData.append('education', formData.education);
+      if (formData.dob) actionFormData.append('dob', formData.dob);
+      if (formData.gender) actionFormData.append('gender', formData.gender);
+      if (formData.extra_info) actionFormData.append('extra_info', formData.extra_info);
+      if (formData.password) actionFormData.append('password', formData.password);
       actionFormData.append('createdBy', user.id);
 
       const result = await processCreateStaffAction({ success: false, message: '' }, actionFormData);
@@ -192,6 +212,132 @@ export function AddStaffModal({ onClose, onSuccess }: { onClose: () => void, onS
                 <option value="Finance">Finance</option>
               </select>
             </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Phone</label>
+              <input 
+                type="text" 
+                value={formData.phone}
+                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="+1 234 567 890" 
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Password (Optional)</label>
+              <input 
+                type="text" 
+                value={formData.password}
+                onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Defaults to password123" 
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Designation</label>
+              <input 
+                type="text" 
+                value={formData.designation}
+                onChange={e => setFormData(prev => ({ ...prev, designation: e.target.value }))}
+                placeholder="e.g. Senior Teacher" 
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Date of Join</label>
+              <input 
+                type="date" 
+                value={formData.date_of_join}
+                onChange={e => setFormData(prev => ({ ...prev, date_of_join: e.target.value }))}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Gender</label>
+              <select 
+                value={formData.gender}
+                onChange={e => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Date of Birth</label>
+              <input 
+                type="date" 
+                value={formData.dob}
+                onChange={e => setFormData(prev => ({ ...prev, dob: e.target.value }))}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Address</label>
+            <input 
+              type="text" 
+              value={formData.address}
+              onChange={e => setFormData(prev => ({ ...prev, address: e.target.value }))}
+              placeholder="123 Main St" 
+              className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Salary</label>
+              <input 
+                type="number" 
+                value={formData.salary}
+                onChange={e => setFormData(prev => ({ ...prev, salary: e.target.value }))}
+                placeholder="Monthly Salary" 
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-foreground mb-2">Education</label>
+              <input 
+                type="text" 
+                value={formData.education}
+                onChange={e => setFormData(prev => ({ ...prev, education: e.target.value }))}
+                placeholder="Degree/Qualification" 
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground" 
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/50">
+            <input 
+              type="checkbox" 
+              id="can_mark_attendance"
+              checked={formData.can_mark_attendance}
+              onChange={e => setFormData(prev => ({ ...prev, can_mark_attendance: e.target.checked }))}
+              className="w-5 h-5 rounded border-border text-primary focus:ring-primary" 
+            />
+            <label htmlFor="can_mark_attendance" className="text-sm font-bold text-foreground cursor-pointer">
+              Can Mark Attendance
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Extra Info / Notes</label>
+            <textarea 
+              value={formData.extra_info}
+              onChange={e => setFormData(prev => ({ ...prev, extra_info: e.target.value }))}
+              placeholder="Any additional information..." 
+              className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/50 focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground min-h-[100px] resize-y" 
+            />
           </div>
 
           <div className="flex gap-3 pt-6">
