@@ -90,7 +90,8 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
   }
 
   const submissionsList = submissions || [];
-  const submittedCount = submissionsList.length;
+  const completedCount = submissionsList.filter((s: any) => s.status === 'completed' || s.status !== 'in_progress').length;
+  const inProgressCount = submissionsList.filter((s: any) => s.status === 'in_progress').length;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -111,7 +112,14 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
           </div>
           <div>
             <p className="text-sm text-muted-foreground font-medium">Submissions</p>
-            <p className="text-2xl font-bold">{submittedCount}</p>
+            <p className="text-2xl font-bold">
+              {completedCount}
+              {inProgressCount > 0 && (
+                <span className="text-sm font-bold text-amber-500 ml-2">
+                  ({inProgressCount} In Progress)
+                </span>
+              )}
+            </p>
           </div>
         </div>
         <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4">
@@ -150,8 +158,8 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
             <div className="space-y-4">
               {submissionsList.map((submission: any) => (
                 <div key={submission.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0 mt-1">
                       {submission.student?.user?.first_name?.[0] || 'S'}
                     </div>
                     <div>
@@ -159,14 +167,49 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
                         {submission.student?.user?.first_name} {submission.student?.user?.last_name}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Submitted at {new Date(submission.created_at).toLocaleTimeString()}
+                        {submission.status === 'in_progress' ? 'Started taking test' : 'Submitted'} at {new Date(submission.submitted_at || submission.created_at || '2026-06-12T00:00:00Z').toLocaleTimeString()}
                       </p>
+
+                      {submission.answers?._cheating_alerts?.violations && submission.answers._cheating_alerts.violations.length > 0 && (
+                        <div className="mt-2 text-xs text-rose-600 bg-rose-50/70 p-2.5 rounded-xl border border-rose-100 space-y-1.5 max-w-sm">
+                          <p className="font-bold flex items-center gap-1 text-rose-700">
+                            <AlertCircle size={13} className="shrink-0" /> 
+                            Focus Switched Logs ({submission.answers._cheating_alerts.tab_switches}):
+                          </p>
+                          <ul className="list-disc pl-4 space-y-0.5">
+                            {submission.answers._cheating_alerts.violations.slice(-4).map((v: string, idx: number) => (
+                              <li key={idx} className="font-medium text-[11px]">{v}</li>
+                            ))}
+                            {submission.answers._cheating_alerts.violations.length > 4 && (
+                              <li className="list-none text-[10px] text-rose-500 font-bold italic">
+                                + {submission.answers._cheating_alerts.violations.length - 4} more focus switch incidents
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full text-sm font-medium">
-                    <CheckCircle2 size={16} />
-                    Completed
-                  </div>
+                  
+                  {submission.status === 'in_progress' ? (
+                    <div className="flex flex-col items-end gap-1.5">
+                      <div className="flex items-center gap-1.5 text-amber-600 bg-amber-500/10 px-3 py-1 rounded-full text-xs font-bold leading-none ring-1 ring-amber-500/20 shadow-sm animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        In Progress
+                      </div>
+                      {submission.answers?._cheating_alerts?.tab_switches > 0 && (
+                        <span className="text-[11px] text-rose-600 font-bold bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-200/50 flex items-center gap-1">
+                          <AlertCircle size={11} className="shrink-0" />
+                          {submission.answers._cheating_alerts.tab_switches} Tab Switch(es)
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-emerald-500/20 shadow-sm leading-none">
+                      <CheckCircle2 size={13} />
+                      Completed
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

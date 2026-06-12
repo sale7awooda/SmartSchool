@@ -5,7 +5,8 @@ import { useAuth } from '@/lib/auth-context';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { getAssessmentWithQuestions, submitAssessment, getStudentByUserId, getSubmissionByAssessmentAndStudent } from '@/lib/supabase-db';
+import { getAssessmentWithQuestions, submitAssessment, getStudentByUserId, getSubmissionByAssessmentAndStudent, startAssessmentSubmission, updateSubmission } from '@/lib/supabase-db';
+import RichTextRenderer from '@/components/dashboard/RichTextRenderer';
 import { toast } from 'sonner';
 import { 
   Clock, 
@@ -28,6 +29,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
   );
   
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -48,21 +50,126 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
     }
   }
 
+  // Load student and start/restore submission
   useEffect(() => {
     if (user?.id) {
       getStudentByUserId(user.id).then(student => {
         setStudentId(student.id);
-        // Check if already submitted
-        getSubmissionByAssessmentAndStudent(id, student.id).then(submission => {
+        
+        // Start an active submission or fetch existing one
+        startAssessmentSubmission(id, student.id).then(submission => {
           if (submission) {
-            setHasSubmitted(true);
+            setSubmissionId(submission.id);
+            if (submission.status === 'completed') {
+              setHasSubmitted(true);
+            } else {
+              // Restore draft answers from database
+              const dbAnswers = submission.answers || {};
+              const dbCount = Object.keys(dbAnswers).filter(k => !k.startsWith('_')).length;
+
+              // Also check localStorage fallback
+              let localBackup: any = null;
+              try {
+                const s = localStorage.getItem(`assessment_draft_${id}_${student.id}`);
+                if (s) {
+                  localBackup = JSON.parse(s);
+                }
+              } catch (e) {}
+              const localCount = localBackup ? Object.keys(localBackup).filter(k => !k.startsWith('_')).length : 0;
+
+              if (localBackup && localCount > dbCount) {
+                setAnswers(localBackup);
+                toast.info('Restored your draft answers from local fallback auto-save.');
+              } else if (dbCount > 0) {
+                setAnswers(dbAnswers);
+                toast.info('Restored your draft answers from school server.');
+              }
+            }
           }
+        }).catch(err => {
+          console.error('Error starting assessment submission:', err);
         });
+
       }).catch(err => {
         console.error('Error fetching student info:', err);
       });
     }
   }, [user?.id, id]);
+
+  // Save current unchecked/checked state into localStorage and DB (Draft Auto-Save)
+  useEffect(() => {
+    if (!id || !studentId || !submissionId || hasSubmitted || isFinished) return;
+
+    // Save locally
+    localStorage.setItem(`assessment_draft_${id}_${studentId}`, JSON.stringify(answers));
+
+    // Debounce/throttle save to server database
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        await updateSubmission(submissionId, { answers });
+      } catch (err) {
+        console.error('Error auto-saving draft:', err);
+      }
+    }, 1500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [answers, id, studentId, submissionId, hasSubmitted, isFinished]);
+
+  // Anti-Cheating tab/focus monitoring
+  useEffect(() => {
+    if (!id || !studentId || !submissionId || hasSubmitted || isFinished) return;
+
+    let localSwitches = 0;
+    try {
+      const saved = localStorage.getItem(`cheating_switches_${id}_${studentId}`);
+      if (saved) localSwitches = parseInt(saved) || 0;
+    } catch (e) {}
+
+    const triggerViolation = (violationType: string) => {
+      localSwitches++;
+      try {
+        localStorage.setItem(`cheating_switches_${id}_${studentId}`, String(localSwitches));
+      } catch (e) {}
+
+      toast.warning(`Security Alert: Screen focus lost (${localSwitches}x). Switching tabs or minimizing during a live active test will notify the teacher!`, {
+        duration: 5000,
+      });
+
+      const timestamp = new Date().toLocaleTimeString();
+
+      setAnswers(prev => {
+        const existingAlerts = prev._cheating_alerts || { tab_switches: 0, violations: [] };
+        const newCount = (existingAlerts.tab_switches || 0) + 1;
+        const newViolations = [...(existingAlerts.violations || []), `${violationType} at ${timestamp}`];
+        
+        return {
+          ...prev,
+          _cheating_alerts: {
+            tab_switches: newCount,
+            violations: newViolations
+          }
+        };
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        triggerViolation('Minimized/Tab Switched');
+      }
+    };
+
+    const handleWindowBlur = () => {
+      triggerViolation('Window lost focus');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [id, studentId, submissionId, hasSubmitted, isFinished]);
 
   useEffect(() => {
     if (assessment?.duration && !initializedRef.current) {
@@ -85,6 +192,12 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
         questions: assessment.questions
       });
       
+      // Cleanup draft and cheating local counters
+      try {
+        localStorage.removeItem(`assessment_draft_${id}_${studentId}`);
+        localStorage.removeItem(`cheating_switches_${id}_${studentId}`);
+      } catch (e) {}
+
       setIsFinished(true);
     } catch (err) {
       console.error('Error submitting assessment:', err);
@@ -293,9 +406,9 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
               </div>
             </div>
 
-            <h2 className="text-xl font-medium text-foreground mb-8 leading-relaxed">
-              {currentQuestion.text}
-            </h2>
+            <div className="text-xl font-medium text-foreground mb-8 leading-relaxed">
+              <RichTextRenderer text={currentQuestion.text} />
+            </div>
 
             <div className="space-y-4">
               {currentQuestion.type === 'multiple_choice' || currentQuestion.type === 'true_false' ? (
@@ -308,7 +421,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
                       {answers[currentQuestion.id] === idx.toString() && <div className="w-3 h-3 bg-primary rounded-full" />}
                     </div>
                     <span className={`text-lg ${answers[currentQuestion.id] === idx.toString() ? 'text-indigo-900 font-medium' : 'text-foreground'}`}>
-                      {opt}
+                      <RichTextRenderer text={opt} />
                     </span>
                     <input 
                       type="radio" 
@@ -329,7 +442,7 @@ export default function TakeAssessmentPage({ params }: { params: Promise<{ id: s
                       {answers[currentQuestion.id]?.includes(idx.toString()) && <CheckCircle2 size={14} className="text-white" />}
                     </div>
                     <span className={`text-lg ${answers[currentQuestion.id]?.includes(idx.toString()) ? 'text-indigo-900 font-medium' : 'text-foreground'}`}>
-                      {opt}
+                      <RichTextRenderer text={opt} />
                     </span>
                     <input 
                       type="checkbox" 

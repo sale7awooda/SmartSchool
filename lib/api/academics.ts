@@ -226,6 +226,36 @@ export async function submitAssessment(submissionData: {
 }
 
 
+export async function startAssessmentSubmission(assessmentId: string, studentId: string) {
+  const { data: existing, error: checkError } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('assessment_id', assessmentId)
+    .eq('student_id', studentId)
+    .maybeSingle();
+
+  if (checkError) throw checkError;
+  if (existing) return existing;
+
+  const insertPayload: any = {
+    assessment_id: assessmentId,
+    student_id: studentId,
+    answers: {},
+    score: 0,
+    status: 'in_progress'
+  };
+
+  const { data, error } = await supabase
+    .from('submissions')
+    .insert([insertPayload])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+
 export async function getSubmissionByAssessmentAndStudent(assessmentId: string, studentId: string) {
   const { data, error } = await supabase
     .from('submissions')
