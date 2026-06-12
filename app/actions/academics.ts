@@ -236,7 +236,7 @@ export async function createAssessmentAndQuestionsAction(assessmentData: any, qu
   const { createAdminClient } = await import('@/lib/supabase/server');
   const adminClient = createAdminClient();
 
-  const { subject, grade, due_date, date, total_marks, ...mainData } = assessmentData;
+  const { subject, grade, due_date, date, total_marks, questions: _questions, type: _type_dup, teacher_id: _teacher_id, ...mainData } = assessmentData;
   
   let subject_id = null;
   let class_id = null;
