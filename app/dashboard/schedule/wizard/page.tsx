@@ -243,16 +243,21 @@ export default function TimetableWizard() {
         return;
       }
 
-      // Convert Supabase format back to Wizard format
-      const convertedSchedule = currentSchedules.map((s: any) => ({
-        id: s.id,
-        day: DAYS[s.day_of_week - 1],
-        grade: s.class_id,
-        period: s.period,
-        subject: s.subject,
-        teacher: s.teacher?.name || 'Unknown',
-        color: getColorForSubject(s.subject)
-      }));
+      const convertedSchedule = currentSchedules.map((s: any) => {
+        const gradeName = s.class?.name || classesData?.find((c: any) => c.id === s.class_id)?.name || 'Unknown';
+        const subjectName = s.subject?.name || subjectsData?.find((sub: any) => sub.id === s.subject_id)?.name || 'Unknown';
+        const teacherName = s.teacher?.name || teachers.find((t: any) => t.id === s.teacher_id)?.name || 'Unknown';
+        
+        return {
+          id: s.id,
+          day: s.day_of_week,
+          grade: gradeName,
+          period: s.period,
+          subject: subjectName,
+          teacher: teacherName,
+          color: getColorForSubject(subjectName)
+        };
+      });
 
       // Extract mappings
       const extractedMappings: any[] = [];
@@ -344,40 +349,41 @@ export default function TimetableWizard() {
       sortedMappings.forEach((mapping) => {
         const color = getColorForSubject(mapping.subject);
         let classesPlaced = 0;
-        let attempts = 0;
 
-        while (classesPlaced < mapping.classesPerWeek && attempts < 500) {
-          attempts++;
-          const randomDay = activeDays[Math.floor(Math.random() * activeDays.length)];
-          
-          // Determine valid periods based on constraints
+        // Build list of all possible slots
+        let allSlots: {day: string, period: number}[] = [];
+        activeDays.forEach(day => {
           let validPeriods = Array.from({ length: constraints.periodsPerDay }, (_, i) => i + 1);
-          
           if (mapping.beforeBreakfast) {
-            // Assuming breakfast is after period 2 or 3. Let's say periods 1 and 2 are before breakfast.
-            validPeriods = [1, 2];
+             validPeriods = [1, 2];
           }
+          validPeriods.forEach(period => {
+            allSlots.push({ day, period });
+          });
+        });
 
-          const randomPeriod = validPeriods[Math.floor(Math.random() * validPeriods.length)];
+        // Shuffle slots for randomness
+        allSlots.sort(() => Math.random() - 0.5);
 
-          // Check for conflicts
-          // 1. Class conflict (grade already has a class in this period)
-          const isClassOccupied = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.period === randomPeriod);
+        for (const slot of allSlots) {
+          if (classesPlaced >= mapping.classesPerWeek) break;
+
+          const testDay = slot.day;
+          const testPeriod = slot.period;
+
+          const isClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === testPeriod);
           
-          // 2. Teacher conflict (teacher is already teaching another class in this period)
-          // UNLESS it's a linked grade scenario where they are supposed to teach both at the same time
           const isTeacherOccupied = newSchedule.some(s => 
-            s.day === randomDay && 
+            s.day === testDay && 
             s.teacher === mapping.teacher && 
-            s.period === randomPeriod &&
-            !(mapping.linkedGrade === s.grade && s.subject === mapping.subject) // Allow if it's the linked grade
+            s.period === testPeriod &&
+            !(mapping.linkedGrade === s.grade && s.subject === mapping.subject)
           );
 
-          // 3. Max consecutive checking (no more than 2 consecutive periods in same grade)
-          const hasPrev1 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod - 1);
-          const hasPrev2 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod - 2);
-          const hasNext1 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod + 1);
-          const hasNext2 = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === randomPeriod + 2);
+          const hasPrev1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 1);
+          const hasPrev2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod - 2);
+          const hasNext1 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 1);
+          const hasNext2 = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.teacher === mapping.teacher && s.period === testPeriod + 2);
           
           const willExceedConsecutive = (hasPrev1 && hasPrev2) || (hasNext1 && hasNext2) || (hasPrev1 && hasNext1);
 
@@ -385,18 +391,17 @@ export default function TimetableWizard() {
             
             // Handle double periods
             if (mapping.doublePeriods && classesPlaced < mapping.classesPerWeek - 1) {
-              const nextPeriod = randomPeriod + 1;
+              const nextPeriod = testPeriod + 1;
               if (nextPeriod <= constraints.periodsPerDay) {
-                const isNextClassOccupied = newSchedule.some(s => s.day === randomDay && s.grade === mapping.grade && s.period === nextPeriod);
-                const isNextTeacherOccupied = newSchedule.some(s => s.day === randomDay && s.teacher === mapping.teacher && s.period === nextPeriod);
+                const isNextClassOccupied = newSchedule.some(s => s.day === testDay && s.grade === mapping.grade && s.period === nextPeriod);
+                const isNextTeacherOccupied = newSchedule.some(s => s.day === testDay && s.teacher === mapping.teacher && s.period === nextPeriod);
                 
                 if (!isNextClassOccupied && !isNextTeacherOccupied) {
-                  // Place both
                   newSchedule.push({
-                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: randomPeriod, subject: mapping.subject, teacher: mapping.teacher, color
+                    id: `gen-${idCounter++}`, day: testDay, grade: mapping.grade, period: testPeriod, subject: mapping.subject, teacher: mapping.teacher, color
                   });
                   newSchedule.push({
-                    id: `gen-${idCounter++}`, day: randomDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, color
+                    id: `gen-${idCounter++}`, day: testDay, grade: mapping.grade, period: nextPeriod, subject: mapping.subject, teacher: mapping.teacher, color
                   });
                   classesPlaced += 2;
                   continue;
@@ -407,9 +412,9 @@ export default function TimetableWizard() {
             // Normal placement
             newSchedule.push({
               id: `gen-${idCounter++}`,
-              day: randomDay,
+              day: testDay,
               grade: mapping.grade,
-              period: randomPeriod,
+              period: testPeriod,
               subject: mapping.subject,
               teacher: mapping.teacher,
               color: color
