@@ -44,7 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .select('student_id, students(id, name)')
           .eq('parent_id', sessionUser.id);
 
-        profile.students = parentData?.map((ps: any) => ps.students) || [];
+        const rawStudents = (parentData || []).map((ps: any) => ps.students).filter(Boolean);
+        const uniqueStudentsMap = new Map();
+        rawStudents.forEach((student: any) => {
+          if (student && student.id) uniqueStudentsMap.set(student.id, student);
+        });
+        profile.students = Array.from(uniqueStudentsMap.values());
         profile.studentIds = profile.students.map((s: any) => s.id);
         profile.studentId = profile.studentIds[0] || undefined;
       } else if (profile && profile.role === 'student') {
@@ -107,7 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .select('student_id, students(id, name)')
           .eq('parent_id', profile.id);
           
-        profile.students = parentData?.map((ps: any) => ps.students) || [];
+        const rawStudents = (parentData || []).map((ps: any) => ps.students).filter(Boolean);
+        const uniqueStudentsMap = new Map();
+        rawStudents.forEach((student: any) => {
+          if (student && student.id) uniqueStudentsMap.set(student.id, student);
+        });
+        profile.students = Array.from(uniqueStudentsMap.values());
         profile.studentIds = profile.students.map((s: any) => s.id);
         profile.studentId = profile.studentIds[0] || undefined;
       }

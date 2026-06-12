@@ -147,7 +147,15 @@ export function GradeCardsTab() {
         .select('*, user:users(name)')
         .in('id', studentIds);
       if (studError) return [];
-      return students || [];
+      
+      const uniqueStudentsMap = new Map();
+      (students || []).forEach((s: any) => {
+        if (s && s.id) uniqueStudentsMap.set(s.id, {
+          ...s,
+          name: s.name || (s.user ? s.user.name : 'Unknown')
+        });
+      });
+      return Array.from(uniqueStudentsMap.values());
     }
   );
 
@@ -999,7 +1007,7 @@ export function GradeCardsTab() {
             <div className="space-y-4 max-w-4xl">
               {studentGrades.map((grade, idx) => (
                 <div 
-                  key={grade.subject_id} 
+                  key={`${grade.subject_id || idx}-${idx}`} 
                   className={`p-4 border rounded-2xl transition-all ${
                     grade.isEditable 
                       ? 'border-border bg-card/50 hover:bg-card' 
@@ -1153,7 +1161,7 @@ export function GradeCardsTab() {
                  </div>
               ) : (
                 subjectGrades.map((grade, idx) => (
-                  <div key={grade.student_id} className="p-4 border border-border rounded-2xl bg-card/50 hover:bg-card transition-colors flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                  <div key={`${grade.student_id || idx}-${idx}`} className="p-4 border border-border rounded-2xl bg-card/50 hover:bg-card transition-colors flex flex-col md:flex-row md:items-center gap-4 justify-between">
                       <div className="font-bold text-foreground">
                           {grade.student_name} <span className="text-xs font-normal text-muted-foreground block sm:inline-block sm:ml-2 font-mono">Roll: {grade.roll_number}</span>
                       </div>
