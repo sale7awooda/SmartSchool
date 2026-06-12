@@ -815,10 +815,10 @@ export function GradeCardsTab() {
                       ) : students.length === 0 ? (
                         <tr><td colSpan={4} className="p-8 text-center text-muted-foreground font-semibold">No students located inside {selectedGrade}.</td></tr>
                       ) : (
-                        students.map((student: any) => {
+                        students.map((student: any, idx: number) => {
                           const published = isTermPublished(student.id, currentDbTerm);
                           return (
-                            <tr key={student.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                            <tr key={`${student.id}-${currentDbTerm}-${idx}`} className="border-b border-border hover:bg-muted/50 transition-colors">
                               <td className="px-6 py-4 font-bold text-foreground">{student.name}</td>
                               <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{student.roll_number ?? student.rollNumber ?? 'Pending'}</td>
                               <td className="px-6 py-4">

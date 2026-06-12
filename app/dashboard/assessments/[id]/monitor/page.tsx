@@ -160,11 +160,11 @@ export default function MonitorAssessmentPage({ params }: { params: Promise<{ id
                 <div key={submission.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0 mt-1">
-                      {submission.student?.user?.first_name?.[0] || 'S'}
+                      {submission.student?.name?.[0] || 'S'}
                     </div>
                     <div>
                       <p className="font-semibold text-foreground">
-                        {submission.student?.user?.first_name} {submission.student?.user?.last_name}
+                        {submission.student?.name}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {submission.status === 'in_progress' ? 'Started taking test' : 'Submitted'} at {new Date(submission.submitted_at || submission.created_at || '2026-06-12T00:00:00Z').toLocaleTimeString()}

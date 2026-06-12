@@ -60,14 +60,36 @@ export default function EditAssessmentPage() {
         description: assessmentData.description || '',
       });
       if (assessmentData.questions && assessmentData.questions.length > 0) {
-        const loadedQuestions = assessmentData.questions.map((q: any) => ({
-          id: q.id,
-          text: q.question || q.text,
-          type: q.type,
-          options: q.options || [],
-          correctAnswers: q.correct_answers || [],
-          marks: q.points || q.marks || 1
-        }));
+        const loadedQuestions = assessmentData.questions.map((q: any) => {
+          let parsedOptions = [];
+          if (q.options) {
+             try { parsedOptions = typeof q.options === 'string' ? JSON.parse(q.options) : q.options; } catch(e) { parsedOptions = []; }
+          }
+          let parsedCorrectArray = [];
+          let parsedCorrectSingle = '0';
+          if (q.correct_answer) {
+             try { 
+                const p = typeof q.correct_answer === 'string' ? JSON.parse(q.correct_answer) : q.correct_answer;
+                if (Array.isArray(p)) parsedCorrectArray = p;
+                else parsedCorrectSingle = p;
+             } catch(e) { 
+                parsedCorrectSingle = q.correct_answer; 
+             }
+          }
+          if (q.correct_answers) {
+             try { parsedCorrectArray = typeof q.correct_answers === 'string' ? JSON.parse(q.correct_answers) : q.correct_answers; } catch(e) {}
+          }
+          
+          return {
+            id: q.id,
+            text: q.question || q.text,
+            type: q.type,
+            options: parsedOptions,
+            correct_answer: parsedCorrectSingle,
+            correct_answers: parsedCorrectArray,
+            marks: q.points || q.marks || 1
+          };
+        });
         setQuestions(loadedQuestions);
       }
       setDefaultsSet(true);
@@ -144,7 +166,7 @@ export default function EditAssessmentPage() {
         type: examDetails.type,
         description: examDetails.description,
         teacher_id: user?.id,
-        status: 'upcoming',
+        status: assessmentData?.status || 'upcoming',
         questions: questions.map(q => ({
           text: q.text,
           type: q.type,

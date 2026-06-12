@@ -236,7 +236,7 @@ export async function createAssessmentAndQuestionsAction(assessmentData: any, qu
   const { createAdminClient } = await import('@/lib/supabase/server');
   const adminClient = createAdminClient();
 
-  const { subject, grade, due_date, date, total_marks, questions: _questions, type: _type_dup, teacher_id: _teacher_id, ...mainData } = assessmentData;
+  const { subject, grade, due_date, date, questions: _questions, teacher_id: _teacher_id, type: _type, total_marks: _total_marks, ...mainData } = assessmentData;
   
   let subject_id = null;
   let class_id = null;
@@ -256,7 +256,7 @@ export async function createAssessmentAndQuestionsAction(assessmentData: any, qu
     subject_id,
     class_id,
     date: due_date || date,
-    status: 'Published'
+    status: mainData.status || 'upcoming'
   };
 
   const { data: assessment, error: assessmentError } = await adminClient

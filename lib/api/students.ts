@@ -30,7 +30,7 @@ export async function getStudents(academicYear?: string, includeDeleted = false,
     return data.map((s: any) => ({
       ...s.user,
       ...s,
-      name: s.name || (s.user ? `${s.user.first_name || ''} ${s.user.last_name || ''}`.trim() : 'Unknown'),
+      name: s.name || (s.user ? s.user.name : 'Unknown'),
       userId: s.user_id,
       rollNumber: s.roll_number,
       dob: s.date_of_birth || s.dob,
@@ -110,14 +110,14 @@ export async function getPaginatedStudents(page: number = 1, limit: number = 10,
     const students = data.map((s: any) => ({
       ...s.user,
       ...s,
-      name: s.name || (s.user ? `${s.user.first_name || ''} ${s.user.last_name || ''}`.trim() : 'Unknown'),
+      name: s.name || (s.user ? s.user.name : 'Unknown'),
       id: s.id, // Better to use student id not user_id
       userId: s.user_id,
       rollNumber: s.roll_number,
       dob: s.date_of_birth || s.dob,
       address: s.address,
       gender: s.gender,
-      parentNames: s.parents?.map((p: any) => p.parent?.name || (p.parent ? `${p.parent.first_name || ''} ${p.parent.last_name || ''}`.trim() : 'Unknown')).join(', ') || 'N/A'
+      parentNames: s.parents?.map((p: any) => p.parent?.name || (p.parent ? p.parent.name : 'Unknown')).join(', ') || 'N/A'
     })) as (Student & { parentNames: string })[];
 
     return {
@@ -221,8 +221,7 @@ export async function createStudent(studentData: any) {
     .from('students')
     .insert([{
       user_id: user.id,
-      first_name: firstName,
-      last_name: lastName,
+      name: studentData.name,
       grade: studentData.grade,
       roll_number: studentData.studentId,
       date_of_birth: studentData.dob,
@@ -284,12 +283,6 @@ export async function createStudent(studentData: any) {
 
 export async function updateStudent(id: string, studentData: any) {
   const updatePayload: any = { ...studentData };
-  if (studentData.name) {
-    const nameParts = studentData.name.split(' ');
-    updatePayload.first_name = nameParts[0];
-    updatePayload.last_name = nameParts.slice(1).join(' ') || 'Student';
-    delete updatePayload.name;
-  }
   if (studentData.dob) {
     updatePayload.date_of_birth = studentData.dob;
     delete updatePayload.dob;
@@ -348,15 +341,12 @@ export async function getTimelineRecords(studentId: string) {
 export async function getStudentById(id: string) {
   const { data, error } = await supabase
     .from('students')
-    .select('id, first_name, last_name, roll_number, grade')
+    .select('id, name, roll_number, grade')
     .eq('id', id)
     .single();
   
   if (error) throw error;
-  return {
-    ...data,
-    name: `${data.first_name} ${data.last_name}`.trim()
-  };
+  return data;
 }
 
 // Academic Management
@@ -364,15 +354,12 @@ export async function getStudentById(id: string) {
 export async function getStudentByUserId(userId: string) {
   const { data, error } = await supabase
     .from('students')
-    .select('id, first_name, last_name, roll_number, grade')
+    .select('id, name, roll_number, grade')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
   
   if (error) throw error;
-  return {
-    ...data,
-    name: `${data.first_name} ${data.last_name}`.trim()
-  };
+  return data;
 }
 
 

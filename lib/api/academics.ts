@@ -49,8 +49,12 @@ export async function getAssessments() {
 }
 
 
-export async function createAssessment(assessmentData: any, questions?: any[]) {
+export async function createAssessment(assessmentData: any, optionalQuestions?: any[]) {
   const { createAssessmentAndQuestionsAction } = await import('@/app/actions/academics');
+  const questions = optionalQuestions || assessmentData.questions;
+  if (assessmentData.questions) {
+    delete assessmentData.questions;
+  }
   const res = await createAssessmentAndQuestionsAction(assessmentData, questions);
   
   if (!res.success) {
