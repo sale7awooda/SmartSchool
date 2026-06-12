@@ -35,12 +35,12 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      if (role === 'admin') await login('admin@school.com', 'password123');
-      else if (role === 'staff') await login('staff@school.com', 'password123');
-      else if (role === 'teacher') await login('teacher@school.com', 'password123');
-      else if (role === 'accountant') await login('accountant@school.com', 'password123');
-      else if (role === 'parent') await login('homer@simpson.com', 'password123');
-      else if (role === 'student') await login('STU001', 'password123'); // Student ID login
+      if (role === 'admin') await login('admin@smartschool.com', 'Admin@123');
+      else if (role === 'staff') await login('staff@smartschool.com', 'staff@123');
+      else if (role === 'teacher') await login('teacher@smartschool.com', 'Teacher@123');
+      else if (role === 'accountant') await login('accountant@smartschool.com', 'Accountant@123');
+      else if (role === 'parent') await login('parent@smartschool.com', 'Parent@123');
+      else if (role === 'student') await login('student@smartschool.com', 'Student@123');
     } catch (err: any) {
       setError(err.message || 'Failed to login');
     } finally {
@@ -118,7 +118,7 @@ export default function LoginPage() {
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">{t('email_address') || 'Email Address'}</label>
                   <input
-                    type="email"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
