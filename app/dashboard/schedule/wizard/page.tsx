@@ -352,7 +352,8 @@ export default function TimetableWizard() {
       const totalClassesToPlace = mappings.reduce((acc, m) => acc + m.classesPerWeek, 0);
 
       const generateWithConstraints = (ignoreConsecutive: boolean, ignoreTeacher: boolean) => {
-        for (let attempt = 0; attempt < 50; attempt++) {
+        const attempts = ignoreConsecutive ? 50 : 500; // More attempts for strict mode
+        for (let attempt = 0; attempt < attempts; attempt++) {
           const newSchedule: any[] = [];
           let idCounter = 1;
 
@@ -458,14 +459,9 @@ export default function TimetableWizard() {
       // Pass 1: Strict mode
       generateWithConstraints(false, false);
       
-      // Pass 2: Relaxed consecutive rule if strict failed
+      // Pass 2: Relaxed consecutive rule if strict failed (But still respect teacher)
       if (maxPlaced < totalClassesToPlace) {
         generateWithConstraints(true, false);
-      }
-
-      // Pass 3: Relaxed teacher rule (last resort) to ensure minimal empty periods
-      if (maxPlaced < totalClassesToPlace) {
-        generateWithConstraints(true, true);
       }
 
       setSchedule(bestSchedule);
