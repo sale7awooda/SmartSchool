@@ -521,7 +521,7 @@ export async function processCreateStudentAction(
       return { 
         success: false, 
         message: isSchemaCacheError 
-          ? "Database schema is out of sync. Please run the SQL fix in supabase_fix.sql to add the missing 'user_id' column and reload the schema cache."
+          ? "Database schema is out of sync. Please run the SQL fix in supabase/migrations/supabase_fix.sql to add the missing 'user_id' column and reload the schema cache."
           : `Failed to create student record: ${studentError.message} (Code: ${studentError.code}) ${studentError.details || ''}`.trim() 
       };
     }
