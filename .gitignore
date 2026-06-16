@@ -11,3 +11,5 @@ dist/
 scratch/
 debug/
 demo/
+
+playwright-report/
