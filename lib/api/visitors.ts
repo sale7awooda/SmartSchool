@@ -97,7 +97,7 @@ export async function createVisitor(visitorData: VisitorInput): Promise<VisitorR
   if (error) {
     if (error.message?.includes('column') && error.message?.includes('host')) {
       const combinedPurpose = `${visitorData.purpose || ''}${visitorData.host ? ` | Host: ${visitorData.host}` : ''}`;
-      const fallbackPayload = { ...payload, purpose: combinedPurpose };
+      const fallbackPayload: Record<string, unknown> = { ...payload, purpose: combinedPurpose };
       delete fallbackPayload.host;
 
       const { data: retryData, error: retryError } = await supabase

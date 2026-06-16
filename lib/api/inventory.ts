@@ -98,7 +98,7 @@ export async function createInventoryItem(itemData: InventoryInput) {
   if (error) {
     if (error.message?.includes('column') && (error.message?.includes('assigned_to') || error.message?.includes('next_maintenance_date'))) {
       const combinedCategory = `${itemData.category || 'general'}${itemData.assigned_to ? ` | Assigned: ${itemData.assigned_to}` : ''}${itemData.next_maintenance_date ? ` | Maintenance: ${itemData.next_maintenance_date}` : ''}`;
-      const fallbackPayload = { ...payload, category: combinedCategory };
+      const fallbackPayload: Record<string, unknown> = { ...payload, category: combinedCategory };
       delete fallbackPayload.assigned_to;
       delete fallbackPayload.next_maintenance_date;
 

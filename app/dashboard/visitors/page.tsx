@@ -60,10 +60,10 @@ export default function VisitorsPage() {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const visitorData = {
-      name: formData.get('name'),
-      purpose: formData.get('purpose'),
-      host: formData.get('host'),
-      status: 'Active',
+      name: (formData.get('name') as string) || '',
+      purpose: (formData.get('purpose') as string) || undefined,
+      host: (formData.get('host') as string) || undefined,
+      status: 'Active' as const,
       time_in: new Date().toLocaleTimeString(),
     };
 

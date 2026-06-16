@@ -87,6 +87,7 @@ const { mockIdbStore, mocks } = vi.hoisted(() => {
     mockObj.order = vi.fn().mockImplementation(chainFn);
     mockObj.range = vi.fn().mockImplementation(chainFn);
     mockObj.ilike = vi.fn().mockImplementation(chainFn);
+    mockObj.limit = vi.fn().mockImplementation(chainFn);
 
     mockObj.maybeSingle = vi.fn().mockImplementation(() => {
       const res = Array.isArray(currentData) ? (currentData[0] || null) : currentData;
@@ -152,7 +153,19 @@ const { mockIdbStore, mocks } = vi.hoisted(() => {
         };
       }
       if (table === 'submissions') {
-        return { insert: mockInsertSubmissions };
+        const subMockObj: any = {};
+        let subData: any = null;
+        subMockObj.select = vi.fn().mockImplementation(() => subMockObj);
+        subMockObj.eq = vi.fn().mockImplementation(() => subMockObj);
+        subMockObj.order = vi.fn().mockImplementation(() => subMockObj);
+        subMockObj.limit = vi.fn().mockImplementation(() => subMockObj);
+        subMockObj.maybeSingle = vi.fn().mockResolvedValue({ data: subData, error: null });
+        subMockObj.insert = mockInsertSubmissions;
+        subMockObj.update = vi.fn().mockImplementation(() => subMockObj);
+        subMockObj.then = vi.fn((onfulfilled: any) =>
+          Promise.resolve({ data: subData, error: null }).then(onfulfilled)
+        );
+        return subMockObj;
       }
       if (table === 'audit_logs') {
         return { insert: mockInsertAudit };
@@ -186,7 +199,7 @@ const { mockIdbStore, mocks } = vi.hoisted(() => {
       } else if (table === 'visitors') {
         defaultData = [{ id: 'vis-1', name: 'Ned Flanders' }];
       } else if (table === 'inventory') {
-        defaultData = [{ id: 'inv-item-1', name: 'Notebooks', qty: 5 }];
+        defaultData = [{ id: 'inv-item-1', name: 'Notebooks', quantity: 5, category: 'general', status: 'Available' }];
       } else if (table === 'bus_routes') {
         defaultData = [{ id: 'route-1', name: 'Route A' }];
       } else if (table === 'schedules') {
@@ -416,13 +429,13 @@ describe('Smart School System-Wide Lightweight E2E Suite', () => {
 
   describe('9. Inventory Management Module', () => {
     it('should log stock levels and detect low stock alerts', async () => {
-      const item = await createInventoryItem({ name: 'Erasers', qty: 25 });
+      const item = await createInventoryItem({ name: 'Erasers', quantity: 25 });
       expect(item.name).toBe('Erasers');
 
       const inventoryList = await getPaginatedInventory(1, 10, 'Notebooks');
       expect(inventoryList.data[0].name).toBe('Notebooks');
 
-      const lowStockAlerts = inventoryList.data.filter(i => i.qty <= 10);
+      const lowStockAlerts = inventoryList.data.filter(i => i.quantity <= 10);
       expect(lowStockAlerts.length).toBe(1);
     });
   });

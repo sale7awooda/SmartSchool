@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { Languages, Moon, Sun, Menu, Bell, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/lib/language-context';
@@ -30,31 +30,31 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
 
-  const [isOnline, setIsOnline] = useState(true);
   const [pendingSyncs, setPendingSyncs] = useState(0);
 
-  const [pushSupported, setPushSupported] = useState(false);
+  const isOnline = useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('online', cb);
+      window.addEventListener('offline', cb);
+      return () => {
+        window.removeEventListener('online', cb);
+        window.removeEventListener('offline', cb);
+      };
+    },
+    () => navigator.onLine,
+    () => true
+  );
+
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const pushSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
+  const isMounted = true;
 
   useEffect(() => {
-    setIsMounted(true);
-    if (typeof window === 'undefined') return;
-
-    setIsOnline(navigator.onLine);
-
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
     const interval = setInterval(() => {
       setPendingSyncs(getOfflineQueueCount());
     }, 2000);
 
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      setPushSupported(true);
+    if (pushSupported) {
       navigator.serviceWorker.ready.then((reg) => {
         reg.pushManager.getSubscription().then((sub) => {
           setIsPushSubscribed(!!sub);
@@ -64,12 +64,8 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
       });
     }
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [pushSupported]);
 
   const { data: notices, mutate: mutateNotices } = useSWR('notices', getNotices);
   const { data: broadcasts, mutate: mutateBroadcasts } = useSWR('broadcasts', getBroadcasts);

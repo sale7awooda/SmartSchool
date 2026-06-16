@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 interface UserProfileDropdownProps {
   show: boolean;
   onToggle: () => void;
-  user: { name: string; email: string; role?: string };
+  user: { name: string; email?: string; role?: string };
   onShowProfile?: () => void;
   onLogout: () => void;
   t: (key: string) => string;

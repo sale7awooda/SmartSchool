@@ -1,11 +1,12 @@
 'use client';
 
 import { FileText, Plus, Trash2, Download, Loader2 } from 'lucide-react';
+import type { Role } from '@/types';
 
 interface DocumentsTabProps {
   documents: any[] | undefined;
   isUploading: boolean;
-  isRole: (roles: string[]) => boolean;
+  isRole: (roles: Role | Role[]) => boolean;
   handleUploadDocument: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleDeleteDocument: (id: string) => void;
   t: (key: string) => string;

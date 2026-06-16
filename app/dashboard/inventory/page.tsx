@@ -77,11 +77,11 @@ export default function InventoryPage() {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const assetData = {
-      name: formData.get('name'),
-      category: formData.get('category'),
-      quantity: Number(formData.get('quantity')),
-      assigned_to: formData.get('assigned_to'),
-      next_maintenance_date: formData.get('next_maintenance_date'),
+      name: (formData.get('name') as string) || '',
+      category: (formData.get('category') as string) || undefined,
+      quantity: Number(formData.get('quantity')) || undefined,
+      assigned_to: (formData.get('assigned_to') as string) || undefined,
+      next_maintenance_date: (formData.get('next_maintenance_date') as string) || undefined,
       status: 'Available',
     };
 
