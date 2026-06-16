@@ -1,0 +1,1220 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '@/lib/auth-context';
+import { usePermissions } from '@/lib/permissions';
+import { useLanguage } from '@/lib/language-context';
+import { Student } from '@/types';
+import { supabase } from '@/lib/supabase/client';
+import { getStudents, getAttendance, getAttendanceHistory, getStudentAttendance, getAttendanceByClass, getStudentById, getActiveAcademicYear, getClasses } from '@/lib/supabase-db';
+import { processSaveAttendanceAction } from '@/app/actions/attendance';
+import { CheckCircle2, XCircle, Clock, Save, Loader2, ChevronLeft, Calendar, Filter, X, ChevronRight, Search, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { toast } from "sonner";
+import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+
+type AttendanceStatus = 'present' | 'absent' | 'late' | null;
+
+const adjustDateStr = (dateStr: string, amount: number) => {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + amount);
+  return d.toISOString().split('T')[0];
+};
+
+export default function AttendancePage() {
+  const { user } = useAuth();
+  const { can, isRole } = usePermissions();
+  const { t } = useLanguage();
+  const [activeView, setActiveView] = useState<'dashboard' | 'mark'>('dashboard');
+  const [detailDate, setDetailDate] = useState<string | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const router = useRouter();
+  
+  if (!user) return null;
+
+  if (!can('view', 'attendance')) {
+    return <div className="p-4">{t('no_permission')}</div>;
+  }
+
+  if (isRole(['parent', 'student'])) return <StudentAttendanceView />;
+  
+  const isAttendanceMarker = user.department?.includes('attendance_marker') || false;
+  const canViewOverview = isRole(['admin', 'staff', 'accountant', 'teacher']);
+  const canMark = isRole(['admin', 'teacher']) || isAttendanceMarker;
+
+  const handleOpenDetails = (date: string) => {
+    setDetailDate(date);
+    setDetailModalOpen(true);
+  };
+
+  if (canViewOverview) {
+    if (canMark) {
+      return (
+        <div className="space-y-4 h-full flex flex-col">
+          <div className="flex bg-muted/50 p-1 rounded-xl w-fit mb-2 border border-border">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeView === 'dashboard' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('overview_dashboard')}
+            </button>
+            <button
+              onClick={() => setActiveView('mark')}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeView === 'mark' ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('mark_attendance')}
+            </button>
+          </div>
+          {activeView === 'dashboard' ? (
+            <AdminAttendance 
+              canMark={true} 
+              onSelectClass={(className) => {
+                router.push(`/dashboard/attendance?class=${encodeURIComponent(className)}`);
+                setActiveView('mark');
+              }} 
+              onViewDetails={handleOpenDetails}
+            />
+          ) : (
+            <TeacherAttendance canMark={true} onViewDetails={handleOpenDetails} />
+          )}
+          <AttendanceDetailsModal isOpen={detailModalOpen} date={detailDate} onClose={() => setDetailModalOpen(false)} />
+        </div>
+      );
+    }
+    return (
+      <>
+        <AdminAttendance canMark={false} onViewDetails={handleOpenDetails} />
+        <AttendanceDetailsModal isOpen={detailModalOpen} date={detailDate} onClose={() => setDetailModalOpen(false)} />
+      </>
+    );
+  }
+
+  return <div className="p-4">{t('no_permission')}</div>;
+}
+
+function TeacherAttendance({ canMark = true, onViewDetails }: { canMark?: boolean, onViewDetails?: (date: string) => void }) {
+  const { user } = useAuth();
+  const { t, language } = useLanguage();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const classFilter = searchParams.get('class');
+  
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
+  const { data: classes } = useSWR('classes', getClasses);
+  const [activeTab, setActiveTab] = useState<'mark' | 'history'>(canMark ? 'mark' : 'history');
+  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const { data: studentsData, isLoading: isStudentsLoading } = useSWR(
+    ['students-mark', activeAcademicYear?.name, classFilter || 'all'],
+    () => getStudents(activeAcademicYear?.name, false, classFilter || undefined)
+  );
+
+  const { data: attendanceData, isLoading: isAttendanceLoading, mutate: mutateAttendance } = useSWR(
+    ['attendance-mark', selectedDate],
+    () => getAttendance(selectedDate)
+  );
+
+  const { data: historyData, isLoading: isHistoryLoading, mutate: mutateHistory } = useSWR(
+    'attendance-history',
+    getAttendanceHistory
+  );
+
+  const students = studentsData || [];
+  const history = historyData || [];
+  const isLoading = isStudentsLoading || isAttendanceLoading || isHistoryLoading;
+
+  useEffect(() => {
+    if (attendanceData) {
+      const initialAttendance: Record<string, AttendanceStatus> = {};
+      attendanceData.forEach((record: any) => {
+        initialAttendance[record.student_id] = record.status;
+      });
+      setAttendance(initialAttendance);
+    }
+  }, [attendanceData]);
+
+  useEffect(() => {
+    // Real-time subscription
+    const channel = supabase
+      .channel('attendance_changes')
+      .on('postgres_changes', { event: '*', table: 'attendance', schema: 'public' }, () => {
+        mutateAttendance();
+        mutateHistory();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [mutateAttendance, mutateHistory]);
+
+  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
+    setAttendance(prev => ({ ...prev, [studentId]: status }));
+    setIsSaved(false);
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const attendancePayload = students
+        .filter(student => attendance[student.id] !== undefined && attendance[student.id] !== null)
+        .map(student => ({
+          student_id: student.id,
+          status: attendance[student.id],
+          date: selectedDate,
+          marked_by: user.id
+        }));
+
+      const formData = new FormData();
+      formData.append('records', JSON.stringify(attendancePayload));
+      formData.append('recordedBy', user.id);
+
+      const result = await processSaveAttendanceAction({ success: false, message: '' }, formData);
+
+      if (!result.success) {
+        toast.error("Error", { description: result.message });
+        return;
+      }
+
+      setIsSaved(true);
+      mutateAttendance();
+      mutateHistory();
+      toast.success(t('attendance_saved_success'), {
+        description: t('attendance_saved_desc').replace('{count}', attendancePayload.length.toString()),
+      });
+    } catch (error) {
+      console.error('Error saving attendance:', error);
+      toast.error(t('failed_to_save_attendance'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const allMarked = students.length > 0 && students.every(student => attendance[student.id] !== undefined && attendance[student.id] !== null);
+  const markedCount = students.filter(student => attendance[student.id] !== undefined && attendance[student.id] !== null).length;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 h-full flex flex-col p-4 animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-10 w-64 bg-muted rounded-xl" />
+            <div className="h-5 w-96 bg-muted rounded-xl" />
+          </div>
+          <div className="h-12 w-48 bg-muted rounded-xl" />
+        </div>
+        <div className="flex gap-4">
+          <div className="h-12 w-48 bg-muted rounded-xl" />
+          <div className="h-12 w-48 bg-muted rounded-xl" />
+        </div>
+        <div className="flex-1">
+          <div className="h-full min-h-[400px] bg-muted rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === 'history') {
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('attendance_history')}</h1>
+            <p className="text-muted-foreground mt-2 font-medium">{t('attendance_history_desc')}</p>
+          </div>
+          {canMark && (
+            <button 
+              onClick={() => setActiveTab('mark')}
+              className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+            >
+              <ChevronLeft size={18} className="rtl:rotate-180" />
+              {t('back_to_marking')}
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+          {history.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground font-medium">{t('no_history_found')}</p>
+            </div>
+          ) : (
+            history.map((record, i) => (
+              <div 
+                key={i} 
+                onClick={() => onViewDetails?.(record.date)}
+                className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex items-center justify-between hover:shadow-md transition-all cursor-pointer hover:border-primary/30"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-primary/5 text-primary">
+                    <Calendar size={24} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-foreground text-lg">{new Date(record.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{record.present + record.absent + record.late + record.excused} {t('students_marked')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-emerald-500">{record.present} {t('present')}</p>
+                    <p className="text-sm font-bold text-destructive">{record.absent} {t('absent')}</p>
+                  </div>
+                  <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground">
+                    <ChevronRight size={20} className="rtl:rotate-180" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('mark_attendance')}</h1>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setSelectedDate(adjustDateStr(selectedDate, -1))}
+                className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                <Calendar size={16} className="text-muted-foreground" />
+                <input 
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent border-none text-muted-foreground font-medium focus:ring-0 cursor-pointer hover:text-foreground transition-colors text-sm p-0 w-28"
+                />
+              </div>
+
+              <button 
+                onClick={() => setSelectedDate(adjustDateStr(selectedDate, 1))}
+                className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 border-l border-border pl-3 ml-1">
+              <Filter size={16} className="text-muted-foreground" />
+              <select
+                value={classFilter || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    router.push(`/dashboard/attendance?class=${encodeURIComponent(val)}`);
+                  } else {
+                    router.push('/dashboard/attendance');
+                  }
+                }}
+                className="bg-transparent border-none text-muted-foreground font-medium focus:ring-0 cursor-pointer hover:text-foreground transition-colors text-sm"
+              >
+                <option value="" className="bg-card text-foreground">{t('all_classes')}</option>
+                {(classes || []).map((c: any) => (
+                  <option key={c.id} value={c.name} className="bg-card text-foreground">{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {classFilter && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">
+                {t('class')}: {classFilter}
+                <Link href="/dashboard/attendance" className="hover:text-primary/80">
+                  <X size={14} />
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {activeTab === 'mark' && students.length > 0 && (
+            <button 
+              onClick={() => {
+                const newAttendance: Record<string, AttendanceStatus> = { ...attendance };
+                students.forEach(s => {
+                  if (!newAttendance[s.id]) {
+                    newAttendance[s.id] = 'present';
+                  }
+                });
+                setAttendance(newAttendance);
+                setIsSaved(false);
+                toast.info(t('marked_all_present_toast'));
+              }}
+              className="px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-colors flex items-center gap-2 shadow-md shadow-emerald-500/20"
+            >
+              <CheckCircle2 size={18} />
+              {t('mark_all_present')}
+            </button>
+          )}
+          <button 
+            onClick={() => setActiveTab('history')}
+            className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+          >
+            <Clock size={18} />
+            {t('history')}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 pb-24">
+        {students.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-card rounded-[2rem] border border-border border-dashed">
+            <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center text-muted-foreground mb-4">
+              <Users size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-foreground">{t('no_students_found')}</h3>
+            <p className="text-muted-foreground mt-2 text-center max-w-xs">
+              {t('no_students_attendance_desc')}
+            </p>
+            <Link 
+              href="/dashboard/students?add=true"
+              className="mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
+            >
+              {t('register_student')}
+            </Link>
+          </div>
+        ) : (
+          students.map((student) => {
+            const status = attendance[student.id];
+            return (
+              <div key={student.id} className="relative rounded-[1.5rem] mb-4 overflow-hidden shadow-sm touch-pan-y group">
+                {/* Swipe target backgrounds behind the card */}
+                <div className="absolute inset-0 flex items-center justify-between px-6 md:hidden">
+                  <div className="text-emerald-500 font-bold flex items-center gap-2"><CheckCircle2 size={24} /> <span className="text-xs">{t('present')}</span></div>
+                  <div className="text-destructive font-bold flex items-center gap-2"><span className="text-xs">{t('absent')}</span> <XCircle size={24} /></div>
+                </div>
+
+                <motion.div 
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.4}
+                  onDragEnd={(e, { offset }) => {
+                    if (offset.x > 75) {
+                      handleStatusChange(student.id, 'present');
+                    } else if (offset.x < -75) {
+                      handleStatusChange(student.id, 'absent');
+                    }
+                  }}
+                  className={`bg-card p-5 border relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all rounded-[1.5rem] ${
+          status === 'present' ? 'border-emerald-500/50 bg-emerald-500/5' : 
+          status === 'absent' ? 'border-destructive/50 bg-destructive/5' : 
+          status === 'late' ? 'border-amber-500/50 bg-amber-500/5' : 
+          'border-border'
+        }`}
+                >
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-lg">
+                      {student.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground">{student.name}</p>
+                      <p className="text-xs font-medium text-muted-foreground">{t('student_id_label')}: {student.rollNumber || student.id.substring(0, 8)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 bg-background p-1.5 rounded-2xl relative z-10 overflow-hidden ring-1 ring-border mt-2 sm:mt-0">
+                    <button
+                      onClick={() => handleStatusChange(student.id, 'present')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        status === 'present' ? 'bg-emerald-500/10 text-emerald-500 shadow-sm ring-1 ring-emerald-500/20' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <CheckCircle2 size={18} className={status === 'present' ? 'fill-emerald-500/20' : ''} />
+                      <span className="sm:hidden lg:inline">{t('present')}</span>
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(student.id, 'late')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        status === 'late' ? 'bg-amber-500/10 text-amber-500 shadow-sm ring-1 ring-amber-500/20' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <Clock size={18} className={status === 'late' ? 'fill-amber-500/20' : ''} />
+                      <span className="sm:hidden lg:inline">{t('late')}</span>
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(student.id, 'absent')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        status === 'absent' ? 'bg-destructive/10 text-destructive shadow-sm ring-1 ring-destructive/20' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <XCircle size={18} className={status === 'absent' ? 'fill-destructive/20' : ''} />
+                      <span className="sm:hidden lg:inline">{t('absent')}</span>
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="fixed bottom-20 md:bottom-8 left-0 right-0 px-4 md:px-10 max-w-5xl mx-auto pointer-events-none z-30">
+        <motion.div 
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: markedCount > 0 ? 0 : 100, opacity: markedCount > 0 ? 1 : 0 }}
+          className="bg-background/90 backdrop-blur-md p-4 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-border flex items-center justify-between pointer-events-auto"
+        >
+          <div className="hidden sm:block px-4">
+            <p className="text-sm font-bold text-foreground">
+              {markedCount} / {students.length} {t('marked')}
+            </p>
+            {!allMarked && <p className="text-xs font-bold text-orange-600 mt-0.5">{t('please_mark_all')}</p>}
+          </div>
+          
+          <button
+            onClick={handleSave}
+            disabled={!allMarked || isSaving || isSaved}
+            className={`w-full sm:w-auto px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+              isSaved 
+                ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' 
+                : allMarked 
+                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20' 
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+            }`}
+          >
+            {isSaving ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : isSaved ? (
+              <>
+                <CheckCircle2 size={20} />
+                {t('saved_successfully')}
+              </>
+            ) : (
+              <>
+                <Save size={20} />
+                {t('submit_attendance')}
+              </>
+            )}
+          </button>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
+function StudentAttendanceView() {
+  const { user } = useAuth();
+  const { t, language } = useLanguage();
+  const isParent = user?.role === 'parent';
+  
+  // Parent children selector SWR
+  const { data: parentChildren, isLoading: isChildrenLoading } = useSWR(
+    isParent && user?.id ? ['parent-children', user.id] : null,
+    async () => {
+      const { data: relations } = await supabase
+        .from('parent_student')
+        .select('student_id')
+        .eq('parent_id', user!.id);
+      if (!relations || relations.length === 0) return [];
+      
+      const studentIds = relations.map(r => r.student_id);
+      const { data: students } = await supabase
+        .from('students')
+        .select('*, user:users(name)')
+        .in('id', studentIds);
+      
+      return (students || []).map((s: any) => ({
+        ...s,
+        name: s.name || (s.user ? s.user.name : 'Unknown')
+      }));
+    }
+  );
+
+  const [selectedChildId, setSelectedChildId] = useState<string>('');
+
+  useEffect(() => {
+    if (parentChildren && parentChildren.length > 0) {
+      const currentGlobalId = user?.studentId;
+      const hasGlobalInFiltered = parentChildren.some((s: any) => s.id === currentGlobalId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedChildId(hasGlobalInFiltered && currentGlobalId ? currentGlobalId : parentChildren[0].id);
+    }
+  }, [parentChildren, user?.studentId]);
+
+  const targetStudentId = isParent ? selectedChildId : user?.studentId;
+
+  const { data: studentAttendanceData, isLoading: isStudentAttendanceLoading, mutate: mutateStudentAttendance } = useSWR(
+    targetStudentId ? ['student-attendance-list', targetStudentId] : null,
+    () => getStudentAttendance(targetStudentId!)
+  );
+
+  const { data: studentData, isLoading: isStudentLoading } = useSWR(
+    targetStudentId ? ['student-profile', targetStudentId] : null,
+    () => getStudentById(targetStudentId!)
+  );
+
+  const attendance = studentAttendanceData || [];
+  const student = studentData || null;
+  const isLoading = isStudentAttendanceLoading || isStudentLoading;
+
+  useEffect(() => {
+    if (!targetStudentId) return;
+
+    // Real-time subscription
+    const channel = supabase
+      .channel(`student_attendance_${targetStudentId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        table: 'attendance', 
+        schema: 'public',
+        filter: `student_id=eq.${targetStudentId}`
+      }, () => {
+        mutateStudentAttendance();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [targetStudentId, mutateStudentAttendance]);
+
+  const presentDays = attendance.filter(r => r.status === 'present').length;
+  const absentDays = attendance.filter(r => r.status === 'absent').length;
+  const lateDays = attendance.filter(r => r.status === 'late').length;
+
+  if (isLoading || (isParent && isChildrenLoading)) {
+    return (
+      <div className="space-y-8 h-full flex flex-col p-4 animate-pulse">
+        <div className="h-10 w-64 bg-muted rounded-xl" />
+        <div className="grid grid-cols-3 gap-6">
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+        </div>
+        <div className="h-64 bg-muted rounded-[1.5rem]" />
+      </div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('attendance_record')}</h1>
+          <p className="text-muted-foreground mt-2 font-medium">{t('viewing_records_for')} {student?.name || t('your_student')}</p>
+        </div>
+
+
+      </div>
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-8">
+        <div className="grid grid-cols-3 gap-3 sm:gap-6">
+          <div className="bg-emerald-500/10 p-5 rounded-[1.5rem] border border-emerald-500/20 text-center shadow-sm">
+            <p className="text-3xl font-bold text-emerald-500">{presentDays}</p>
+            <p className="text-xs font-bold text-emerald-500/70 mt-2 uppercase tracking-wider">{t('present')}</p>
+          </div>
+          <div className="bg-destructive/10 p-5 rounded-[1.5rem] border border-destructive/20 text-center shadow-sm">
+            <p className="text-3xl font-bold text-destructive">{absentDays}</p>
+            <p className="text-xs font-bold text-destructive/70 mt-2 uppercase tracking-wider">{t('absent')}</p>
+          </div>
+          <div className="bg-amber-500/10 p-5 rounded-[1.5rem] border border-amber-500/20 text-center shadow-sm">
+            <p className="text-3xl font-bold text-amber-500">{lateDays}</p>
+            <p className="text-xs font-bold text-amber-500/70 mt-2 uppercase tracking-wider">{t('late')}</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-border flex items-center justify-between bg-muted/50">
+            <h3 className="font-bold text-foreground flex items-center gap-2 text-lg">
+              <Calendar size={20} className="text-primary" />
+              {t('recent_activity')}
+            </h3>
+          </div>
+          
+          <div className="divide-y divide-border">
+            {attendance.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">{t('no_records_found')}</div>
+            ) : (
+              attendance.slice(0, 10).map((record, i) => (
+                <div key={i} className="p-5 flex items-center justify-between hover:bg-muted transition-colors">
+                  <div>
+                    <p className="font-bold text-foreground">
+                      {new Date(record.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                    </p>
+                    {record.remarks && <p className="text-sm font-medium text-muted-foreground mt-1">{record.remarks}</p>}
+                  </div>
+                  <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2
+                    ${record.status === 'present' ? 'bg-emerald-500/10 text-emerald-500' : 
+                      record.status === 'absent' ? 'bg-destructive/10 text-destructive' : 
+                      record.status === 'excused' ? 'bg-blue-500/10 text-blue-500' :
+                      'bg-amber-500/10 text-amber-500'}`}
+                  >
+                    {record.status === 'present' && <CheckCircle2 size={14} />}
+                    {record.status === 'absent' && <XCircle size={14} />}
+                    {record.status === 'late' && <Clock size={14} />}
+                    {record.status === 'excused' && <CheckCircle2 size={14} />}
+                    {t(record.status)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function AdminAttendance({ onSelectClass, canMark = false, onViewDetails }: { onSelectClass?: (className: string) => void, canMark?: boolean, onViewDetails?: (date: string) => void }) {
+  const { t, language } = useLanguage();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const { data: historyData, isLoading: isHistoryLoading, mutate: mutateHistory } = useSWR(
+    'attendance-history',
+    getAttendanceHistory
+  );
+
+  const { data: studentsData, isLoading: isStudentsLoading } = useSWR(
+    ['students-all-list', activeAcademicYear?.name || 'all'],
+    () => getStudents(activeAcademicYear?.name)
+  );
+
+  const { data: classStatsData, isLoading: isClassStatsLoading, mutate: mutateClassStats } = useSWR(
+    ['attendance-class-stats', selectedDate],
+    () => getAttendanceByClass(selectedDate)
+  );
+
+  const history = historyData || [];
+  const studentsCount = studentsData?.length || 0;
+  const classStats = classStatsData || [];
+  const isLoading = isHistoryLoading || isStudentsLoading || isClassStatsLoading;
+
+  useEffect(() => {
+    // Real-time subscription
+    const channel = supabase
+      .channel('admin_attendance_changes')
+      .on('postgres_changes', { event: '*', table: 'attendance', schema: 'public' }, () => {
+        mutateHistory();
+        mutateClassStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [mutateHistory, mutateClassStats]);
+
+  const selectedStats = history.find(h => h.date === selectedDate) || { present: 0, absent: 0, late: 0, excused: 0 };
+  const totalSelected = selectedStats.present + selectedStats.absent + selectedStats.late + selectedStats.excused;
+  
+  // Calculate percentage based on total students marked for selected date, or total students in school
+  const baseCount = totalSelected > 0 ? totalSelected : studentsCount;
+  const presentCount = selectedStats.present + selectedStats.late; // Late is usually counted as present for overall %
+  const attendancePercentage = baseCount > 0 ? ((presentCount / baseCount) * 100).toFixed(1) : '0.0';
+
+  const filteredHistory = history.filter(h => 
+    h.date.includes(historySearch)
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 h-full flex flex-col p-4 animate-pulse">
+        <div className="h-10 w-64 bg-muted rounded-xl" />
+        <div className="grid grid-cols-1 gap-6">
+          <div className="h-64 bg-muted rounded-[2rem]" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+          <div className="h-32 bg-muted rounded-[1.5rem]" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">{t('school_attendance')}</h1>
+          <div className="flex items-center gap-2 mt-2">
+            <button 
+              onClick={() => setSelectedDate(adjustDateStr(selectedDate, -1))}
+              className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <div className="flex items-center gap-1">
+              <Calendar size={16} className="text-muted-foreground" />
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent border-none text-muted-foreground font-medium focus:ring-0 cursor-pointer hover:text-foreground transition-colors text-sm p-0 w-28"
+              />
+            </div>
+            <button 
+              onClick={() => setSelectedDate(adjustDateStr(selectedDate, 1))}
+              className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+        <button 
+          onClick={() => setIsHistoryOpen(true)}
+          className="px-5 py-2.5 bg-card border border-border rounded-xl text-sm font-bold text-foreground hover:bg-muted transition-colors flex items-center gap-2 self-start"
+        >
+          <Calendar size={18} />
+          {t('view_history')}
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-8">
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-primary rounded-[2rem] p-8 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden flex flex-col justify-center min-h-[200px]">
+            <div className="relative z-10">
+              <p className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-wider mb-2">
+                {t('overall_attendance_for')} {new Date(selectedDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+              <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4">
+                <h2 className="text-6xl font-bold tracking-tight">{attendancePercentage}%</h2>
+                <p className="text-primary-foreground/90 font-medium text-lg mb-1">{presentCount} / {baseCount} {t('students')}</p>
+              </div>
+            </div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[
+            { label: t('present'), value: selectedStats.present.toString(), color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: CheckCircle2 },
+            { label: t('late_arrivals'), value: selectedStats.late.toString(), color: 'text-amber-500', bg: 'bg-amber-500/10', icon: Clock },
+            { label: t('absences'), value: selectedStats.absent.toString(), color: 'text-destructive', bg: 'bg-destructive/10', icon: XCircle },
+            { label: t('excused'), value: selectedStats.excused.toString(), color: 'text-blue-500', bg: 'bg-blue-500/10', icon: CheckCircle2 },
+            { label: t('unmarked'), value: (studentsCount - totalSelected).toString(), color: 'text-muted-foreground', bg: 'bg-muted', icon: Clock },
+          ].map((stat, i) => (
+            <div key={i} className="bg-card p-6 rounded-[1.5rem] border border-border shadow-sm flex items-center gap-4">
+              <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
+                <stat.icon size={24} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-card rounded-[1.5rem] border border-border shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-border bg-muted/50 flex items-center justify-between">
+            <h3 className="font-bold text-foreground text-lg">{t('class_breakdown')}</h3>
+            <div className="flex gap-2">
+              <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground">
+                <Filter size={18} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="divide-y divide-border">
+            {classStats.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">{t('no_class_data')}</div>
+            ) : (
+              classStats.map((row, i) => (
+                <div 
+                  key={i} 
+                  onClick={() => {
+                    if (canMark && onSelectClass) {
+                      onSelectClass(row.cls);
+                    }
+                  }}
+                  className={`p-5 flex items-center justify-between transition-colors ${
+                    canMark ? 'cursor-pointer hover:bg-muted/70' : 'hover:bg-muted'
+                  }`}
+                >
+                  <div>
+                    <p className="font-bold text-foreground text-lg">{row.cls}</p>
+                    <p className="text-sm font-medium text-muted-foreground mt-1">{row.total} {t('students')}</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      {row.status === 'submitted' ? (
+                        <>
+                          <p className="font-bold text-foreground text-xl">{Math.round((row.present / row.total) * 100)}%</p>
+                          <p className="text-xs font-bold text-emerald-500 mt-1 uppercase tracking-wider">{row.present}/{row.total} {t('present')}</p>
+                        </>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                          <Clock size={14} />
+                          {t('pending')}
+                        </span>
+                      )}
+                    </div>
+                    {canMark && (
+                      <ChevronRight size={18} className="text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isHistoryOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card rounded-[2rem] shadow-2xl w-full max-w-3xl overflow-hidden border border-border flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('attendance_history')}</h2>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">{t('attendance_history_all_desc')}</p>
+                </div>
+                <button 
+                  onClick={() => setIsHistoryOpen(false)}
+                  className="p-2 hover:bg-muted rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 border-b border-border bg-muted/30 shrink-0">
+                <div className="relative">
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-4" />
+                  <input 
+                    type="text" 
+                    placeholder={t('search_by_date')} 
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all rtl:pl-4 rtl:pr-11"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                {filteredHistory.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground font-medium">{t('no_history_found')}</p>
+                  </div>
+                ) : (
+                  filteredHistory.map((record, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => {
+                        onViewDetails?.(record.date);
+                        setIsHistoryOpen(false);
+                      }}
+                      className="p-5 rounded-2xl border border-border hover:border-primary/30 hover:bg-muted/30 transition-all group cursor-pointer"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            <Calendar size={24} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-lg text-foreground">{new Date(record.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <div className="flex flex-wrap items-center gap-3 mt-1">
+                              <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">{t('present')}: {record.present}</span>
+                              <span className="text-xs font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">{t('absent')}: {record.absent}</span>
+                              <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">{t('late')}: {record.late}</span>
+                              <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">{t('excused')}: {record.excused}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 justify-between sm:justify-end">
+                          <div className="text-right">
+                            <p className="text-xl font-black text-foreground">
+                              {((record.present + record.late) / (record.present + record.absent + record.late + record.excused) * 100 || 0).toFixed(1)}%
+                            </p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t('attendance_rate')}</p>
+                          </div>
+                          <div className="p-2 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 rounded-lg transition-all">
+                            <ChevronRight size={20} className="rtl:rotate-180" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="p-6 border-t border-border bg-muted/50 shrink-0 flex justify-end">
+                <button 
+                  onClick={() => setIsHistoryOpen(false)}
+                  className="px-6 py-2.5 bg-background border border-border rounded-xl font-bold text-sm hover:bg-accent transition-colors"
+                >
+                  {t('close')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function AttendanceDetailsModal({ isOpen, date, onClose }: { isOpen: boolean, date: string | null, onClose: () => void }) {
+  const { t, language } = useLanguage();
+  const { data: activeAcademicYear } = useSWR('active_academic_year', getActiveAcademicYear);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'late' | 'absent' | 'excused' | 'unmarked'>('all');
+
+  useEffect(() => {
+    if (date) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedDate(date);
+    }
+  }, [date]);
+
+  const { data: studentsData, isLoading: isStudentsLoading } = useSWR(
+    isOpen ? ['students-all-list', activeAcademicYear?.name || 'all'] : null,
+    () => getStudents(activeAcademicYear?.name)
+  );
+
+  const { data: attendanceData, isLoading: isAttendanceLoading, mutate: mutateAttendance } = useSWR(
+    isOpen && selectedDate ? ['attendance-mark', selectedDate] : null,
+    () => getAttendance(selectedDate)
+  );
+
+  const students = studentsData || [];
+  const attendance = attendanceData || [];
+  const isLoading = isStudentsLoading || isAttendanceLoading;
+
+  useEffect(() => {
+    if (!isOpen || !selectedDate) return;
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel(`modal_attendance_changes_${selectedDate}`)
+      .on('postgres_changes', { event: '*', table: 'attendance', schema: 'public', filter: `date=eq.${selectedDate}` }, () => {
+        mutateAttendance();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDate, isOpen, mutateAttendance]);
+
+  if (!isOpen) return null;
+
+  // Map student attendance status
+  const attendanceMap = new Map<string, string>();
+  const remarksMap = new Map<string, string>();
+  attendance.forEach(record => {
+    attendanceMap.set(record.student_id, record.status);
+    if (record.remarks) remarksMap.set(record.student_id, record.remarks);
+  });
+
+  const studentsWithStatus = students.map(student => {
+    const status = attendanceMap.get(student.id) || 'unmarked';
+    const remarks = remarksMap.get(student.id) || '';
+    return { ...student, status, remarks };
+  });
+
+  // Count stats
+  const total = studentsWithStatus.length;
+  const present = studentsWithStatus.filter(s => s.status === 'present').length;
+  const late = studentsWithStatus.filter(s => s.status === 'late').length;
+  const absent = studentsWithStatus.filter(s => s.status === 'absent').length;
+  const excused = studentsWithStatus.filter(s => s.status === 'excused').length;
+  const unmarked = studentsWithStatus.filter(s => s.status === 'unmarked').length;
+
+  // Filter students
+  const filteredStudents = studentsWithStatus.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (s.grade && s.grade.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-card rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden border border-border flex flex-col max-h-[90vh]"
+          >
+            {/* Modal Header */}
+            <div className="p-6 sm:p-8 border-b border-border bg-muted/50 shrink-0 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('attendance_details')}</h2>
+                <div className="flex items-center gap-2 mt-2">
+                  <button 
+                    onClick={() => setSelectedDate(prev => adjustDateStr(prev, -1))}
+                    className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="font-semibold text-muted-foreground text-sm flex items-center gap-1.5">
+                    <Calendar size={14} />
+                    {selectedDate ? new Date(selectedDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                  </span>
+                  <button 
+                    onClick={() => setSelectedDate(prev => adjustDateStr(prev, 1))}
+                    className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+              <button 
+                onClick={onClose}
+                className="p-2 hover:bg-muted rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {isLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-20">
+                <Loader2 size={40} className="animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground font-medium">{t('loading_details')}</p>
+              </div>
+            ) : (
+              <>
+                {/* Stats Dashboard inside Modal */}
+                <div className="p-6 border-b border-border bg-muted/20 grid grid-cols-2 sm:grid-cols-5 gap-3 shrink-0">
+                  {[
+                    { label: t('present'), value: present, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', filterType: 'present' },
+                    { label: t('late'), value: late, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', filterType: 'late' },
+                    { label: t('absent'), value: absent, color: 'text-destructive bg-destructive/10 border-destructive/20', filterType: 'absent' },
+                    { label: t('excused'), value: excused, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20', filterType: 'excused' },
+                    { label: t('unmarked'), value: unmarked, color: 'text-muted-foreground bg-muted border-border', filterType: 'unmarked' },
+                  ].map((stat, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setStatusFilter(statusFilter === stat.filterType ? 'all' : (stat.filterType as any))}
+                      className={`p-4 rounded-2xl border text-center transition-all ${stat.color} ${
+                        statusFilter === stat.filterType ? 'ring-2 ring-primary scale-[1.02]' : 'hover:scale-[1.01]'
+                      }`}
+                    >
+                      <p className="text-2xl font-black">{stat.value}</p>
+                      <p className="text-xs font-bold opacity-80 mt-1 uppercase tracking-wider">{stat.label}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Filter and Search controls */}
+                <div className="p-6 border-b border-border bg-muted/10 shrink-0 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                  <div className="relative w-full sm:w-80">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input 
+                      type="text" 
+                      placeholder={t('search_students')} 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-11 pr-4 py-2 bg-background border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all"
+                    />
+                  </div>
+                  
+                  <div className="flex bg-muted p-1 rounded-xl w-full sm:w-auto border border-border">
+                    {(['all', 'present', 'late', 'absent', 'excused', 'unmarked'] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setStatusFilter(tab)}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${
+                          statusFilter === tab ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {tab === 'all' ? t('all') : t(tab)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Students List */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3">
+                  {filteredStudents.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground font-medium">{t('no_students_found')}</p>
+                    </div>
+                  ) : (
+                    filteredStudents.map((s) => (
+                      <div 
+                        key={s.id} 
+                        className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+                          s.status === 'present' ? 'border-emerald-500/20 bg-emerald-500/5' : 
+                          s.status === 'absent' ? 'border-destructive/20 bg-destructive/5' : 
+                          s.status === 'late' ? 'border-amber-500/20 bg-amber-500/5' : 
+                          s.status === 'excused' ? 'border-blue-500/20 bg-blue-500/5' :
+                          'border-border hover:bg-muted/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-sm">
+                            {s.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground text-sm">{s.name}</p>
+                            <p className="text-xs font-medium text-muted-foreground mt-0.5">
+                              {s.grade || t('no_grade')} • {t('roll_no')}: {s.rollNumber || s.id.substring(0, 8)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          {s.remarks && (
+                            <span className="hidden md:inline-block text-xs font-medium text-muted-foreground max-w-[150px] truncate" title={s.remarks}>
+                              {s.remarks}
+                            </span>
+                          )}
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5
+                            ${s.status === 'present' ? 'bg-emerald-500/10 text-emerald-500' : 
+                              s.status === 'absent' ? 'bg-destructive/10 text-destructive' : 
+                              s.status === 'late' ? 'bg-amber-500/10 text-amber-500' : 
+                              s.status === 'excused' ? 'bg-blue-500/10 text-blue-500' :
+                              'bg-muted text-muted-foreground'}`}
+                          >
+                            {s.status === 'present' && <CheckCircle2 size={12} />}
+                            {s.status === 'absent' && <XCircle size={12} />}
+                            {s.status === 'late' && <Clock size={12} />}
+                            {s.status === 'excused' && <CheckCircle2 size={12} />}
+                            {t(s.status)}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="p-6 border-t border-border bg-muted/50 shrink-0 flex justify-end">
+              <button 
+                onClick={onClose}
+                className="px-6 py-2.5 bg-background border border-border rounded-xl font-bold text-sm hover:bg-accent transition-colors"
+              >
+                {t('close')}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Smart School",
+  "description": "A mobile-first SaaS school management system supporting multiple roles including admin, accountant, teacher, staff, and parents.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
