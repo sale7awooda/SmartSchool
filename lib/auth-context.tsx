@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useRef, ReactNode } fro
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from './supabase/client';
 import { User } from '@/types';
+import { isDevMode } from '@/lib/config';
 
 interface AuthContextType {
   user: User | null;
@@ -239,8 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // 3. Fallback server-side auto-provisioning exclusively for quick logins (dev only)
-    const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE !== 'false';
-    if (isQuickLogin && isDevMode && error && error.message.includes("Invalid login credentials")) {
+    if (isQuickLogin && isDevMode() && error && error.message.includes("Invalid login credentials")) {
       try {
         const provisionRes = await autoProvisionUserAuthAction(email, password);
         if (provisionRes && provisionRes.success && provisionRes.email) {

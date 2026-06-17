@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
+import { isDevMode } from '@/lib/config';
 import { Logo } from '@/components/logo';
 import { GraduationCap, UserCircle, Users, ArrowRight, Loader2, ShieldCheck, BookOpen, Calculator } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -172,7 +173,7 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Quick Login Helper for MVP — only available in dev mode */}
-        {process.env.NEXT_PUBLIC_DEV_MODE !== 'false' && (
+        {isDevMode() && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

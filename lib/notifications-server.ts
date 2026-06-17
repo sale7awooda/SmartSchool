@@ -1,6 +1,7 @@
 import { createAdminClient } from './supabase/server';
 import { sendPushNotification } from './push-notifications-server';
 import { getResend } from './resend';
+import { notificationTemplate } from './email-templates';
 
 interface NotificationOptions {
   userId: string;
@@ -69,21 +70,18 @@ export async function sendNotification({
           .single();
 
         if (user && user.email) {
+          const html = notificationTemplate({
+            title,
+            message,
+            url,
+            type,
+          });
+
           await resend.emails.send({
             from: 'Smart School <notifications@smartschool.edu>',
             to: user.email,
             subject: emailSubject || title,
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 8px;">
-                <h2 style="color: #4f46e5; margin-top: 0;">${title}</h2>
-                <p style="color: #1e293b; line-height: 1.6;">${message}</p>
-                ${url ? `<a href="${process.env.APP_URL}${url}" style="display: inline-block; background: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">View Details</a>` : ''}
-                <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e2e8f0;" />
-                <p style="font-size: 12px; color: #64748b; text-align: center;">
-                  You received this notification from Smart School. You can manage your notification preferences in settings.
-                </p>
-              </div>
-            `
+            html,
           });
         }
       } catch (err) {

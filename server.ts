@@ -3,6 +3,7 @@ import { parse } from 'url';
 import path from 'path';
 import next from 'next';
 import { Server } from 'socket.io';
+import { startFeeReminderCron } from './lib/cron/fee-reminders';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -33,15 +34,18 @@ app.prepare().then(() => {
     },
   });
 
-  // Optional: Redis Pub/Sub integration
-  // In a real production environment, you would connect to Redis here
-  // using ioredis and the @socket.io/redis-adapter to scale across instances.
-  // Example:
-  // import { createAdapter } from '@socket.io/redis-adapter';
-  // import { Redis } from 'ioredis';
-  // const pubClient = new Redis(process.env.REDIS_URL);
-  // const subClient = pubClient.duplicate();
-  // io.adapter(createAdapter(pubClient, subClient));
+  // Optional: Redis Pub/Sub for multi-instance Socket.io scaling
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    (async () => {
+      const { createAdapter } = await import('@socket.io/redis-adapter');
+      const { Redis } = await import('ioredis');
+      const pubClient = new Redis(redisUrl);
+      const subClient = pubClient.duplicate();
+      io.adapter(createAdapter(pubClient, subClient));
+      console.log('[Socket.io] Redis adapter enabled for horizontal scaling');
+    })();
+  }
 
   io.on('connection', (socket) => {
     console.log('A client connected:', socket.id);
@@ -77,5 +81,6 @@ app.prepare().then(() => {
 
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
+    startFeeReminderCron();
   });
 });

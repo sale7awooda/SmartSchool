@@ -2,18 +2,22 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from './lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  const start = Date.now()
+
+  const response = await updateSession(request)
+
+  const duration = Date.now() - start
+  response.headers.set('X-Response-Time', `${duration}ms`)
+
+  if (duration > 1000) {
+    console.warn(`[SLOW] ${request.method} ${request.nextUrl.pathname} took ${duration}ms`)
+  }
+
+  return response
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images, icons, manifest, etc.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|manifest\\.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!monitoring|_next/static|_next/image|favicon.ico|manifest\\.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

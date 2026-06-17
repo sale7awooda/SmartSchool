@@ -5,10 +5,11 @@ import useSWR from 'swr';
 import { useAuth } from '@/lib/auth-context';
 import { usePermissions } from '@/lib/permissions';
 import { useLanguage } from '@/lib/language-context';
-import { getPaginatedVisitors, createVisitor, checkoutVisitor } from '@/lib/supabase-db';
+import { getPaginatedVisitors, checkoutVisitor } from '@/lib/supabase-db';
+import { checkInVisitor, generateBadgePdf } from '@/app/actions/visitors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
-import { UserCheck, Plus, Search, Printer, Loader2 } from 'lucide-react';
+import { UserCheck, Plus, Search, Printer, Loader2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function VisitorsPage() {
@@ -17,6 +18,7 @@ export default function VisitorsPage() {
   const { t } = useLanguage();
   const [isNewCheckInOpen, setIsNewCheckInOpen] = useState(false);
   const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
+  const [printingMap, setPrintingMap] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -56,23 +58,32 @@ export default function VisitorsPage() {
     }
   };
 
+  const handlePrintBadge = async (visitorId: string) => {
+    setPrintingMap((prev) => ({ ...prev, [visitorId]: true }));
+    try {
+      window.open(`/api/visitors/badge?visitorId=${visitorId}`, '_blank');
+    } finally {
+      setPrintingMap((prev) => ({ ...prev, [visitorId]: false }));
+    }
+  };
+
   const handleNewCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const visitorData = {
-      name: (formData.get('name') as string) || '',
-      purpose: (formData.get('purpose') as string) || undefined,
-      host: (formData.get('host') as string) || undefined,
-      status: 'Active' as const,
-      time_in: new Date().toLocaleTimeString(),
-    };
 
     setIsSubmittingCheckIn(true);
     try {
-      await createVisitor(visitorData);
+      const result = await checkInVisitor(formData);
+      if (!result.success) {
+        toast.error(result.error || "Failed to check in visitor");
+        return;
+      }
       toast.success("Visitor checked in successfully");
       setIsNewCheckInOpen(false);
       mutate();
+      if (result.visitorId) {
+        setTimeout(() => handlePrintBadge(result.visitorId!), 500);
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to check in visitor");
@@ -190,11 +201,12 @@ export default function VisitorsPage() {
                           {visitor.status === 'Active' && can('manage', 'visitors') && (
                             <>
                               <button 
-                                onClick={() => toast.success('Badge sent to printer')}
-                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" 
+                                onClick={() => handlePrintBadge(visitor.id)}
+                                disabled={printingMap[visitor.id]}
+                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50" 
                                 title="Print Badge"
                               >
-                                <Printer size={18} />
+                                {printingMap[visitor.id] ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
                               </button>
                               <button 
                                 onClick={() => handleCheckOut(visitor.id)}
