@@ -24,6 +24,7 @@ export function FinancialsTab({ isAdmin, userName }: { isAdmin: boolean, userNam
   const { data: financials, mutate } = useSWR('financials', getFinancials);
 
   const displayFinancials = (financials || [])
+    .filter((f: any) => ['Loan', 'Fine', 'Bonus'].includes(f.type))
     .filter((f: any) => isAdmin || f.staff === userName)
     .filter((f: any) => f.date && f.date.startsWith(targetPrefix));
 

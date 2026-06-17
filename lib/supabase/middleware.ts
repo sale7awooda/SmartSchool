@@ -39,7 +39,7 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  if (!user && pathname.startsWith('/dashboard')) {
+  if (!user && (pathname.startsWith('/dashboard') || pathname.startsWith('/super-admin'))) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)

@@ -17,7 +17,8 @@ export async function bootstrapUserProfile(sessionUser: { id: string; email: str
 
   if (!role) {
     role = 'parent';
-    if (email === 'sale7awooda@gmail.com' || email.startsWith('admin')) role = 'admin';
+    if (email === 'sale7awooda@gmail.com') role = 'super_admin';
+    else if (email.startsWith('admin')) role = 'admin';
     else if (email.startsWith('teacher')) role = 'teacher';
     else if (email.startsWith('accountant')) role = 'accountant';
     else if (email.startsWith('staff')) role = 'staff';

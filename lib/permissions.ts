@@ -4,6 +4,24 @@ import { Role, Action, Resource } from '@/types';
 
 // Define default permissions matrix
 const DEFAULT_PERMISSIONS: Record<Role, Record<Resource, Action[]>> = {
+  super_admin: {
+    all: ['view', 'create', 'edit', 'delete', 'manage'],
+    users: ['view', 'create', 'edit', 'delete', 'manage'],
+    students: ['view', 'create', 'edit', 'delete', 'manage'],
+    staff: ['view', 'create', 'edit', 'delete', 'manage'],
+    academics: ['view', 'create', 'edit', 'delete', 'manage'],
+    schedule: ['view', 'create', 'edit', 'delete', 'manage'],
+    assessments: ['view', 'create', 'edit', 'delete', 'manage'],
+    visitors: ['view', 'create', 'edit', 'delete', 'manage'],
+    communication: ['view', 'create', 'edit', 'delete', 'manage'],
+    transport: ['view', 'create', 'edit', 'delete', 'manage'],
+    settings: ['view', 'create', 'edit', 'delete', 'manage'],
+    analytics: ['view', 'create', 'edit', 'delete', 'manage'],
+    attendance: ['view', 'create', 'edit', 'delete', 'manage'],
+    hr: ['view', 'create', 'edit', 'delete', 'manage'],
+    inventory: ['view', 'create', 'edit', 'delete', 'manage'],
+    fees: ['view', 'create', 'edit', 'delete', 'manage'],
+  },
   admin: {
     all: ['view', 'create', 'edit', 'delete', 'manage'],
     users: ['view', 'create', 'edit', 'delete', 'manage'],

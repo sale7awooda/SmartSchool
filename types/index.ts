@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'accountant' | 'staff' | 'teacher' | 'parent' | 'student';
+export type Role = 'admin' | 'accountant' | 'staff' | 'teacher' | 'parent' | 'student' | 'super_admin';
 
 export type Action = 'view' | 'create' | 'edit' | 'delete' | 'manage';
 export type Resource = 

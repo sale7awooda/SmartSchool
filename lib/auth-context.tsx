@@ -69,7 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const email = sessionUser.email || '';
         
         if (!profile?.role) {
-          if (email === 'sale7awooda@gmail.com' || email.startsWith('admin')) role = 'admin';
+          if (email === 'sale7awooda@gmail.com') role = 'super_admin';
+          else if (email.startsWith('admin')) role = 'admin';
           else if (email.startsWith('teacher')) role = 'teacher';
           else if (email.startsWith('accountant')) role = 'accountant';
           else if (email.startsWith('staff')) role = 'staff';
@@ -108,12 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!profile) profile = newProfile; // Fallback to allow login
         }
       } else {
-        // Ensure primary admin always has admin role
+        // Ensure primary admin always has super_admin role
         const PRIMARY_ADMIN_EMAIL = 'sale7awooda@gmail.com';
-        if (sessionUser.email === PRIMARY_ADMIN_EMAIL && profile.role !== 'admin') {
+        if (sessionUser.email === PRIMARY_ADMIN_EMAIL && profile.role !== 'super_admin') {
           const { data: updatedProfile } = await supabase
             .from('users')
-            .update({ role: 'admin' })
+            .update({ role: 'super_admin', school_id: null })
             .eq('id', sessionUser.id)
             .select()
             .maybeSingle();
@@ -207,10 +208,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoading) {
-      if (!user && pathname.startsWith('/dashboard')) {
+      if (!user && (pathname.startsWith('/dashboard') || pathname.startsWith('/super-admin'))) {
         router.push('/');
       } else if (user && pathname === '/') {
-        router.push('/dashboard');
+        router.push(user.role === 'super_admin' ? '/super-admin' : '/dashboard');
       }
     }
   }, [user, isLoading, pathname, router]);
@@ -287,6 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     setIsLoading(true);
     router.push('/dashboard');
+    // Login will redirect to correct path after profile loads (see useEffect above)
   };
 
   const switchStudent = (studentId: string) => {

@@ -3,7 +3,6 @@ import { parse } from 'url';
 import path from 'path';
 import next from 'next';
 import { Server } from 'socket.io';
-import { startFeeReminderCron } from './lib/cron/fee-reminders';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -81,6 +80,5 @@ app.prepare().then(() => {
 
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
-    startFeeReminderCron();
   });
 });
