@@ -15,7 +15,7 @@ import {
   Users
 } from 'lucide-react';
 import { BusRoute, User as UserType } from '@/types';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useDeferredValue } from 'react';
 
 interface RoutesTabProps {
   routes: BusRoute[];
@@ -42,27 +42,18 @@ export function RoutesTab({
   setActiveDropdown,
   t
 }: RoutesTabProps) {
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    if (searchQuery) {
-      setIsSearching(true);
-      const timer = setTimeout(() => setIsSearching(false), 300);
-      return () => clearTimeout(timer);
-    } else {
-      setIsSearching(false);
-    }
-  }, [searchQuery]);
+  const deferredQuery = useDeferredValue(searchQuery);
+  const isSearching = searchQuery !== deferredQuery;
 
   const filteredRoutes = useMemo(() => {
-    if (!searchQuery) return routes;
-    const q = searchQuery.toLowerCase();
+    if (!deferredQuery) return routes;
+    const q = deferredQuery.toLowerCase();
     return routes.filter(route => 
       (route.name || '').toLowerCase().includes(q) ||
       route.route_number.toLowerCase().includes(q) ||
       (route.bus_number || route.vehicle_number || '').toLowerCase().includes(q)
     );
-  }, [routes, searchQuery]);
+  }, [routes, deferredQuery]);
 
   return (
     <AnimatePresence mode="wait">
