@@ -1,9 +1,8 @@
--- Smart School Management System — Full Schema Dump (v2)
--- Generated: 2026-06-17T13:00:00.000Z
+-- Smart School Management System — Full Schema Dump (v3)
+-- Generated: 2026-06-17T14:00:00.000Z
 -- This file contains the complete public schema definition.
--- Includes migration 00000000000004 columns: bus_routes.bus_number, bus_routes.status,
--- bus_routes.current_location, bus_routes.live_status, bus_stops.student_id,
--- bus_stops.order_index, bus_stops.arrival_time.
+-- Includes migration 00000000000004 columns + migration 00000000000006 FK fix
+-- (bus_stops.student_id now references students(id) instead of users(id)).
 
 -- Helper function for RLS tenant isolation
 CREATE OR REPLACE FUNCTION public.get_current_school_id()
@@ -177,7 +176,7 @@ CREATE TABLE IF NOT EXISTS "bus_stops" (
 , PRIMARY KEY ("id")
 , CONSTRAINT "bus_stops_route_id_fkey" FOREIGN KEY ("route_id") REFERENCES "bus_routes"("id")
 , CONSTRAINT "bus_stops_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
-, CONSTRAINT "bus_stops_student_id_fkey" FOREIGN KEY ("student_id") REFERENCES "users"("id") ON DELETE SET NULL
+, CONSTRAINT "bus_stops_student_id_fkey" FOREIGN KEY ("student_id") REFERENCES "students"("id") ON DELETE SET NULL
 );
 CREATE TABLE IF NOT EXISTS "classes" (
   "id" uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
