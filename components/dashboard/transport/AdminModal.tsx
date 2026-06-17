@@ -1,12 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Camera, UserPlus, Settings, Trash2, Edit, Bus, Users, Clock, Shield, Map, CheckCircle2, User as UserIcon, Save } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { AlertTriangle } from 'lucide-react';
 const TransportMap = dynamic(() => import('@/components/transport/TransportMap'), { ssr: false });
-import Image from 'next/image';
-
 
 import { BusRoute, User, Student, BusStop } from '@/types';
 
@@ -330,17 +327,22 @@ export function AdminModal({
               <div className="p-6 border-t border-border bg-muted/50 flex justify-end gap-3">
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-colors"
+                  disabled={isSubmitting}
+                  className="px-6 py-3 rounded-xl font-bold text-muted-foreground bg-card border border-border hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   {modalMode === 'view' ? 'Close' : 'Cancel'}
                 </button>
                 {modalMode !== 'view' && (
                   <button 
                     onClick={handleSaveRoute}
-                    className="px-6 py-3 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20"
+                    disabled={isSubmitting}
+                    className="px-6 py-3 rounded-xl font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-70 min-w-[140px] justify-center"
                   >
-                    <Save size={18} />
-                    Save Route
+                    {isSubmitting ? (
+                      <><Loader2 size={18} className="animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save size={18} /> Save Route</>
+                    )}
                   </button>
                 )}
               </div>

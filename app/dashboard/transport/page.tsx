@@ -20,7 +20,8 @@ import {
   Plus,
   Search,
   Bus,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -90,7 +91,20 @@ export default function TransportPage() {
   const [drivers, setDrivers] = useState<UserType[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const t = (key: string) => key;
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (value) {
+      setIsSearchLoading(true);
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = setTimeout(() => setIsSearchLoading(false), 400);
+    } else {
+      setIsSearchLoading(false);
+    }
+  };
 
   const fetchRoutes = async () => {
     const { data, error } = await supabase
@@ -177,7 +191,10 @@ export default function TransportPage() {
       }
     };
     document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
   }, [activeDropdown]);
 
   // Update route coordinates when stops change
@@ -405,7 +422,7 @@ export default function TransportPage() {
     toast.success(`Notification sent: ${studentName} has been dropped off.`);
   };
 
-  const handleOpenModal = (mode: 'create' | 'edit' | 'view', route?: BusRoute) => {
+  const handleOpenModal = (mode: 'create' | 'edit' | 'view', route?: BusRoute, openAddStop = false) => {
     setModalMode(mode);
     setCurrentRoute(route ? { ...route } : { 
       stops: [], 
@@ -415,8 +432,13 @@ export default function TransportPage() {
       bus_number: '',
       driver_id: '',
     });
+    setIsAddingStop(openAddStop && mode !== 'view');
     setIsModalOpen(true);
     setActiveDropdown(null);
+  };
+
+  const handleOpenAddStop = (route: BusRoute) => {
+    handleOpenModal('edit', route, true);
   };
 
   const handleDeleteRoute = async (routeId: string) => {
@@ -501,6 +523,23 @@ export default function TransportPage() {
           .eq('id', currentRoute.id);
           
         if (error) throw error;
+
+        // Delete existing stops, then re-insert
+        await supabase.from('bus_stops').delete().eq('route_id', currentRoute.id);
+        
+        if (currentRoute.stops && currentRoute.stops.length > 0) {
+          const stopsToInsert = currentRoute.stops.map((stop, index) => ({
+            route_id: currentRoute.id,
+            name: stop.name,
+            latitude: stop.coordinates?.lat,
+            longitude: stop.coordinates?.lng,
+            arrival_time: stop.arrivalTime,
+            student_id: stop.studentId || null,
+            order_index: index
+          }));
+          const { error: stopsError } = await supabase.from('bus_stops').insert(stopsToInsert);
+          if (stopsError) throw stopsError;
+        }
         
         toast.success('Route updated successfully');
       }
@@ -618,12 +657,16 @@ export default function TransportPage() {
             </div>
             {activeTab === 'routes' && (
               <div className="relative w-full sm:w-72">
-                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                {isSearchLoading ? (
+                  <Loader2 size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
+                ) : (
+                  <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                )}
                 <input 
                   type="text" 
-                  placeholder="Search routes..."
+                  placeholder="Search routes by name or number..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-primary transition-all"
                 />
               </div>
@@ -637,6 +680,7 @@ export default function TransportPage() {
                 drivers={drivers}
                 searchQuery={searchQuery}
                 handleOpenModal={handleOpenModal}
+                handleOpenAddStop={handleOpenAddStop}
                 handleDeleteRoute={handleDeleteRoute}
                 handleToggleDisable={handleToggleDisable}
                 activeDropdown={activeDropdown}

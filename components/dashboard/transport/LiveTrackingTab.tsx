@@ -1,14 +1,19 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { 
   Navigation, 
   CheckCircle2, 
   Phone, 
   User, 
-  Bus 
+  Bus,
+  MapPin,
+  Clock,
+  Activity
 } from 'lucide-react';
 import { BusRoute, Student, User as UserType } from '@/types';
+import { motion, AnimatePresence } from 'motion/react';
 
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { AlertTriangle } from 'lucide-react';
@@ -63,7 +68,7 @@ export function LiveTrackingTab({
                         studentName: students.find(st => st.id === s.studentId)?.name,
                         eta: s.arrivalTime
                       })).filter(s => s.lat !== 0)}
-                      liveBusLocation={liveBusLocations[parentRoute.id] || { lat: 39.7850, lng: -89.6450 }} // Fallback to mock if no live data
+                      liveBusLocation={liveBusLocations[parentRoute.id] || { lat: 39.7850, lng: -89.6450 }}
                     />
                   </ErrorBoundary>
                 </div>
@@ -96,18 +101,24 @@ export function LiveTrackingTab({
                 </h3>
                 <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-muted">
                   {parentRoute.stops.map((stop, index) => {
-                    const isCompleted = index < 1; // Mock completed status
+                    const isCompleted = index < 1;
                     const isNext = index === 1;
                     
                     return (
-                      <div key={stop.id} className="relative">
+                      <motion.div 
+                        key={stop.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="relative"
+                      >
                         <div className={`absolute -left-[35px] w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${
                           isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' :
                           isNext ? 'bg-card border-primary text-primary' :
                           'bg-card border-border text-slate-300'
                         }`}>
                           {isCompleted && <CheckCircle2 size={12} />}
-                          {isNext && <div className="w-2 h-2 bg-primary rounded-full" />}
+                          {isNext && <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />}
                         </div>
                         <div className={`p-4 rounded-xl border transition-all ${
                           isNext ? 'bg-primary/10 border-primary/20 shadow-sm' : 'bg-card border-border'
@@ -124,7 +135,7 @@ export function LiveTrackingTab({
                             <span className="text-sm font-bold text-muted-foreground">{stop.arrivalTime}</span>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -185,29 +196,161 @@ export function LiveTrackingTab({
     );
   }
 
-  // Admin Fleet View Map
+  // Admin Fleet View
+  const activeRoutes = routes.filter(r => r.status === 'In Transit');
+  const completedRoutes = routes.filter(r => r.status === 'Arrived at School' || r.status === 'Completed');
+  const inactiveRoutes = routes.filter(r => r.status === 'Not Started');
+
   return (
-    <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden h-[600px] relative flex items-center justify-center bg-muted animate-fadeIn">
-      <ErrorBoundary name="LiveTrackingTab Fleet Map" fallback={
-        <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-card">
-          <AlertTriangle className="text-destructive h-8 w-8 mb-2 animate-pulse" />
-          <p className="font-semibold text-sm">Failed to Load Fleet Map</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
-            Leaflet rendering encountered an error. Ensure Mapbox token is correct.
-          </p>
+    <div className="space-y-6">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card p-4 rounded-2xl border border-border shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500">
+              <Bus size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{routes.length}</p>
+              <p className="text-xs font-medium text-muted-foreground">Total Routes</p>
+            </div>
+          </div>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-card p-4 rounded-2xl border border-border shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
+              <Navigation size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{activeRoutes.length}</p>
+              <p className="text-xs font-medium text-muted-foreground">Active</p>
+            </div>
+          </div>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-card p-4 rounded-2xl border border-border shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
+              <CheckCircle2 size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{completedRoutes.length}</p>
+              <p className="text-xs font-medium text-muted-foreground">Completed</p>
+            </div>
+          </div>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-card p-4 rounded-2xl border border-border shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500">
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{inactiveRoutes.length}</p>
+              <p className="text-xs font-medium text-muted-foreground">Inactive</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Map + Route List */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Route List Sidebar */}
+        <div className="lg:col-span-1 space-y-3 max-h-[600px] overflow-y-auto pr-1">
+          <h3 className="font-bold text-foreground flex items-center gap-2">
+            <Activity size={18} className="text-primary" />
+            Route Status
+          </h3>
+          <AnimatePresence>
+            {routes.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8 bg-card rounded-2xl border border-border"
+              >
+                <Bus size={32} className="mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No routes available</p>
+              </motion.div>
+            ) : (
+              routes.map((route, idx) => (
+                <motion.div
+                  key={route.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="bg-card p-4 rounded-2xl border border-border shadow-sm hover:shadow-md transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-sm text-foreground">{route.route_number}</h4>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                      route.status === 'In Transit' ? 'bg-emerald-500/20 text-emerald-500' :
+                      route.status === 'Arrived at School' || route.status === 'Completed' ? 'bg-blue-500/20 text-blue-500' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {route.status === 'In Transit' ? 'LIVE' : route.status === 'Arrived at School' ? 'DONE' : 'IDLE'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <MapPin size={12} />
+                    <span className="truncate">{route.current_location || 'No location'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                    <User size={12} />
+                    <span className="truncate">{drivers.find(d => d.id === route.driver_id)?.name || 'No driver'}</span>
+                  </div>
+                  {liveBusLocations[route.id] && (
+                    <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                      Broadcasting
+                    </div>
+                  )}
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
         </div>
-      }>
-        <TransportMap 
-          stops={routes.flatMap(r => r.stops || []).map(s => ({
-            lat: s.coordinates?.lat || 0,
-            lng: s.coordinates?.lng || 0,
-            name: s.name,
-            studentName: students.find(st => st.id === s.studentId)?.name,
-            eta: s.arrivalTime
-          })).filter(s => s.lat !== 0)}
-          liveBusLocations={Object.entries(liveBusLocations).map(([routeId, loc]) => ({ ...loc, routeId }))}
-        />
-      </ErrorBoundary>
+
+        {/* Fleet Map */}
+        <div className="lg:col-span-2 bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden h-[600px] relative bg-muted">
+          <ErrorBoundary name="LiveTrackingTab Fleet Map" fallback={
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-card">
+              <AlertTriangle className="text-destructive h-8 w-8 mb-2 animate-pulse" />
+              <p className="font-semibold text-sm">Failed to Load Fleet Map</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+                Leaflet rendering encountered an error. Ensure Mapbox token is correct.
+              </p>
+            </div>
+          }>
+            <TransportMap 
+              stops={routes.flatMap(r => r.stops || []).map(s => ({
+                lat: s.coordinates?.lat || 0,
+                lng: s.coordinates?.lng || 0,
+                name: s.name,
+                studentName: students.find(st => st.id === s.studentId)?.name,
+                eta: s.arrivalTime
+              })).filter(s => s.lat !== 0)}
+              liveBusLocations={Object.entries(liveBusLocations).map(([routeId, loc]) => ({ ...loc, routeId }))}
+            />
+          </ErrorBoundary>
+        </div>
+      </div>
     </div>
   );
 }

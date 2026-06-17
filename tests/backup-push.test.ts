@@ -106,7 +106,6 @@ describe('Push Notification Subscription', () => {
     const originalNavigator = { ...navigator };
     Object.assign(navigator, { serviceWorker: undefined });
 
-    // @ts-expect-error - cleanup for navigator mock
     delete (window as any).PushManager;
 
     const supported = await isPushNotificationSupported();
