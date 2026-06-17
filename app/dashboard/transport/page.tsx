@@ -398,10 +398,27 @@ export default function TransportPage() {
     toast.success(`Notification sent: ${studentName} has been dropped off.`);
   };
 
+  const createDefaultStops = () => [
+    {
+      id: `stop-start-${Date.now()}`,
+      name: 'Start Point',
+      arrivalTime: '00:00 AM',
+      coordinates: undefined,
+      studentId: undefined,
+    } as BusStop,
+    {
+      id: `stop-end-${Date.now()}`,
+      name: 'End Point',
+      arrivalTime: '00:00 AM',
+      coordinates: undefined,
+      studentId: undefined,
+    } as BusStop,
+  ];
+
   const handleOpenModal = (mode: 'create' | 'edit' | 'view', route?: BusRoute, openAddStop = false) => {
     setModalMode(mode);
     setCurrentRoute(route ? { ...route } : { 
-      stops: [], 
+      stops: createDefaultStops(),
       status: 'Not Started' as const,
       name: '',
       route_number: '',
@@ -528,6 +545,13 @@ export default function TransportPage() {
   const handleRemoveStop = (index: number) => {
     const newStops = [...(currentRoute.stops || [])];
     newStops.splice(index, 1);
+    setCurrentRoute(prev => ({ ...prev, stops: newStops }));
+  };
+
+  const handleReorderStops = (fromIndex: number, toIndex: number) => {
+    const newStops = [...(currentRoute.stops || [])];
+    const [moved] = newStops.splice(fromIndex, 1);
+    newStops.splice(toIndex, 0, moved);
     setCurrentRoute(prev => ({ ...prev, stops: newStops }));
   };
 
@@ -677,6 +701,7 @@ export default function TransportPage() {
         handleAddStop={handleAddStop}
         handleRemoveStop={handleRemoveStop}
         handleUpdateStop={handleUpdateStop}
+        handleReorderStops={handleReorderStops}
         routeCoordinates={routeCoordinates}
       />
 

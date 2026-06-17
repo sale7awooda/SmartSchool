@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Camera, UserPlus, Settings, Trash2, Edit, Bus, Users, Clock, Shield, Map, CheckCircle2, User as UserIcon, Save } from 'lucide-react';
+import { useState } from 'react';
+import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, Heart, Activity, AlertCircle, Star, ThumbsUp, ThumbsDown, Camera, UserPlus, Settings, Trash2, Edit, Bus, Users, Clock, Shield, Map, CheckCircle2, User as UserIcon, Save, GripVertical } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { AlertTriangle } from 'lucide-react';
@@ -44,6 +45,7 @@ interface AdminModalProps {
   handleAddStop: () => void;
   handleRemoveStop: (index: number) => void;
   handleUpdateStop: (index: number, field: keyof BusStop, value: string) => void;
+  handleReorderStops: (fromIndex: number, toIndex: number) => void;
   routeCoordinates: [number, number][];
 }
 
@@ -74,8 +76,25 @@ export function AdminModal({
   handleAddStop,
   handleRemoveStop,
   handleUpdateStop,
+  handleReorderStops,
   routeCoordinates
 }: AdminModalProps) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) return;
+    handleReorderStops(dragIndex, index);
+    setDragIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+  };
   return (
     <AnimatePresence>
         {isModalOpen && (
@@ -269,32 +288,63 @@ export function AdminModal({
                       </div>
                     )}
 
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                       {currentRoute.stops?.map((stop, index) => (
-                        <div key={index} className="flex flex-col gap-2 p-3 bg-muted border border-border rounded-xl">
-                          <div className="flex justify-between items-start">
-                            <div className="font-bold text-sm">{stop.name}</div>
-                            {modalMode !== 'view' && (
-                              <button onClick={() => handleRemoveStop(index)} className="text-destructive hover:bg-destructive/10 p-1 rounded-md transition-colors">
-                                <Trash2 size={14} />
-                              </button>
-                            )}
+                        <div
+                          key={stop.id || index}
+                          draggable={modalMode !== 'view'}
+                          onDragStart={() => handleDragStart(index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragEnd={handleDragEnd}
+                          className={`flex flex-col gap-2 p-3 rounded-xl border transition-all ${
+                            dragIndex === index ? 'border-primary bg-primary/5 shadow-sm' : 'bg-muted border-border'
+                          } ${modalMode !== 'view' ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {modalMode !== 'view' && (
+                                <GripVertical size={14} className="text-muted-foreground shrink-0 opacity-50" />
+                              )}
+                              <div className="font-bold text-sm truncate">
+                                {index === 0 ? '🚩 ' : index === (currentRoute.stops?.length || 0) - 1 ? '🏁 ' : ''}
+                                {stop.name}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[10px] font-bold text-muted-foreground bg-card px-1.5 py-0.5 rounded-md">
+                                #{index + 1}
+                              </span>
+                              {modalMode !== 'view' && currentRoute.stops && currentRoute.stops.length > 1 && (
+                                <button onClick={() => handleRemoveStop(index)} className="text-destructive hover:bg-destructive/10 p-1 rounded-md transition-colors">
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex gap-3">
+                          <div className="flex gap-3 items-center">
                             <input 
                               type="text" 
                               value={stop.arrivalTime}
                               onChange={(e) => handleUpdateStop(index, 'arrivalTime', e.target.value)}
                               disabled={modalMode === 'view'}
-                              className="w-32 bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                              className="w-28 bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                               placeholder="ETA (e.g. 07:30 AM)"
                             />
-                            {stop.studentId && (
-                              <div className="flex items-center text-xs text-muted-foreground">
-                                <UserIcon size={12} className="mr-1" />
-                                {students.find(s => s.id === stop.studentId)?.name || 'Student'}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0 flex-1">
+                              {stop.coordinates?.lat && stop.coordinates?.lng ? (
+                                <span className="truncate text-[10px]">
+                                  {stop.coordinates.lat.toFixed(4)}, {stop.coordinates.lng.toFixed(4)}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] italic text-muted-foreground/60">No location set</span>
+                              )}
+                              {stop.studentId && (
+                                <span className="flex items-center gap-1 shrink-0">
+                                  <UserIcon size={12} />
+                                  {students.find(s => s.id === stop.studentId)?.name || 'Student'}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
