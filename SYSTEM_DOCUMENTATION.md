@@ -70,7 +70,7 @@ A zero-cost tracking and stop assignment engine fully optimized for fast interac
 | **Sprint 13** | Intelligent Attendance (Per-student marking, calendar history, admin overview) | ⚠️ Partial — no CSV imports or monthly matrices |
 | **Sprint 14** | Student Registry (File uploads to Supabase Storage, CSV export, bulk promotions) | ✅ Completed |
 | **Sprint 15** | PWA Offline Queue (IndexedDB sync engine, optimistic mutations, SWR persistence) | ✅ Completed |
-| **Sprint 16** | Test Coverage | ❌ Not started — only 1 lightweight test exists |
+| **Sprint 16** | Test Coverage | ✅ Completed — 68 tests across 6 files (Vitest + Playwright E2E + Component tests) |
 
 ### 4.1 Production Readiness (Current Phase)
 
@@ -80,7 +80,7 @@ The core feature set is complete. The project now enters the **Production Readin
 | :--- | :--- |
 | **Security** | Remove committed secrets, remove dev-only auth bypasses, fix CORS, enable type/lint checks |
 | **Code Quality** | Split monolithic components, remove dead code, fix `any` types, consolidate duplicate modules |
-| **Testing** | Unit, integration, and E2E coverage |
+| **Testing** | ✅ Completed — 68 tests (Vitest) + 9 Playwright E2E tests + 19 component tests |
 | **Infrastructure** | CI/CD pipeline, Docker, environment validation, monitoring |
 | **Performance** | Bundle optimization, code splitting, DB query profiling |
 | **Remaining Features** | Finish partial sprints (email templates, QR passes, CSV import, cron scheduler)

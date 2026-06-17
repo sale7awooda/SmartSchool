@@ -1,0 +1,182 @@
+# Setup Guide — Smart School Management System
+
+## Prerequisites
+
+- **Node.js** 18+ (recommended 20 LTS)
+- **npm** 9+
+- **Supabase** account (free tier works)
+- **Mapbox** account (for transport map — optional, falls back to OpenStreetMap)
+- **Resend** account (for email notifications — optional)
+- **Redis** (for Socket.io scaling across instances — optional for single-server)
+
+## 1. Clone & Install
+
+```bash
+git clone <repo-url> smart-school
+cd smart-school
+npm install
+```
+
+## 2. Environment Variables
+
+Copy the example environment file and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (Settings → API) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key (admin operations) |
+| `VAPID_PUBLIC_KEY` | VAPID public key for push notifications |
+| `VAPID_PRIVATE_KEY` | VAPID private key for push notifications |
+| `VAPID_SUBJECT` | `mailto:` email for VAPID |
+
+Optional variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GEMINI_API_KEY` | — | Gemini AI API key (for AI features) |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | — | Mapbox public token |
+| `RESEND_API_KEY` | — | Resend API key for email |
+| `NEXT_PUBLIC_DEV_MODE` | `false` | Enables demo login with hardcoded credentials |
+| `CORS_ORIGIN` | `http://localhost:3000` | Comma-separated allowed CORS origins |
+| `PORT` | `3000` | HTTP server port |
+
+### Generate VAPID Keys
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Copy the public and private keys into your `.env` file.
+
+## 3. Database Setup
+
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Go to **SQL Editor** in your Supabase dashboard
+3. Open each `.sql` file in `supabase/migrations/` in order (alphabetically by filename) and run them in the SQL Editor:
+
+| Priority | Files |
+|----------|-------|
+| Foundation | `v16_sprint1_data_integrity.sql`, `v17_sprint2_multi_tenancy.sql`, `v17_push_notifications_persistence.sql`, `v18_rls_multi_tenancy.sql`, `v18_add_hr_fields.sql`, `v18_user_notifications.sql` |
+| Finance | `v3_fees_automation_advanced.sql`, `v4_fee_structure_update.sql`, `v5_fix_fee_invoices_table.sql`, `v6_fix_fee_invoices_academic_year.sql`, `v12_fees_and_payments_enhancements.sql`, `v15_invoice_customization_and_protection.sql`, `student_finance_automation.sql`, `fix_fee_installments.sql` |
+| HR | `v9_hr_module_fields.sql`, `fix_hr.sql` |
+| Students | `v10_link_parent_student.sql`, `v19_student_documents.sql`, `v19_sprint2_currency_tier.sql` |
+| Academics | `v20_sprint5_grades_comments.sql`, `rls_assessment_questions.sql`, `fix_assessment_rls.sql` |
+| RLS/Security | `v11_rls_security_audit.sql`, `v18_rls_multi_tenancy.sql`, `supabase_fix.sql`, `supabase_additional_fixes.sql`, `supabase_free_tier_optimizations.sql`, `fix_audit_logs.sql`, `FINAL_DB_FIX.sql` |
+| Data fixes | `v7_fix_fee_items_grade.sql`, `v8_fix_description.sql`, `v13_no_decimals_and_reactive_ui.sql`, `v14_more_kpi_stats.sql`, `v21_visitors_and_inventory_fix.sql` |
+
+Alternatively, concatenate all files and run them as a single script, applying them in order.
+
+## 4. Run the Dev Server
+
+```bash
+npm run dev
+```
+
+The server starts at `http://localhost:3000`. This uses a custom Node.js server (`server.ts`) that also initializes Socket.io for real-time transport tracking.
+
+## 5. Demo Credentials
+
+When `NEXT_PUBLIC_DEV_MODE=true`, you can log in with these hardcoded demo accounts:
+
+| Email | Role | Password |
+|-------|------|----------|
+| `admin@smartschool.com` | Admin | `password123` |
+| `teacher@smartschool.com` | Teacher | `password123` |
+| `staff@smartschool.com` | Staff | `password123` |
+
+To seed demo data, go to **Settings → Database** in the app and click **Seed Demo Data**.
+
+## 6. Running Tests
+
+### Unit, Integration & Component Tests (Vitest)
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode
+npx vitest
+
+# With coverage
+npx vitest run --coverage
+```
+
+### E2E Tests (Playwright)
+
+```bash
+# Install browsers (first time only)
+npx playwright install chromium
+
+# Start the dev server in one terminal
+npm run dev
+
+# In another terminal, run the tests
+npx playwright test
+
+# With UI mode
+npx playwright test --ui
+```
+
+## 7. Building for Production
+
+```bash
+npm run build
+```
+
+Output goes to `.next/` with `output: 'standalone'` for self-hosted deployment.
+
+## 8. Deployment
+
+### Vercel (Recommended)
+
+1. Push to a GitHub repository
+2. Import the project in Vercel
+3. Set all environment variables in Vercel project settings
+4. Deploy
+
+The project uses:
+- `next.config.ts` with `output: 'standalone'`
+- Strict TypeScript + ESLint checks during build
+- Socket.io via custom server (requires Node.js runtime — Vercel deploys the custom server)
+
+> **Note:** If deploying without the custom server (e.g., Vercel's default serverless), Socket.io real-time features will not work. You can still use Supabase Realtime Channels as a fallback.
+
+### Docker
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY . .
+RUN npm ci && npm run build
+EXPOSE 3000
+CMD ["npm", "run", "start"]
+```
+
+## 9. Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Build fails with TypeScript errors | Run `npx tsc --noEmit` to see all errors |
+| `DISABLE_SERWIST` warning | Set `DISABLE_SERWIST="true"` in env to suppress Serwist warning |
+| `_next-build-manifest` warning | Harmless — transient Next.js warning; can be ignored |
+| VAPID key errors | Generate fresh keys with `npx web-push generate-vapid-keys` |
+| Supabase connection refused | Check your IP is in Supabase's allowed IPs list |
+| Port already in use | Set `PORT=3001` in `.env` to use a different port |
+
+## 10. Project Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server with hot reload |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run Vitest tests |
+| `npm run clean` | Clean Next.js cache |
