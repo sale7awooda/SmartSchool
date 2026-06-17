@@ -3,7 +3,17 @@ import { X, Loader2, Search, Plus, Calendar, MapPin, UserCircle, Phone, Mail, He
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { AlertTriangle } from 'lucide-react';
-const TransportMap = dynamic(() => import('@/components/transport/TransportMap'), { ssr: false });
+const TransportMap = dynamic(() => import('@/components/transport/TransportMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-muted rounded-xl">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 size={32} className="text-muted-foreground animate-spin" />
+        <p className="text-sm text-muted-foreground font-medium">Loading map...</p>
+      </div>
+    </div>
+  ),
+});
 
 import { BusRoute, User, Student, BusStop } from '@/types';
 

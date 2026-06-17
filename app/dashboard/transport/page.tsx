@@ -26,6 +26,9 @@ import {
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 
+// Server actions
+import { saveRouteAction, deleteRouteAction, updateRouteStatusAction } from '@/app/actions/transport';
+
 // Subcomponents
 import { RoutesTab } from '@/components/dashboard/transport/RoutesTab';
 import { LiveTrackingTab } from '@/components/dashboard/transport/LiveTrackingTab';
@@ -313,9 +316,8 @@ export default function TransportPage() {
         : null;
 
       if (staffRoute && channels[staffRoute.id]) {
-        toast.success(`Started broadcasting GPS every ${gpsInterval / 60000} minute(s) with dynamic motion filtering.`);
+        toast.success(`Started broadcasting GPS every ${gpsInterval / 60000} minute(s).`);
         
-        // Reset last broadcast reference when starting broadcasting
         lastBroadcastRef.current = null;
 
         intervalId = setInterval(() => {
@@ -324,11 +326,10 @@ export default function TransportPage() {
               const { latitude, longitude } = position.coords;
               const now = Date.now();
               const last = lastBroadcastRef.current;
-              
+
               const distance = last ? getDistanceMeters(last.lat, last.lng, latitude, longitude) : Infinity;
               const timeDiff = now - (last?.timestamp || 0);
 
-              // Restrict updates: must have moved >10 meters and >=10 seconds elapsed, or be first update
               if (!last || (timeDiff >= 10000 && distance > 10)) {
                 channels[staffRoute.id].send({
                   type: 'broadcast',
@@ -344,34 +345,13 @@ export default function TransportPage() {
                 lastBroadcastRef.current = { lat: latitude, lng: longitude, timestamp: now };
               }
             }, (error) => {
-              console.error("Geolocation error:", error);
-              setLiveBusLocations(prev => {
-                const currentLoc = prev[staffRoute.id] || { lat: 39.7850, lng: -89.6450 };
-                const newLat = currentLoc.lat + (Math.random() - 0.5) * 0.001;
-                const newLng = currentLoc.lng + (Math.random() - 0.5) * 0.001;
-                
-                const now = Date.now();
-                const last = lastBroadcastRef.current;
-                const distance = last ? getDistanceMeters(last.lat, last.lng, newLat, newLng) : Infinity;
-                const timeDiff = now - (last?.timestamp || 0);
-                
-                if (!last || (timeDiff >= 10000 && distance > 10)) {
-                  channels[staffRoute.id].send({
-                    type: 'broadcast',
-                    event: 'location_update',
-                    payload: { routeId: staffRoute.id, lat: newLat, lng: newLng }
-                  });
-                  
-                  lastBroadcastRef.current = { lat: newLat, lng: newLng, timestamp: now };
-                  return {
-                    ...prev,
-                    [staffRoute.id]: { lat: newLat, lng: newLng }
-                  };
-                }
-                
-                return prev;
-              });
-            });
+              console.error("Geolocation error:", error.message);
+              setIsBroadcasting(false);
+              toast.error(`GPS unavailable: ${error.message}. Broadcasting stopped.`);
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+          } else {
+            setIsBroadcasting(false);
+            toast.error('GPS not available on this device. Broadcasting stopped.');
           }
         }, gpsInterval);
       }
@@ -402,18 +382,14 @@ export default function TransportPage() {
 
   const handleStatusUpdate = async (routeId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('bus_routes')
-        .update({ status: newStatus })
-        .eq('id', routeId);
-      
-      if (error) throw error;
+      const result = await updateRouteStatusAction(routeId, newStatus);
+      if (!result.success) throw new Error(result.error);
       
       setRoutes(prev => prev.map(r => r.id === routeId ? { ...r, status: newStatus as any } : r));
       toast.success(`Bus status updated to: ${newStatus}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating status:', error);
-      toast.error('Failed to update status');
+      toast.error(error.message || 'Failed to update status');
     }
   };
 
@@ -449,18 +425,14 @@ export default function TransportPage() {
   const confirmDeleteRoute = async () => {
     if (!routeToDelete) return;
     try {
-      const { error } = await supabase
-        .from('bus_routes')
-        .delete()
-        .eq('id', routeToDelete);
-      
-      if (error) throw error;
+      const result = await deleteRouteAction(routeToDelete);
+      if (!result.success) throw new Error(result.error);
       
       setRoutes(prev => prev.filter(r => r.id !== routeToDelete));
-      toast.success('Route deleted successfully');
-    } catch (error) {
+      toast.success('Route and associated stops deleted successfully');
+    } catch (error: any) {
       console.error('Error deleting route:', error);
-      toast.error('Failed to delete route');
+      toast.error(error.message || 'Failed to delete route');
     } finally {
       setRouteToDelete(null);
     }
@@ -479,75 +451,32 @@ export default function TransportPage() {
 
     setIsSubmitting(true);
     try {
-      if (modalMode === 'create') {
-        const { data, error } = await supabase
-          .from('bus_routes')
-          .insert([{
-            name: currentRoute.route_number,
-            route_number: currentRoute.route_number,
-            bus_number: currentRoute.bus_number,
-            driver_id: currentRoute.driver_id,
-            attendant_id: currentRoute.attendant_id,
-            status: 'Not Started'
-          }])
-          .select()
-          .single();
-        
-        if (error) throw error;
+      const result = await saveRouteAction({
+        id: modalMode === 'edit' ? currentRoute.id : undefined,
+        name: currentRoute.route_number,
+        route_number: currentRoute.route_number,
+        bus_number: currentRoute.bus_number,
+        driver_id: currentRoute.driver_id,
+        attendant_id: currentRoute.attendant_id,
+        status: currentRoute.status,
+        stops: (currentRoute.stops || []).map((stop, index) => ({
+          name: stop.name,
+          latitude: stop.coordinates?.lat,
+          longitude: stop.coordinates?.lng,
+          arrival_time: stop.arrivalTime,
+          student_id: stop.studentId || null,
+          order_index: index,
+        })),
+      });
 
-        if (currentRoute.stops && currentRoute.stops.length > 0) {
-          const stopsToInsert = currentRoute.stops.map((stop, index) => ({
-            route_id: data.id,
-            name: stop.name,
-            latitude: stop.coordinates?.lat,
-            longitude: stop.coordinates?.lng,
-            arrival_time: stop.arrivalTime,
-            student_id: stop.studentId || null,
-            order_index: index
-          }));
-          const { error: stopsError } = await supabase.from('bus_stops').insert(stopsToInsert);
-          if (stopsError) throw stopsError;
-        }
-        
-        toast.success('Route created successfully');
-      } else {
-        const { error } = await supabase
-          .from('bus_routes')
-          .update({
-            name: currentRoute.route_number,
-            route_number: currentRoute.route_number,
-            bus_number: currentRoute.bus_number,
-            driver_id: currentRoute.driver_id,
-            attendant_id: currentRoute.attendant_id
-          })
-          .eq('id', currentRoute.id);
-          
-        if (error) throw error;
-
-        // Delete existing stops, then re-insert
-        await supabase.from('bus_stops').delete().eq('route_id', currentRoute.id);
-        
-        if (currentRoute.stops && currentRoute.stops.length > 0) {
-          const stopsToInsert = currentRoute.stops.map((stop, index) => ({
-            route_id: currentRoute.id,
-            name: stop.name,
-            latitude: stop.coordinates?.lat,
-            longitude: stop.coordinates?.lng,
-            arrival_time: stop.arrivalTime,
-            student_id: stop.studentId || null,
-            order_index: index
-          }));
-          const { error: stopsError } = await supabase.from('bus_stops').insert(stopsToInsert);
-          if (stopsError) throw stopsError;
-        }
-        
-        toast.success('Route updated successfully');
-      }
+      if (!result.success) throw new Error(result.error);
+      
+      toast.success(modalMode === 'create' ? 'Route created successfully' : 'Route updated successfully');
       setIsModalOpen(false);
       fetchRoutes();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving route:', error);
-      toast.error('Failed to save route');
+      toast.error(error.message || 'Failed to save route');
     } finally {
       setIsSubmitting(false);
     }

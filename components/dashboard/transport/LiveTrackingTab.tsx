@@ -100,10 +100,25 @@ export function LiveTrackingTab({
                   Route Timeline
                 </h3>
                 <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-muted">
-                  {parentRoute.stops.map((stop, index) => {
-                    const isCompleted = index < 1;
-                    const isNext = index === 1;
-                    
+                  {(() => {
+                    const busLoc = parentRoute ? liveBusLocations[parentRoute.id] : null;
+                    let currentStopIndex = -1;
+                    if (busLoc && parentRoute.stops.length > 0) {
+                      let minDist = Infinity;
+                      parentRoute.stops.forEach((stop, idx) => {
+                        if (stop.coordinates?.lat && stop.coordinates?.lng) {
+                          const d = Math.hypot(
+                            busLoc.lat - stop.coordinates.lat,
+                            busLoc.lng - stop.coordinates.lng
+                          );
+                          if (d < minDist) { minDist = d; currentStopIndex = idx; }
+                        }
+                      });
+                    }
+                    return parentRoute.stops.map((stop, index) => {
+                      const isCompleted = currentStopIndex >= 0 ? index < currentStopIndex : index < 1;
+                      const isNext = currentStopIndex >= 0 ? index === currentStopIndex : index === 1;
+                      
                     return (
                       <motion.div 
                         key={stop.id}
@@ -137,7 +152,8 @@ export function LiveTrackingTab({
                         </div>
                       </motion.div>
                     );
-                  })}
+                  });
+                })()}
                 </div>
               </div>
             </div>
@@ -156,10 +172,17 @@ export function LiveTrackingTab({
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <button className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-colors">
+                  <a
+                    href={drivers.find(d => d.id === parentRoute.driver_id)?.phone ? `tel:${drivers.find(d => d.id === parentRoute.driver_id)?.phone}` : '#'}
+                    className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl font-bold transition-colors ${
+                      drivers.find(d => d.id === parentRoute.driver_id)?.phone
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'bg-muted text-muted-foreground pointer-events-none'
+                    }`}
+                  >
                     <Phone size={18} />
-                    Call Driver
-                  </button>
+                    {drivers.find(d => d.id === parentRoute.driver_id)?.phone ? 'Call Driver' : 'No phone available'}
+                  </a>
                   {parentRoute.attendant_name && (
                     <div className="p-4 bg-muted rounded-xl border border-border">
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Bus Attendant</p>
