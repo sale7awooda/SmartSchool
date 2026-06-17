@@ -12,9 +12,10 @@ A production-ready, multi-tenant SaaS school management platform built with Next
 - **Transport Tracking** — Real-time GPS bus tracking with Leaflet/OSM maps and Socket.io
 - **Visitor Management** — Check-in/out flow, host tracking, paginated logs
 - **Inventory** — Asset tracking, categories, maintenance scheduling, low-stock alerts
-- **Communication** — Notices, broadcasts, push notifications, email (Resend)
+- **Communication** — Notices, broadcasts, push notifications (Web Push API, works when app is closed), email (Resend)
 - **Multi-Tenant** — School-level isolation via RLS, configurable currency/locale
 - **PWA** — Offline support, service worker, push notifications, IndexedDB sync queue
+- **Data Management** — Full database backup/restore (JSON export/import via UI or CLI scripts)
 - **RBAC** — Role-based access (admin, accountant, staff, teacher, parent, student)
 
 ## Tech Stack
@@ -31,7 +32,8 @@ A production-ready, multi-tenant SaaS school management platform built with Next
 | PDF | jsPDF + jspdf-autotable |
 | Email | Resend API |
 | Push | Web Push API (VAPID) via Serwist |
-| Testing | Vitest + Testing Library + Playwright |
+| Testing | Vitest + Testing Library + Playwright (87 tests) |
+| Backup | Supabase admin client + CLI scripts (pg) |
 
 ## Quick Start
 
@@ -54,7 +56,7 @@ See [SETUP.md](./SETUP.md) for complete setup instructions.
 ## Tests
 
 ```bash
-# Run all unit/integration/component tests
+# Run all unit/integration/component tests (87 tests across 10 files)
 npx vitest run
 
 # Run E2E tests (requires dev server running)

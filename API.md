@@ -151,7 +151,11 @@ Client-side data helpers in `lib/api/` that interact with Supabase directly:
 | `schedule.ts` | `getSchedules()`, `getPeriods()` | Class timetables |
 | `students.ts` | `getStudents()`, `getStudent()`, `searchStudents()` | Student directory |
 | `subjects.ts` | `getSubjects()` | Subject listing |
-| `transport.ts` | `getRoutes()`, `getRoute()`, `getStops()` | Transport routes |
+| `transport.ts` | `getPaginatedRoutes()` | Paginated transport routes |
+| `library.ts` | `getPaginatedBooks()` | Library book listing |
+| `medical.ts` | `getPaginatedMedicalRecords()`, `createMedicalRecord()` | Medical records |
+| `parents.ts` | `getParents()`, `getPaginatedParents()`, `getParentByUserId()` | Parent data |
+| `users.ts` | `getUsers()`, `updateUserPermissions()`, `updateStaffMember()`, `updateUserRole()` | User administration |
 | `visitors.ts` | `getVisitors()`, `checkInVisitor()`, `checkOutVisitor()` | Visitor management |
 
 Each function returns typed data using the interfaces in `types/index.ts`.
@@ -222,6 +226,31 @@ PaginatedResult<T> { data: T[], total: number, page: number, pageSize: number, t
 ```
 
 ---
+
+## Push Notifications (`app/api/push/`)
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/push/vapid-public-key` | GET | Returns the VAPID public key for push subscription |
+| `/api/push/subscribe` | POST | Saves a new push subscription for the current user |
+| `/api/push/subscribe` | DELETE | Removes a push subscription by endpoint |
+| `/api/push/send` | POST | Sends a push notification to a user, role, or all subscribers |
+| `/api/push/subscribers` | GET | Lists all active push subscriptions |
+
+Push notifications work via the Service Worker (`public/sw.js`), which handles both the `push` event (showing a notification in the system tray even when the app is closed) and the `notificationclick` event (opening the app when the notification is tapped). Users enable/disable push from Settings → Notifications.
+
+## Backup & Restore (`app/actions/backup.ts`)
+
+| Function | Description |
+|----------|-------------|
+| `backupDatabaseAction()` | Exports all tables (excluding schema/push tables) as a JSON object with timestamp |
+| `restoreDatabaseAction(backupData)` | Imports tables from a backup JSON object via upsert |
+
+CLI scripts are also available:
+- `npx tsx scripts/backup.ts` — dumps all tables to a JSON file using `pg`
+- `npx tsx scripts/restore.ts <file>` — restores from a backup JSON file
+
+The data management UI (Settings → Data Management) provides backup download and restore upload functionality.
 
 ## Audit Logging
 

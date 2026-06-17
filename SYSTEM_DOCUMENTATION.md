@@ -80,7 +80,9 @@ The core feature set is complete. The project now enters the **Production Readin
 | :--- | :--- |
 | **Security** | Remove committed secrets, remove dev-only auth bypasses, fix CORS, enable type/lint checks |
 | **Code Quality** | Split monolithic components, remove dead code, fix `any` types, consolidate duplicate modules |
-| **Testing** | ✅ Completed — 68 tests (Vitest) + 9 Playwright E2E tests + 19 component tests |
+| **Testing** | ✅ Completed — 87 tests (Vitest) + 9 Playwright E2E tests + 19 component tests |
 | **Infrastructure** | CI/CD pipeline, Docker, environment validation, monitoring |
 | **Performance** | Bundle optimization, code splitting, DB query profiling |
+| **Data Protection** | DB backup/restore via UI (`Settings → Data Management`) and CLI (`scripts/backup.ts`, `scripts/restore.ts`) |
+| **Push Notifications** | Web Push API activated — toggle in `Settings → Notifications`, SW handles `push`/`notificationclick` events |
 | **Remaining Features** | Finish partial sprints (email templates, QR passes, CSV import, cron scheduler)
