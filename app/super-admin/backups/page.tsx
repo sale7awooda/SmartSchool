@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { useState } from 'react';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 import { getBackups, triggerBackup, logAuditAction } from '@/app/actions/super-admin';
 import { motion } from 'motion/react';
 import { Database, RotateCw, Download, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 
 export default function BackupsPage() {
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [backingUp, setBackingUp] = useState<string | null>(null);
 
@@ -18,8 +20,8 @@ export default function BackupsPage() {
   const handleBackup = async (schoolId: string) => {
     setBackingUp(schoolId);
     try {
-      await triggerBackup(schoolId);
-      await logAuditAction('trigger_backup', 'backup', schoolId);
+      await triggerBackup(schoolId, user!.id);
+      await logAuditAction('trigger_backup', 'backup', schoolId, undefined, undefined, user!.id);
       toast.success(t('backup_initiated'));
       setTimeout(() => mutate(), 2000);
     } catch (err: any) {

@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 import { getSchoolById, updateSchool, updateSchoolConfig, toggleMaintenanceMode, assignPlanToSchool, getSubscriptionPlans, logAuditAction } from '@/app/actions/super-admin';
 import { motion } from 'motion/react';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 export default function SchoolDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
@@ -30,7 +32,7 @@ export default function SchoolDetailPage() {
     setSaving(true);
     try {
       await updateSchool(id, { name: schoolData.name, email: schoolData.email, phone: schoolData.phone, address: schoolData.address });
-      await logAuditAction('update_school', 'school', id);
+      await logAuditAction('update_school', 'school', id, undefined, undefined, user!.id);
       toast.success(t('saved'));
       mutate();
     } catch (err: any) {
@@ -43,7 +45,7 @@ export default function SchoolDetailPage() {
   const handleConfigSave = async (field: string, config: any) => {
     try {
       await updateSchoolConfig(id, field as any, config);
-      await logAuditAction(`update_${field}`, 'school_config', id);
+      await logAuditAction(`update_${field}`, 'school_config', id, undefined, undefined, user!.id);
       toast.success(t('config_saved'));
       mutate();
     } catch (err: any) {
@@ -55,7 +57,7 @@ export default function SchoolDetailPage() {
     try {
       const newVal = !school.maintenance_mode;
       await toggleMaintenanceMode(id, newVal, newVal ? maintenanceMsg : undefined);
-      await logAuditAction(newVal ? 'enable_maintenance' : 'disable_maintenance', 'school', id);
+      await logAuditAction(newVal ? 'enable_maintenance' : 'disable_maintenance', 'school', id, undefined, undefined, user!.id);
       toast.success(newVal ? t('maintenance_enabled') : t('maintenance_disabled'));
       mutate();
     } catch (err: any) {
@@ -66,7 +68,7 @@ export default function SchoolDetailPage() {
   const handleAssignPlan = async (planId: string) => {
     try {
       await assignPlanToSchool(id, planId);
-      await logAuditAction('assign_plan', 'subscription', id);
+      await logAuditAction('assign_plan', 'subscription', id, undefined, undefined, user!.id);
       toast.success(t('plan_assigned'));
       mutate();
     } catch (err: any) {

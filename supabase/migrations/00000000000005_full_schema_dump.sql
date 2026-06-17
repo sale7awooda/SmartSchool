@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS "academic_years" (
   "is_deleted" boolean DEFAULT false,
   "created_at" timestamp with time zone DEFAULT now(),
   "updated_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "academic_years_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "academic_years_name_key" UNIQUE ("name")
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS "assessment_questions" (
   "correct_answer" text,
   "points" integer,
   "order" integer,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "assessment_questions_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS "assessments" (
   "date" date,
   "duration" integer,
   "status" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "assessments_class_id_fkey" FOREIGN KEY ("class_id") REFERENCES "classes"("id")
 , CONSTRAINT "assessments_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS "attendance" (
   "date" date,
   "status" text,
   "notes" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "attendance_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "attendance_student_id_fkey" FOREIGN KEY ("student_id") REFERENCES "students"("id")
@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS "audit_logs" (
   "ip_address" text,
   "user_agent" text,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "audit_logs_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS "behavior_records" (
   "date" date,
   "incident" text,
   "severity" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "behavior_records_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "behavior_records_student_id_fkey" FOREIGN KEY ("student_id") REFERENCES "students"("id")
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS "broadcasts" (
   "target_audience" text[],
   "created_by" uuid,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "broadcasts_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id")
 , CONSTRAINT "broadcasts_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS "bus_routes" (
   "status" text DEFAULT 'Not Started'::text,
   "current_location" text,
   "live_status" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "bus_routes_attendant_id_fkey" FOREIGN KEY ("attendant_id") REFERENCES "users"("id")
 , CONSTRAINT "bus_routes_driver_id_fkey" FOREIGN KEY ("driver_id") REFERENCES "users"("id")
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS "bus_stops" (
   "student_id" uuid,
   "order_index" integer DEFAULT 0,
   "arrival_time" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "bus_stops_route_id_fkey" FOREIGN KEY ("route_id") REFERENCES "bus_routes"("id")
 , CONSTRAINT "bus_stops_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS "classes" (
   "capacity" integer,
   "is_deleted" boolean DEFAULT false,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "classes_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );
@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS "fee_invoices" (
   "created_at" timestamp with time zone DEFAULT now(),
   "title" text DEFAULT 'General Tuition Fee'::text,
   "balance_due" numeric,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "fee_invoices_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "chk_balance_nonnegative" CHECK CHECK ((balance_due >= (0)::numeric))
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS "fee_items" (
   "due_date" date,
   "created_at" timestamp with time zone DEFAULT now(),
   "grade" text DEFAULT 'All'::text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "fee_items_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );
@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS "fee_payments" (
   "reference_number" text,
   "recorded_by" uuid,
   "payment_date" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "fee_payments_invoice_id_fkey" FOREIGN KEY ("invoice_id") REFERENCES "fee_invoices"("id")
 , CONSTRAINT "fee_payments_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -254,7 +254,7 @@ CREATE TABLE IF NOT EXISTS "financials" (
   "status" text,
   "staff_id" uuid,
   "user_id" uuid,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "financials_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "financials_staff_id_fkey" FOREIGN KEY ("staff_id") REFERENCES "users"("id")
@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS "grades" (
   "graded_by" uuid,
   "created_at" timestamp with time zone DEFAULT now(),
   "updated_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid,
+  "school_id" uuid ,
   "comments" text
 , PRIMARY KEY ("id")
 , CONSTRAINT "grades_assessment_id_fkey" FOREIGN KEY ("assessment_id") REFERENCES "assessments"("id")
@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS "inventory" (
   "category" text,
   "quantity" integer,
   "status" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "inventory_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );
@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS "leave_requests" (
   "status" text,
   "created_at" timestamp with time zone DEFAULT now(),
   "staff_id" uuid,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "leave_requests_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "leave_requests_staff_id_fkey" FOREIGN KEY ("staff_id") REFERENCES "users"("id")
@@ -335,7 +335,7 @@ CREATE TABLE IF NOT EXISTS "messages" (
   "receiver_id" uuid,
   "content" text,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "messages_receiver_id_fkey" FOREIGN KEY ("receiver_id") REFERENCES "users"("id")
 , CONSTRAINT "messages_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -350,7 +350,7 @@ CREATE TABLE IF NOT EXISTS "notices" (
   "role_target" text[],
   "created_by" uuid,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "notices_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id")
 , CONSTRAINT "notices_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -361,7 +361,7 @@ CREATE TABLE IF NOT EXISTS "parent_student" (
   "student_id" uuid,
   "relation" text,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "parent_student_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "users"("id")
 , CONSTRAINT "parent_student_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -375,7 +375,7 @@ CREATE TABLE IF NOT EXISTS "payslips" (
   "status" text,
   "date" text,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "payslips_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "payslips_staff_id_fkey" FOREIGN KEY ("staff_id") REFERENCES "users"("id")
@@ -418,7 +418,7 @@ CREATE TABLE IF NOT EXISTS "schedule_drafts" (
   "created_at" timestamp with time zone DEFAULT now(),
   "updated_at" timestamp with time zone DEFAULT now(),
   "created_by" uuid,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "schedule_drafts_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "schedule_drafts_name_key" UNIQUE ("name")
@@ -433,7 +433,7 @@ CREATE TABLE IF NOT EXISTS "schedules" (
   "start_time" time without time zone,
   "end_time" time without time zone,
   "period" integer,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "schedules_class_id_fkey" FOREIGN KEY ("class_id") REFERENCES "classes"("id")
 , CONSTRAINT "schedules_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -468,7 +468,7 @@ CREATE TABLE IF NOT EXISTS "staff_attendance" (
   "time_in" text,
   "time_out" text,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "staff_attendance_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "staff_attendance_staff_id_fkey" FOREIGN KEY ("staff_id") REFERENCES "users"("id")
@@ -492,7 +492,7 @@ CREATE TABLE IF NOT EXISTS "student_transport" (
   "student_id" uuid,
   "route_id" uuid,
   "stop_id" uuid,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "student_transport_route_id_fkey" FOREIGN KEY ("route_id") REFERENCES "bus_routes"("id")
 , CONSTRAINT "student_transport_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -522,7 +522,7 @@ CREATE TABLE IF NOT EXISTS "students" (
   "base_fee_amount" numeric,
   "payment_structure" character varying(50),
   "is_custom_fee" boolean DEFAULT false,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "students_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "students_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id")
@@ -533,7 +533,7 @@ CREATE TABLE IF NOT EXISTS "subjects" (
   "code" text,
   "is_deleted" boolean DEFAULT false,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "subjects_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );
@@ -544,7 +544,7 @@ CREATE TABLE IF NOT EXISTS "submissions" (
   "score" integer,
   "answers" jsonb,
   "status" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "submissions_assessment_id_fkey" FOREIGN KEY ("assessment_id") REFERENCES "assessments"("id")
 , CONSTRAINT "submissions_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -556,7 +556,7 @@ CREATE TABLE IF NOT EXISTS "system_settings" (
   "address" text,
   "phone" text,
   "email" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "system_settings_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );
@@ -566,7 +566,7 @@ CREATE TABLE IF NOT EXISTS "timeline_events" (
   "date" date,
   "title" text,
   "description" text,
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "timeline_events_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 , CONSTRAINT "timeline_events_student_id_fkey" FOREIGN KEY ("student_id") REFERENCES "students"("id")
@@ -616,7 +616,7 @@ CREATE TABLE IF NOT EXISTS "users" (
   "dob" date,
   "gender" text,
   "extra_info" text,
-  "school_id" uuid NOT NULL DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid NOT NULL 
 , PRIMARY KEY ("id")
 , CONSTRAINT "users_id_fkey" FOREIGN KEY ("id") REFERENCES "users"("id")
 , CONSTRAINT "users_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
@@ -635,7 +635,7 @@ CREATE TABLE IF NOT EXISTS "visitors" (
   "check_out" timestamp with time zone,
   "status" text,
   "created_at" timestamp with time zone DEFAULT now(),
-  "school_id" uuid DEFAULT 'a2239889-7d41-461e-b332-3fc921840302'::uuid
+  "school_id" uuid 
 , PRIMARY KEY ("id")
 , CONSTRAINT "visitors_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id")
 );

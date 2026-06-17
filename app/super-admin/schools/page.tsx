@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { useState } from 'react';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 import { getSchools, createSchool, toggleSchoolStatus, logAuditAction } from '@/app/actions/super-admin';
 import { motion } from 'motion/react';
 import { School, Plus, Search, CheckCircle, XCircle, ExternalLink, Loader2 } from 'lucide-react';
@@ -11,6 +12,7 @@ import Link from 'next/link';
 
 export default function SchoolsPage() {
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -25,7 +27,7 @@ export default function SchoolsPage() {
     setSubmitting(true);
     try {
       await createSchool(form);
-      await logAuditAction('create', 'school', form.name);
+      await logAuditAction('create', 'school', form.name, undefined, undefined, user!.id);
       toast.success(t('school_created'));
       setShowCreate(false);
       setForm({ name: '', subdomain: '', email: '', phone: '', address: '' });
@@ -40,7 +42,7 @@ export default function SchoolsPage() {
   const handleToggle = async (id: string, current: boolean) => {
     try {
       await toggleSchoolStatus(id, !current);
-      await logAuditAction(current ? 'deactivate' : 'activate', 'school', id);
+      await logAuditAction(current ? 'deactivate' : 'activate', 'school', id, undefined, undefined, user!.id);
       toast.success(t('status_updated'));
       mutate();
     } catch (err: any) {

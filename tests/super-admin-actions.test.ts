@@ -287,9 +287,16 @@ describe('Super Admin Actions', () => {
 
     it('should log an audit action', async () => {
       const { logAuditAction } = await import('@/app/actions/super-admin');
-      await logAuditAction('test_action', 'test_resource', 'resource-1');
+      await logAuditAction('test_action', 'test_resource', 'resource-1', undefined, undefined, 'mock-admin-id');
 
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('audit_logs');
+    });
+
+    it('should skip logging when no adminId provided', async () => {
+      const { logAuditAction } = await import('@/app/actions/super-admin');
+      mockSupabaseClient.from.mockClear();
+      await logAuditAction('test_action', 'test_resource', 'resource-1');
+      expect(mockSupabaseClient.from).not.toHaveBeenCalled();
     });
   });
 

@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { useState } from 'react';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 import { getSubscriptionPlans, createPlan, updatePlan, deletePlan, logAuditAction } from '@/app/actions/super-admin';
 import { motion } from 'motion/react';
 import { Plus, Loader2, Edit2, Trash2, DollarSign, Users, Database as DatabaseIcon } from 'lucide-react';
@@ -13,6 +14,7 @@ const moduleOptions = ['students', 'attendance', 'schedule', 'communication', 'f
 
 export default function SubscriptionsPage() {
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
   const { data: plans, isLoading, mutate } = useSWR('plans', getSubscriptionPlans);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -29,10 +31,10 @@ export default function SubscriptionsPage() {
     try {
       if (editing) {
         await updatePlan(editing.id, form);
-        await logAuditAction('update_plan', 'subscription_plan', editing.id);
+        await logAuditAction('update_plan', 'subscription_plan', editing.id, undefined, undefined, user!.id);
       } else {
         await createPlan(form);
-        await logAuditAction('create_plan', 'subscription_plan', form.name);
+        await logAuditAction('create_plan', 'subscription_plan', form.name, undefined, undefined, user!.id);
       }
       toast.success(editing ? t('plan_updated') : t('plan_created'));
       setShowForm(false);
@@ -48,7 +50,7 @@ export default function SubscriptionsPage() {
     if (!confirm(t('confirm_delete_plan'))) return;
     try {
       await deletePlan(plan.id);
-      await logAuditAction('delete_plan', 'subscription_plan', plan.id);
+      await logAuditAction('delete_plan', 'subscription_plan', plan.id, undefined, undefined, user!.id);
       toast.success(t('plan_deleted'));
       mutate();
     } catch (err: any) {

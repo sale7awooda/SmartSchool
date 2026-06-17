@@ -166,13 +166,11 @@ export async function getAnnouncements() {
   return data || [];
 }
 
-export async function createAnnouncement(data: { title: string; content: string; announcement_type: string; school_id?: string }) {
+export async function createAnnouncement(data: { title: string; content: string; announcement_type: string; school_id?: string }, createdById: string) {
   const supabase = createAdminClient();
-  const { data: admin } = await supabase.from('users').select('id').eq('email', 'sale7awooda@gmail.com').single();
-  if (!admin) throw new Error('Super admin not found');
   const { error } = await supabase.from('system_announcements').insert([{
     title: data.title, content: data.content, announcement_type: data.announcement_type,
-    school_id: data.school_id || null, created_by: admin.id,
+    school_id: data.school_id || null, created_by: createdById,
   }]);
   if (error) throw new Error(error.message);
   return { success: true };
@@ -203,24 +201,22 @@ export async function getAuditLogs(page = 1, limit = 30) {
   return { data: data || [], count: count || 0, totalPages: Math.ceil((count || 0) / limit) };
 }
 
-export async function triggerBackup(schoolId: string) {
+export async function triggerBackup(schoolId: string, triggeredById: string) {
   const supabase = createAdminClient();
-  const { data: admin } = await supabase.from('users').select('id').eq('email', 'sale7awooda@gmail.com').single();
   const { error } = await supabase.from('backups').insert([{
     school_id: schoolId, file_url: '', status: 'running', backup_type: 'manual',
-    triggered_by: admin?.id || null,
+    triggered_by: triggeredById,
   }]);
   if (error) throw new Error(error.message);
   // In production, this would trigger an actual pg_dump process
   return { success: true, message: 'Backup initiated' };
 }
 
-export async function logAuditAction(action: string, resourceType: string, resourceId?: string, beforeSnapshot?: any, afterSnapshot?: any) {
+export async function logAuditAction(action: string, resourceType: string, resourceId?: string, beforeSnapshot?: any, afterSnapshot?: any, adminId?: string) {
   const supabase = createAdminClient();
-  const { data: admin } = await supabase.from('users').select('id').eq('email', 'sale7awooda@gmail.com').single();
-  if (!admin) return;
+  if (!adminId) return;
   await supabase.from('audit_logs').insert([{
-    admin_id: admin.id, action, resource_type: resourceType, resource_id: resourceId || null,
+    admin_id: adminId, action, resource_type: resourceType, resource_id: resourceId || null,
     before_snapshot: beforeSnapshot || null, after_snapshot: afterSnapshot || null,
   }]);
 }

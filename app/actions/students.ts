@@ -241,8 +241,16 @@ export async function processUpdateStudentAction(
 
         if (!parent) {
           const parentPassword = updateData.parentPhone.replace(/\D/g, '');
-          const { data: listData } = await adminClient.auth.admin.listUsers();
-          let parentAuthUser = listData?.users.find(u => u.email === parentEmailToUse);
+          const { data: parentProfile } = await adminClient
+            .from('users')
+            .select('id')
+            .eq('email', parentEmailToUse)
+            .maybeSingle();
+          let parentAuthUser = null;
+          if (parentProfile) {
+            const { data: { user } } = await adminClient.auth.admin.getUserById(parentProfile.id);
+            parentAuthUser = user || null;
+          }
           
           if (!parentAuthUser) {
             const { data: parentAuthData, error: parentAuthError } = await adminClient.auth.admin.createUser({
@@ -432,9 +440,16 @@ export async function processCreateStudentAction(
     const parentEmail = studentData.parentEmail || `parent_${studentData.parentPhone?.replace(/\D/g, '')}@smartschool.com`;
     
     // Check if auth user exists first
-    const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
-    
-    let authUser = listData?.users.find(u => u.email === studentEmail);
+    const { data: studentProfile } = await adminClient
+      .from('users')
+      .select('id')
+      .eq('email', studentEmail)
+      .maybeSingle();
+    let authUser = null;
+    if (studentProfile) {
+      const { data: { user } } = await adminClient.auth.admin.getUserById(studentProfile.id);
+      authUser = user || null;
+    }
     
     if (!authUser) {
       // Create the student auth profile
@@ -635,7 +650,16 @@ export async function processCreateStudentAction(
         if (!parent) {
           const parentPassword = studentData.parentPhone.replace(/\D/g, '');
           
-          let parentAuthUser = listData?.users.find(u => u.email === parentEmail);
+          const { data: parentByEmail } = await adminClient
+            .from('users')
+            .select('id')
+            .eq('email', parentEmail)
+            .maybeSingle();
+          let parentAuthUser = null;
+          if (parentByEmail) {
+            const { data: { user } } = await adminClient.auth.admin.getUserById(parentByEmail.id);
+            parentAuthUser = user || null;
+          }
           
           if (!parentAuthUser) {
             const { data: parentAuthData, error: parentAuthError } = await adminClient.auth.admin.createUser({
@@ -730,8 +754,16 @@ export async function syncStudentAuthAction(studentIds: string[]): Promise<Creat
         const studentEmail = student.user?.email || `${student.roll_number?.trim().toLowerCase()}@smartschool.com`;
         
         // 1. Check if auth user exists
-        const { data: listData } = await adminClient.auth.admin.listUsers();
-        let authUser = listData?.users.find(u => u.email === studentEmail);
+        const { data: syncProfile } = await adminClient
+          .from('users')
+          .select('id')
+          .eq('email', studentEmail)
+          .maybeSingle();
+        let authUser = null;
+        if (syncProfile) {
+          const { data: { user } } = await adminClient.auth.admin.getUserById(syncProfile.id);
+          authUser = user || null;
+        }
 
         if (!authUser) {
           // 2. Create auth user

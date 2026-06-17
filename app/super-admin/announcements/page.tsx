@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { useState } from 'react';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 import { getAnnouncements, createAnnouncement, toggleAnnouncement, deleteAnnouncement, logAuditAction } from '@/app/actions/super-admin';
 import { motion } from 'motion/react';
 import { Megaphone, Plus, Loader2, Eye, EyeOff, Trash2 } from 'lucide-react';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 
 export default function AnnouncementsPage() {
   const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
   const { data: announcements, isLoading, mutate } = useSWR('announcements', getAnnouncements);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -20,8 +22,8 @@ export default function AnnouncementsPage() {
     if (!form.title.trim() || !form.content.trim()) return toast.error(t('title_content_required'));
     setSubmitting(true);
     try {
-      await createAnnouncement({ ...form, school_id: form.school_id || undefined });
-      await logAuditAction('create_announcement', 'system_announcement', form.title);
+      await createAnnouncement({ ...form, school_id: form.school_id || undefined }, user!.id);
+      await logAuditAction('create_announcement', 'system_announcement', form.title, undefined, undefined, user!.id);
       toast.success(t('announcement_created'));
       setShowForm(false);
       setForm({ title: '', content: '', announcement_type: 'banner', school_id: '' });
@@ -36,7 +38,7 @@ export default function AnnouncementsPage() {
   const handleToggle = async (id: string, active: boolean) => {
     try {
       await toggleAnnouncement(id, !active);
-      await logAuditAction(active ? 'deactivate' : 'activate', 'system_announcement', id);
+      await logAuditAction(active ? 'deactivate' : 'activate', 'system_announcement', id, undefined, undefined, user!.id);
       toast.success(t('announcement_updated'));
       mutate();
     } catch (err: any) {
@@ -48,7 +50,7 @@ export default function AnnouncementsPage() {
     if (!confirm(t('confirm_delete_announcement'))) return;
     try {
       await deleteAnnouncement(id);
-      await logAuditAction('delete_announcement', 'system_announcement', id);
+      await logAuditAction('delete_announcement', 'system_announcement', id, undefined, undefined, user!.id);
       toast.success(t('announcement_deleted'));
       mutate();
     } catch (err: any) {

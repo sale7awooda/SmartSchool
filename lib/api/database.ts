@@ -158,7 +158,7 @@ export async function seedDatabase(demoData: any) {
   return { success: true };
 }
 
-export async function resetDatabase(keepUsers: boolean = true) {
+export async function resetDatabase(schoolId: string, keepUsers: boolean = true) {
   const tables = [
     'audit_logs', 'attendance', 'behavior_records', 'timeline_events', 'submissions',
     'assessments', 'fee_invoices', 'bus_stops', 'bus_routes', 'parent_student', 'student_transport',
@@ -169,12 +169,9 @@ export async function resetDatabase(keepUsers: boolean = true) {
 
   for (const table of tables) {
     try {
-      // Use a filter that matches all rows
-      let query = supabase.from(table).delete().not('id', 'is', null);
-
+      let query = supabase.from(table).delete().eq('school_id', schoolId);
       const { error } = await query;
       if (error) {
-        // Ignore "table not found" errors (PGRST205)
         if (error.code === 'PGRST205') {
           console.warn(`Table ${table} not found in schema, skipping reset.`);
         } else {
@@ -188,7 +185,7 @@ export async function resetDatabase(keepUsers: boolean = true) {
 
   if (!keepUsers) {
     try {
-      const { error } = await supabase.from('users').delete().neq('role', 'admin');
+      const { error } = await supabase.from('users').delete().eq('school_id', schoolId).neq('role', 'admin');
       if (error) console.error('Error resetting users:', error);
     } catch (err) {
       console.error('Unexpected error resetting users:', err);

@@ -41,11 +41,10 @@ export function getVapidKeys(): VapidKeys {
     console.log('Successfully saved VAPID keypair to', KEYS_FILE_PATH);
     return keys;
   } catch (error) {
-    console.error('Failed to generate VAPID keys, using temporary hardcoded pair:', error);
-    // Temporary emergency fallback to ensure server doesn't crash
-    return {
-      publicKey: 'BMWkTliVadM8y0G897IiwC1gtHo5yItE0dpt-YqparhZpk0cT3-m9wsXT5BOENt3Lr6MPSh4dz8Cexklw8Ss7Pg',
-      privateKey: 's9mRsa8J5zp0D9eDo7F7glzshtx4C41P0epPtoPKw_0'
-    };
+    console.error('[VAPID] Failed to generate keys:', error);
+    throw new Error(
+      'VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in your .env.local\n' +
+      'Generate new keys with: npx web-push generate-vapid-keys'
+    );
   }
 }

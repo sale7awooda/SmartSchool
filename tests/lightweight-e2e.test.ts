@@ -124,6 +124,10 @@ const { mockIdbStore, mocks } = vi.hoisted(() => {
         createUser: vi.fn().mockResolvedValue({
           data: { user: { id: 'stu-user-new-id' } },
           error: null
+        }),
+        getUserById: vi.fn().mockResolvedValue({
+          data: { user: { id: 'mock-user-id', email: 'mock@school.com' } },
+          error: null
         })
       }
     },

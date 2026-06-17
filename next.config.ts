@@ -4,6 +4,11 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vyzpogfjlyofcejvsilz.supabase.co',
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5enBvZ2ZqbHlvZmNlanZzaWx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTMxNDAsImV4cCI6MjA4OTE2OTE0MH0.E_m-ZBqwyya5EAy4DNZvkShWJ7lUturroi4Xf0buD-Q',
+    NEXT_PUBLIC_DEV_MODE: process.env.NEXT_PUBLIC_DEV_MODE || 'false',
+  },
   eslint: {
     ignoreDuringBuilds: false,
   },

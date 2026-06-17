@@ -68,8 +68,16 @@ export async function processCreateStaffAction(
   const supabase = await createClient();
 
   // Try to find if user already exists
-  const { data: listData } = await adminClient.auth.admin.listUsers();
-  let authUser = listData?.users.find(u => u.email === staffData.email);
+  const { data: staffProfile } = await adminClient
+    .from('users')
+    .select('id')
+    .eq('email', staffData.email)
+    .maybeSingle();
+  let authUser = null;
+  if (staffProfile) {
+    const { data: { user } } = await adminClient.auth.admin.getUserById(staffProfile.id);
+    authUser = user || null;
+  }
 
   // If not, try to create auth user first
   if (!authUser) {

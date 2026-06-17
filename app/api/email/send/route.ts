@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data, error } = await resend.emails.send({
-      from: 'School System <notifications@updates.school.edu>',
+      from: `${process.env.EMAIL_FROM_NAME || 'Smart School'} <${process.env.EMAIL_FROM_ADDRESS || 'noreply@updates.school.edu'}>`,
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
