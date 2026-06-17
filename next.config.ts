@@ -44,8 +44,12 @@ const sentryConfig = withSentryConfig(nextConfig, {
   },
 });
 
-const withBundleAnalyzer = process.env.ANALYZE === 'true'
-  ? (await import('@next/bundle-analyzer')).default({ enabled: true })
-  : (config: any) => config;
+function withBundleAnalyzer(config: NextConfig): NextConfig {
+  if (process.env.ANALYZE !== 'true') return config;
+  // next.config.ts is transpiled to CJS by Next.js, so require() is safe here
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const analyzer = require('@next/bundle-analyzer');
+  return analyzer({ enabled: true })(config);
+}
 
 export default withBundleAnalyzer(sentryConfig);
