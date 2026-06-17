@@ -22,7 +22,7 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 600000,
     env: {
       NEXT_PUBLIC_DEV_MODE: 'true',
       NEXT_PUBLIC_SUPABASE_URL: 'https://vyzpogfjlyofcejvsilz.supabase.co',

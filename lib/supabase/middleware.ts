@@ -47,7 +47,13 @@ export async function updateSession(request: NextRequest) {
 
   if (user && pathname === '/') {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    // Query role to redirect super_admin to /super-admin
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    url.pathname = profile?.role === 'super_admin' ? '/super-admin' : '/dashboard'
     return NextResponse.redirect(url)
   }
 

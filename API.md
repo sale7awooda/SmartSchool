@@ -119,12 +119,47 @@ All server actions are located in `app/actions/` and use `"use server"`. They ac
 | `adminBulkResetPasswordsAction(role, password)` | Admin: bulk reset by role |
 | `adminSolidifyStudentEmailsAction()` | Admin: migrates student email format |
 
+### Transport (`app/actions/transport.ts`)
+
+| Function | Description |
+|----------|-------------|
+| `saveRouteAction(prevState, formData)` | Creates or updates a transport route with stops |
+| `deleteRouteAction(routeId)` | Deletes a route with cascade on stops/bus_attendance |
+| `updateRouteStatusAction(routeId, status)` | Starts/stops a route (active/inactive) |
+| `getPaginatedRoutesAction(params)` | Fetches routes with pagination, search, and stop counts |
+| `addStopToRouteAction(prevState, formData)` | Adds a stop to an existing route |
+| `getAllRoutesAction()` | Fetches all routes (unpaginated) for dropdowns |
+
 ### Audit (`app/actions/audit.ts`)
 
 | Function | Description |
 |----------|-------------|
 | `logAudit(actionType, userId, details)` | Writes audit log entry |
 | `simulateLogEvent()` | Creates random test audit log |
+
+### Super Admin (`app/actions/super-admin.ts`)
+
+| Function | Description |
+|----------|-------------|
+| `getSchoolsAction(params)` | Paginated schools list with search, filter by status |
+| `getSchoolByIdAction(id)` | Single school with config and module overrides |
+| `createSchoolAction(prevState, formData)` | Creates a new school tenant |
+| `updateSchoolAction(prevState, formData)` | Updates school name, config, maintenance mode |
+| `deleteSchoolAction(id)` | Soft-deletes a school tenant |
+| `getSubscriptionPlansAction()` | Lists all subscription plans |
+| `createSubscriptionPlanAction(prevState, formData)` | Creates a new plan |
+| `updateSubscriptionPlanAction(prevState, formData)` | Updates plan name, price, features |
+| `togglePlanActiveAction(id, active)` | Activates/deactivates a plan |
+| `getBackupsAction(params)` | Paginated backup history |
+| `createBackupAction()` | Triggers a manual database backup |
+| `restoreBackupAction(backupId)` | Restores from a specific backup |
+| `getSystemHealthAction()` | Returns system health metrics (DB, uptime, error rates) |
+| `getSystemAnnouncementsAction()` | Lists all system announcements |
+| `createSystemAnnouncementAction(prevState, formData)` | Creates a new announcement |
+| `toggleAnnouncementActiveAction(id, active)` | Publishes/unpublishes an announcement |
+| `deleteAnnouncementAction(id)` | Deletes an announcement |
+| `getAuditLogsAction(params)` | Paginated, filterable audit log across all tenants |
+| `getSuperAdminUsersAction(params)` | Paginated global user table with search and role filter |
 
 ---
 
@@ -173,6 +208,8 @@ Defined in `server.ts` — Socket.io server on port 3000.
 | `update_location` | Client → Server | `{ routeId, lat, lng }` | Bus/driver sends GPS position |
 | `location_update` | Server → Client (broadcast) | `{ routeId, lat, lng }` | All room members receive location |
 
+Transport live progress streams GPS coordinates from the driver console to parent-facing timeline views. Stop auto-ordering (start/end) and drag-and-drop reorder are supported.
+
 The server also supports a Redis adapter for horizontal scaling (`@socket.io/redis-adapter` + `ioredis`).
 
 ---
@@ -184,7 +221,7 @@ Key exported interfaces:
 ```typescript
 // Auth
 UserProfile { id, email, name, role, school_id, ... }
-Role = 'admin' | 'teacher' | 'staff' | 'accountant' | 'parent' | 'student'
+Role = 'super_admin' | 'admin' | 'teacher' | 'staff' | 'accountant' | 'parent' | 'student'
 
 // Students
 Student { id, first_name, last_name, class_id, academic_year_id, ... }

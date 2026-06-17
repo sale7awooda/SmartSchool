@@ -140,8 +140,13 @@ export default function SchoolDetailPage() {
           <h2 className="font-semibold text-foreground">{t('subscription')}</h2>
           <div className="text-sm space-y-3">
             <div className="flex justify-between"><span className="text-muted-foreground">{t('current_plan')}</span>
-              <span className="font-medium">{school.subscription_tier || t('no_plan')}</span>
+              <span className="font-medium">{(school as any).subscriptions?.[0]?.subscription_plans?.name || school.subscription_tier || t('no_plan')}</span>
             </div>
+            {(school as any).subscriptions?.[0] && (
+              <div className="flex justify-between text-xs"><span className="text-muted-foreground">{t('status')}</span>
+                <span className={`font-medium ${(school as any).subscriptions[0].status === 'active' ? 'text-emerald-600' : 'text-red-600'}`}>{(school as any).subscriptions[0].status}</span>
+              </div>
+            )}
             <div><label className="text-xs text-muted-foreground block mb-1">{t('change_plan')}</label>
               <select onChange={e => e.target.value && handleAssignPlan(e.target.value)}
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm">

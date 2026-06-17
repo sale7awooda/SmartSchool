@@ -38,7 +38,7 @@ This document provides a highly detailed module-by-module breakdown, technical s
 A complete system replica requires these exact tables, joined logically via foreign keys. RLS (Row Level Security) is required on every table.
 
 ### Users & Roles
-- `public.users`: `id (uuid, PK)`, `email`, `role` (Admin, Principal, Teacher, Parent, Student, Driver), `name`, `created_at`.
+- `public.users`: `id (uuid, PK)`, `email`, `role` (Super Admin, Admin, Principal, Teacher, Parent, Student, Driver), `name`, `created_at`.
 - *Logic*: All identity is tied to `role`. The UI renders conditional tabs in `config/navigation.ts` based on this string.
 
 ### Core Modules

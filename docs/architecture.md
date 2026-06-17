@@ -31,7 +31,7 @@
 
 ```
 app/                          # Next.js App Router
-├── actions/                  # Server actions (58 functions across 12 files)
+├── actions/                  # Server actions (77+ functions across 15 files)
 ├── api/                      # API route handlers (various)
 ├── dashboard/                # Protected dashboard pages (17 submodules)
 │   ├── academics/            # Assessments, grade cards, report cards
@@ -45,6 +45,7 @@ app/                          # Next.js App Router
 │   ├── settings/             # Master data, system settings
 │   ├── transport/            # Bus routes, GPS tracking
 │   └── visitors/             # Check-in/out
+├── super-admin/              # Super Admin panel (7 pages + layout)
 ├── layout.tsx                # Root layout
 └── page.tsx                  # Login page
 
@@ -67,16 +68,18 @@ lib/                          # Shared utilities
 ├── resend.ts                 # Email client
 └── tenant.ts                 # Multi-tenant helpers
 
-tests/                        # Test suites
+tests/                        # Test suites (133 tests across 13 files)
 ├── components/               # Component tests (19 tests)
-├── e2e/                      # Playwright E2E tests (9 tests)
+├── e2e/                      # Playwright E2E tests (7 spec files)
 ├── api-parsers.test.ts       # API parser integration tests (10)
 ├── grade-utils.test.ts       # Grade utility unit tests (20)
 ├── lightweight-e2e.test.ts   # Mock-based E2E tests (19)
+├── super-admin-actions.test.ts  # Super Admin action tests (25)
+├── financials-tab.test.ts    # Financials tab filter tests (8)
 └── setup.ts                  # Test setup (jest-dom, mocks)
 
 supabase/
-└── migrations/               # SQL migration files (33 files)
+└── migrations/               # SQL migration files (33+ legacy + 6 new-format files)
 
 server.ts                     # Custom Node.js server (Next.js + Socket.io)
 ```
@@ -101,7 +104,8 @@ Bus GPS → Socket.io Client → update_location event
 
 ```
 Login → Supabase Auth → bootstrapUserProfile() → Resolve Role
-  → Create Profile (if first login) → Redirect to Dashboard
+  → Create Profile (if first login) → super_admin detected → Redirect to /super-admin
+  → Otherwise → Redirect to /dashboard
 ```
 
 ## Key Design Decisions
@@ -111,7 +115,7 @@ Login → Supabase Auth → bootstrapUserProfile() → Resolve Role
 - **Colocated sub-components**: Monolithic components split into directories under same parent path — imports unchanged
 - **Denormalized write path**: Tries dedicated columns first, falls back to JSON stringification if column missing
 - **Vitest + esbuild JSX**: Uses esbuild's automatic JSX transform instead of `@vitejs/plugin-react` to avoid peer dependency conflicts
-- **Serwist disabled**: v9 disabled via env var due to webpack runtime crash
+- **Serwist**: v9 configured with Web Push API for push notifications
 
 ## Multi-Tenant Architecture
 

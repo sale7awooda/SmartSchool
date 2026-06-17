@@ -70,6 +70,7 @@ Copy the public and private keys into your `.env` file.
 | Students | `v10_link_parent_student.sql`, `v19_student_documents.sql`, `v19_sprint2_currency_tier.sql` |
 | Academics | `v20_sprint5_grades_comments.sql`, `rls_assessment_questions.sql`, `fix_assessment_rls.sql` |
 | RLS/Security | `v11_rls_security_audit.sql`, `v18_rls_multi_tenancy.sql`, `supabase_fix.sql`, `supabase_additional_fixes.sql`, `supabase_free_tier_optimizations.sql`, `fix_audit_logs.sql`, `FINAL_DB_FIX.sql` |
+| Super Admin | `00000000000007_super_admin_module.sql` (tables: subscription_plans, subscriptions, school_module_overrides, backups, audit_logs, system_health_logs, system_announcements) |
 | Data fixes | `v7_fix_fee_items_grade.sql`, `v8_fix_description.sql`, `v13_no_decimals_and_reactive_ui.sql`, `v14_more_kpi_stats.sql`, `v21_visitors_and_inventory_fix.sql` |
 
 Alternatively, concatenate all files and run them as a single script, applying them in order.
@@ -91,6 +92,7 @@ When `NEXT_PUBLIC_DEV_MODE=true`, you can log in with these hardcoded demo accou
 | `admin@smartschool.com` | Admin | `password123` |
 | `teacher@smartschool.com` | Teacher | `password123` |
 | `staff@smartschool.com` | Staff | `password123` |
+| `sale7awooda@gmail.com` | Super Admin | `Sale7k0cash^*` |
 
 To seed demo data, go to **Settings → Database** in the app and click **Seed Demo Data**.
 
@@ -171,7 +173,15 @@ CMD ["npm", "run", "start"]
 | Supabase connection refused | Check your IP is in Supabase's allowed IPs list |
 | Port already in use | Set `PORT=3001` in `.env` to use a different port |
 
-## 10. Project Scripts
+## 10. Known Issues / Limitations
+
+| Issue | Solution |
+|-------|----------|
+| `pg_dump` / `supabase db dump` requires Docker Desktop | Unavailable on Windows without Docker; use Supabase Dashboard SQL Editor for manual backups |
+| `supabase db query --linked` fails on `DROP CONSTRAINT IF EXISTS` | Wrap the statement in a `DO $$ ... END $$;` anonymous code block as a workaround |
+| Subscription badge may need i18n translation keys | If adding a new language, add keys for plan names, status labels (expired/expiring/trial), and days-remaining text |
+
+## 11. Project Scripts
 
 | Command | Description |
 |---------|-------------|

@@ -8,10 +8,12 @@ import { useAuth } from '@/lib/auth-context';
 import useSWR from 'swr';
 import { getNotices, getAcademicYears, getBroadcasts } from '@/lib/supabase-db';
 import { getUserNotifications } from '@/lib/api/notifications';
+import { getUserNotificationsAction } from '@/app/actions/subscription';
 import { supabase } from '@/lib/supabase/client';
 import { Logo } from '@/components/logo';
 import { getOfflineQueueCount } from '@/lib/offline-db';
 import { NetworkStatus } from '@/components/dashboard-header/NetworkStatus';
+import { SubscriptionBadge } from '@/components/subscription-badge';
 import { NotificationsDropdown } from '@/components/dashboard-header/NotificationsDropdown';
 import { NotificationDetailModal } from '@/components/dashboard-header/NotificationDetailModal';
 import { UserProfileDropdown } from '@/components/dashboard-header/UserProfileDropdown';
@@ -31,6 +33,7 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
   const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
 
   const [pendingSyncs, setPendingSyncs] = useState(0);
+  const [subNotifications, setSubNotifications] = useState<any[]>([]);
 
   const isOnline = useSyncExternalStore(
     (cb) => {
@@ -66,6 +69,14 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
 
     return () => clearInterval(interval);
   }, [pushSupported]);
+
+  useEffect(() => {
+    getUserNotificationsAction().then(res => {
+      if (res.notifications) {
+        setSubNotifications(res.notifications)
+      }
+    })
+  }, []);
 
   const { data: notices, mutate: mutateNotices } = useSWR('notices', getNotices);
   const { data: broadcasts, mutate: mutateBroadcasts } = useSWR('broadcasts', getBroadcasts);
@@ -119,6 +130,20 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
       targetAudience: broadcast.targetAudience || 'all',
       isPersonal: false,
       status: undefined as string | undefined
+    })),
+    ...(subNotifications || []).map(sn => ({
+      id: sn.id,
+      title: sn.title,
+      message: sn.message,
+      created_at: sn.createdAt,
+      type: sn.severity === 'error' ? 'error' : sn.severity === 'warning' ? 'info' : 'success',
+      icon: sn.severity === 'error' ? AlertCircle : sn.severity === 'warning' ? Bell : CheckCircle2,
+      color: sn.severity === 'error' ? 'text-rose-500 bg-destructive/10' : sn.severity === 'warning' ? 'text-amber-500 bg-amber-500/10' : 'text-blue-500 bg-blue-500/10',
+      authorName: 'System',
+      authorRole: 'system',
+      targetAudience: 'you',
+      status: undefined as string | undefined,
+      isPersonal: true
     })),
     ...(userNotifications || []).map(un => ({
       id: un.id,
@@ -178,6 +203,8 @@ export function DashboardHeader({ onShowProfile, onMenuClick }: DashboardHeaderP
           <Languages size={20} />
           <span className="text-xs font-bold uppercase hidden sm:inline">{language}</span>
         </button>
+
+        <SubscriptionBadge />
 
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

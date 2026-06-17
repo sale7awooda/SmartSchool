@@ -13,10 +13,11 @@ A production-ready, multi-tenant SaaS school management platform built with Next
 - **Visitor Management** — Check-in/out flow, host tracking, paginated logs
 - **Inventory** — Asset tracking, categories, maintenance scheduling, low-stock alerts
 - **Communication** — Notices, broadcasts, push notifications (Web Push API, works when app is closed), email (Resend)
+- **Super Admin** — Multi-school oversight, subscription plans, system health, audit logs, announcements, backup management
 - **Multi-Tenant** — School-level isolation via RLS, configurable currency/locale
 - **PWA** — Offline support, service worker, push notifications, IndexedDB sync queue
 - **Data Management** — Full database backup/restore (JSON export/import via UI or CLI scripts)
-- **RBAC** — Role-based access (admin, accountant, staff, teacher, parent, student)
+- **RBAC** — Role-based access (super_admin, admin, accountant, staff, teacher, parent, student)
 
 ## Tech Stack
 
@@ -32,7 +33,7 @@ A production-ready, multi-tenant SaaS school management platform built with Next
 | PDF | jsPDF + jspdf-autotable |
 | Email | Resend API |
 | Push | Web Push API (VAPID) via Serwist |
-| Testing | Vitest + Testing Library + Playwright (87 tests) |
+| Testing | Vitest + Testing Library + Playwright (133 tests across 13 files) |
 | Backup | Supabase admin client + CLI scripts (pg) |
 
 ## Quick Start
@@ -56,10 +57,10 @@ See [SETUP.md](./SETUP.md) for complete setup instructions.
 ## Tests
 
 ```bash
-# Run all unit/integration/component tests (87 tests across 10 files)
+# Run all unit/integration/component tests (133 tests across 13 files)
 npx vitest run
 
-# Run E2E tests (requires dev server running)
+# Run E2E tests (7 spec files — requires dev server running)
 npx playwright test
 ```
 
@@ -71,3 +72,4 @@ npx playwright test
 | [API.md](./API.md) | API reference for all modules |
 | [SYSTEM_DOCUMENTATION.md](./SYSTEM_DOCUMENTATION.md) | Architecture & module deep-dive |
 | [SYSTEM_REPLICA_GUIDE.md](./SYSTEM_REPLICA_GUIDE.md) | Guide for rebuilding the system |
+| [docs/architecture.md](./docs/architecture.md) | High-level architecture & project structure |

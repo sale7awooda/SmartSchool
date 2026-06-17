@@ -212,6 +212,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/');
       } else if (user && pathname === '/') {
         router.push(user.role === 'super_admin' ? '/super-admin' : '/dashboard');
+      } else if (user && user.role === 'super_admin' && pathname.startsWith('/dashboard')) {
+        router.push('/super-admin');
       }
     }
   }, [user, isLoading, pathname, router]);
@@ -287,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     setIsLoading(true);
-    router.push('/dashboard');
+    router.push('/');
     // Login will redirect to correct path after profile loads (see useEffect above)
   };
 

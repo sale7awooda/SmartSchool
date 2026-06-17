@@ -38,6 +38,7 @@ import { DashboardHeader } from '@/components/dashboard-header';
 import { AnimatePresence } from 'motion/react';
 import { Logo } from '@/components/logo';
 import { PwaNotificationPrompt } from '@/components/pwa-notification-prompt';
+import { AnnouncementBanner } from '@/components/announcement-banner';
 
 // Mock data for the profile modal
 const MOCK_LEAVE_REQUESTS = [
@@ -251,6 +252,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onMenuClick={() => setIsMobileMenuOpen(true)}
         />
         
+        <AnnouncementBanner />
+
         {user.role === 'parent' && user.students && user.students.length > 1 && pathname !== '/dashboard/settings' && (
           <div className="bg-card w-full border-b border-border shadow-sm shrink-0">
             <div className="flex px-4 sm:px-6 lg:px-8 gap-4 overflow-x-auto custom-scrollbar pt-2">

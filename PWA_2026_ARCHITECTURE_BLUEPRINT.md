@@ -104,6 +104,8 @@ The goal is to shift from a traditional cloud-dependent web application (SWR + h
 
 ---
 
+> **Note (June 2026):** The Super Admin Module (Phase 1 & 2) has been implemented — multi-school oversight, subscription plans, system health dashboard, audit logs, and backup management. The auth system now supports `super_admin` role detection (redirects to `/super-admin`). The Transport module has been hardened with drag-and-drop stop reordering, auto start/end stops, paginated API, and real-time GPS progress via Socket.io.
+
 ## 6. Detailed Module Transition Strategy
 
 Below outlines how the existing modules transition from the current SWR logic to the 2026 PWA paradigm:
