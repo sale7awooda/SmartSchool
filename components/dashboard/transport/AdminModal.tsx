@@ -170,15 +170,18 @@ export function AdminModal({
                           <h4 className="font-bold text-sm">New Stop</h4>
                           <button onClick={() => setIsAddingStop(false)} className="text-muted-foreground hover:text-foreground"><X size={16}/></button>
                         </div>
-                        
+
                         <div>
-                          <label className="block text-xs font-bold text-muted-foreground mb-1">Select Student</label>
+                          <label className="block text-xs font-bold text-muted-foreground mb-1">Select Student (optional — leave blank for start/end points)</label>
                           <div className="relative">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <input 
                               type="text" 
                               value={studentSearchQuery}
-                              onChange={(e) => setStudentSearchQuery(e.target.value)}
+                              onChange={(e) => {
+                                setStudentSearchQuery(e.target.value);
+                                if (e.target.value !== studentSearchQuery) setSelectedStudent(null);
+                              }}
                               placeholder="Search student name..."
                               className="w-full pl-9 pr-3 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                             />
@@ -198,50 +201,60 @@ export function AdminModal({
                                 ))}
                               </div>
                             )}
+                            {selectedStudent && (
+                              <button
+                                onClick={() => {
+                                  setSelectedStudent(null);
+                                  setStudentSearchQuery('');
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                title="Clear student"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        {selectedStudent && (
-                          <div>
-                            <label className="block text-xs font-bold text-muted-foreground mb-1">Location (Search or Click Map)</label>
-                            <div className="flex gap-2">
-                              <input 
-                                type="text" 
-                                value={addressSearchQuery}
-                                onChange={(e) => setAddressSearchQuery(e.target.value)}
-                                placeholder="Search address..."
-                                className="flex-1 px-3 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                              />
-                              <button onClick={handleAddressSearch} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold">Search</button>
-                            </div>
-                            {addressResults.length > 0 && (
-                              <div className="mt-2 space-y-1">
-                                {addressResults.map((res, i) => (
-                                  <button
-                                    key={i}
-                                    onClick={() => {
-                                      setSelectedLocation({ lat: res.lat, lng: res.lng });
-                                      setAddressResults([]);
-                                      setAddressSearchQuery(res.name.split(',')[0]);
-                                    }}
-                                    className="w-full text-left px-3 py-2 text-xs bg-card border border-border rounded-lg hover:bg-muted truncate"
-                                  >
-                                    {res.name}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                            {selectedLocation && (
-                              <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-2 text-emerald-600 text-xs font-bold">
-                                <CheckCircle2 size={14} /> Location Selected
-                              </div>
-                            )}
+                        <div>
+                          <label className="block text-xs font-bold text-muted-foreground mb-1">Location (Search or Click Map)</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              value={addressSearchQuery}
+                              onChange={(e) => setAddressSearchQuery(e.target.value)}
+                              placeholder="Search address..."
+                              className="flex-1 px-3 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                            <button onClick={handleAddressSearch} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold">Search</button>
                           </div>
-                        )}
+                          {addressResults.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {addressResults.map((res, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    setSelectedLocation({ lat: res.lat, lng: res.lng });
+                                    setAddressResults([]);
+                                    setAddressSearchQuery(res.name.split(',')[0]);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs bg-card border border-border rounded-lg hover:bg-muted truncate"
+                                >
+                                  {res.name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {selectedLocation && (
+                            <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                              <CheckCircle2 size={14} /> Location Selected — click map or search to change
+                            </div>
+                          )}
+                        </div>
 
                         <button 
                           onClick={handleAddStop}
-                          disabled={!selectedStudent || !selectedLocation}
+                          disabled={!selectedLocation}
                           className="w-full py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold disabled:opacity-50"
                         >
                           Add to Route

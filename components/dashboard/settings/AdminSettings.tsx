@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   LayoutGrid, Palette, Type, Globe, Moon, RefreshCw, 
-  Trash2, AlertTriangle, FileDown, FileUp 
+  Trash2, AlertTriangle, FileDown, FileUp, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { User as UserType } from '@/types';
@@ -222,31 +222,31 @@ export function AdminSettings({
               <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3 animate-fadeIn">
                 <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                   <FileDown size={16} className="text-emerald-500" />
-                  Backup Data
+                  Backup Database
                 </div>
-                <p className="text-xs text-muted-foreground">Download a backup of all your current system data as a JSON file.</p>
+                <p className="text-xs text-muted-foreground">Download a full database backup as JSON. Excludes schema tables and push subscriptions.</p>
                 <button 
                   type="button"
-                  onClick={() => {
-                    const data: Record<string, any> = {};
-                    const keys = [
-                      'MOCK_USERS', 'MOCK_STUDENTS', 'MOCK_PARENTS', 
-                      'MOCK_DRIVERS', 'MOCK_BUS_ROUTES', 'MOCK_NOTICES', 
-                      'MOCK_SCHEDULE', 'MOCK_CHATS', 'MOCK_MESSAGES',
-                      'advanced_config'
-                    ];
-                    keys.forEach(key => {
-                      const val = localStorage.getItem(key);
-                      if (val) data[key] = JSON.parse(val);
-                    });
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `school_backup_${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    toast.success('Backup created successfully!');
+                  onClick={async () => {
+                    setIsProcessing(true);
+                    setProcessingMessage('Creating database backup...');
+                    try {
+                      const { backupDatabaseAction } = await import('@/app/actions/backup');
+                      const result = await backupDatabaseAction();
+                      if (!result.success) throw new Error(result.error);
+                      const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `school_backup_${new Date().toISOString().split('T')[0]}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      setIsProcessing(false);
+                      toast.success('Database backup created successfully!');
+                    } catch (err: any) {
+                      setIsProcessing(false);
+                      toast.error(err.message || 'Failed to create backup');
+                    }
                   }}
                   className="w-full py-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-lg text-xs font-bold transition-all"
                 >
@@ -257,11 +257,11 @@ export function AdminSettings({
               <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-3 animate-fadeIn">
                 <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                   <FileUp size={16} className="text-blue-500" />
-                  Restore Data
+                  Restore Database
                 </div>
-                <p className="text-xs text-muted-foreground">Restore your system data from a previously downloaded backup file.</p>
+                <p className="text-xs text-muted-foreground">Restore your database from a previously downloaded backup JSON file.</p>
                 <label className="w-full py-2 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center">
-                  Upload Backup
+                  Upload Backup & Restore
                   <input 
                     type="file" 
                     accept=".json"
@@ -273,21 +273,30 @@ export function AdminSettings({
                       reader.onload = (event) => {
                         try {
                           const data = JSON.parse(event.target?.result as string);
+                          if (!data.tables) {
+                            toast.error('Invalid backup file: missing tables data.');
+                            return;
+                          }
                           setModalConfig({
                             show: true,
-                            title: 'Restore Data',
-                            message: 'This will overwrite your current local data with the backup. Continue?',
+                            title: 'Restore Database',
+                            message: `This will overwrite ${Object.keys(data.tables).filter(k => data.tables[k]?.length > 0).length} tables with backup data. Continue?`,
                             type: 'warning',
                             onConfirm: async () => {
                               setModalConfig((prev: any) => ({ ...prev, show: false }));
                               setIsProcessing(true);
-                              setProcessingMessage('Restoring data from backup...');
-                              await new Promise(resolve => setTimeout(resolve, 1500));
-                              Object.entries(data).forEach(([key, val]) => {
-                                localStorage.setItem(key, JSON.stringify(val));
-                              });
-                              setIsProcessing(false);
-                              toast.success('Data restored successfully! Please refresh the page.');
+                              setProcessingMessage('Restoring database from backup...');
+                              try {
+                                const { restoreDatabaseAction } = await import('@/app/actions/backup');
+                                const result = await restoreDatabaseAction(data);
+                                if (!result.success) throw new Error(result.error);
+                                setIsProcessing(false);
+                                toast.success(`Database restored! ${result.restoredTables?.length || 0} tables updated. Refreshing...`);
+                                setTimeout(() => window.location.reload(), 2000);
+                              } catch (err: any) {
+                                setIsProcessing(false);
+                                toast.error(err.message || 'Failed to restore database');
+                              }
                             }
                           });
                         } catch (err) {

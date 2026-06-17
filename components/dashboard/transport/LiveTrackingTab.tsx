@@ -164,7 +164,7 @@ export function LiveTrackingTab({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
                     <span className="text-sm font-medium text-muted-foreground">Bus Number</span>
-                    <span className="font-bold text-foreground">{parentRoute.bus_number}</span>
+                    <span className="font-bold text-foreground">{parentRoute.bus_number || parentRoute.vehicle_number || '-'}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-muted rounded-xl">
                     <span className="text-sm font-medium text-muted-foreground">Route ID</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Camera, User, Mail, Smartphone, Loader2 } from 'lucide-react';
+import { Camera, User, Mail, Smartphone, Loader2, Bell, BellOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { User as UserType } from '@/types';
 
@@ -171,39 +171,108 @@ export function SecuritySettings({
 
       {/* Notifications Tab */}
       {activeTab === 'notifications' && (
-        <div className="p-6 sm:p-8 space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-foreground mb-1">Notification Preferences</h3>
-            <p className="text-sm text-muted-foreground">Choose what updates you want to receive and how.</p>
-          </div>
-          
-          <div className="space-y-4">
-            {[
-              { title: 'Academic Updates', desc: 'Grades, assignments, and report cards', email: true, push: true },
-              { title: 'Attendance Alerts', desc: 'Absences and tardiness notifications', email: true, push: true },
-              { title: 'Fee Reminders', desc: 'Upcoming due dates and payment confirmations', email: true, push: false },
-              { title: 'School Notices', desc: 'General announcements and events', email: false, push: true },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start justify-between p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors">
-                <div>
-                  <p className="font-bold text-foreground">{item.title}</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">{item.desc}</p>
-                </div>
-                <div className="flex gap-4">
-                  <label className="flex flex-col items-center gap-2 cursor-pointer">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">Email</span>
-                    <input type="checkbox" defaultChecked={item.email} className="w-5 h-5 rounded border-input text-primary focus:ring-primary" />
-                  </label>
-                  <label className="flex flex-col items-center gap-2 cursor-pointer">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">Push</span>
-                    <input type="checkbox" defaultChecked={item.push} className="w-5 h-5 rounded border-input text-primary focus:ring-primary" />
-                  </label>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <PushNotificationSetup user={user} />
       )}
     </>
+  );
+}
+
+function PushNotificationSetup({ user }: { user: UserType }) {
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSupported, setIsSupported] = useState(true);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.ready.then((reg) =>
+        reg.pushManager.getSubscription().then((sub) => setIsSubscribed(!!sub))
+      );
+    } else {
+      setIsSupported(false);
+    }
+  }, []);
+
+  const handleToggle = async () => {
+    setIsLoading(true);
+    try {
+      if (isSubscribed) {
+        const { unsubscribeUserFromPush } = await import('@/lib/push-notifications');
+        await unsubscribeUserFromPush();
+        setIsSubscribed(false);
+        toast.success('Push notifications disabled');
+      } else {
+        const { subscribeUserToPush } = await import('@/lib/push-notifications');
+        await subscribeUserToPush({ id: user.id, name: user.name, role: user.role });
+        setIsSubscribed(true);
+        toast.success('Push notifications enabled — you will receive alerts even when the app is closed');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to toggle push notifications');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6 sm:p-8 space-y-6">
+      <div>
+        <h3 className="text-lg font-bold text-foreground mb-1">Notification Preferences</h3>
+        <p className="text-sm text-muted-foreground">Choose what updates you want to receive and how.</p>
+      </div>
+
+      <div className="p-4 bg-muted/50 border border-border rounded-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSubscribed ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
+              {isSubscribed ? <Bell size={20} /> : <BellOff size={20} />}
+            </div>
+            <div>
+              <p className="font-bold text-foreground">Push Notifications</p>
+              <p className="text-xs text-muted-foreground">
+                {isSubscribed
+                  ? 'You will receive notifications even when the app is closed'
+                  : 'Enable to get alerts on your device'}
+              </p>
+            </div>
+          </div>
+          {isSupported ? (
+            <button
+              type="button"
+              onClick={handleToggle}
+              disabled={isLoading}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                isSubscribed
+                  ? 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'
+                  : 'bg-primary/10 text-primary hover:bg-primary/20'
+              }`}
+            >
+              {isLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+              {isSubscribed ? 'Disable' : 'Enable'}
+            </button>
+          ) : (
+            <span className="text-xs text-muted-foreground">Not supported on this browser</span>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {[
+          { title: 'Academic Updates', desc: 'Grades, assignments, and report cards' },
+          { title: 'Attendance Alerts', desc: 'Absences and tardiness notifications' },
+          { title: 'Fee Reminders', desc: 'Upcoming due dates and payment confirmations' },
+          { title: 'School Notices', desc: 'General announcements and events' },
+        ].map((item, i) => (
+          <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border">
+            <div>
+              <p className="font-bold text-foreground">{item.title}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{item.desc}</p>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-input text-primary focus:ring-primary" />
+            </label>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -115,11 +115,11 @@ export default function TransportPage() {
         driver_phone: route.driver?.phone,
         attendant_name: route.attendant?.name,
         attendant_phone: route.attendant?.phone,
-        stops: route.stops.map((stop: BusStop & { lat?: number, lng?: number, arrival_time?: string, student_id?: string }) => ({
+        stops: route.stops.map((stop: any) => ({
           id: stop.id,
           name: stop.name,
           arrivalTime: stop.arrival_time || stop.arrivalTime,
-          coordinates: { lat: stop.lat || stop.coordinates?.lat || 0, lng: stop.lng || stop.coordinates?.lng || 0 },
+          coordinates: { lat: stop.latitude || stop.lat || stop.coordinates?.lat || 0, lng: stop.longitude || stop.lng || stop.coordinates?.lng || 0 },
           studentId: stop.student_id || stop.studentId
         }))
       }));
@@ -409,7 +409,8 @@ export default function TransportPage() {
     setModalMode(mode);
     setCurrentRoute(route ? { ...route } : { 
       stops: [], 
-      status: 'Not Started',
+      status: 'Not Started' as const,
+      name: '',
       route_number: '',
       bus_number: '',
       driver_id: '',
@@ -460,6 +461,7 @@ export default function TransportPage() {
         const { data, error } = await supabase
           .from('bus_routes')
           .insert([{
+            name: currentRoute.route_number,
             route_number: currentRoute.route_number,
             bus_number: currentRoute.bus_number,
             driver_id: currentRoute.driver_id,
@@ -475,13 +477,14 @@ export default function TransportPage() {
           const stopsToInsert = currentRoute.stops.map((stop, index) => ({
             route_id: data.id,
             name: stop.name,
-            lat: stop.coordinates?.lat,
-            lng: stop.coordinates?.lng,
+            latitude: stop.coordinates?.lat,
+            longitude: stop.coordinates?.lng,
             arrival_time: stop.arrivalTime,
-            student_id: stop.studentId,
+            student_id: stop.studentId || null,
             order_index: index
           }));
-          await supabase.from('bus_stops').insert(stopsToInsert);
+          const { error: stopsError } = await supabase.from('bus_stops').insert(stopsToInsert);
+          if (stopsError) throw stopsError;
         }
         
         toast.success('Route created successfully');
@@ -489,6 +492,7 @@ export default function TransportPage() {
         const { error } = await supabase
           .from('bus_routes')
           .update({
+            name: currentRoute.route_number,
             route_number: currentRoute.route_number,
             bus_number: currentRoute.bus_number,
             driver_id: currentRoute.driver_id,
@@ -511,17 +515,20 @@ export default function TransportPage() {
   };
 
   const handleAddStop = () => {
-    if (!selectedLocation || !selectedStudent) {
-      toast.error('Please select a student and their location on the map.');
+    if (!selectedLocation) {
+      toast.error('Please select a location on the map or search for an address.');
       return;
     }
 
+    const nextIndex = (currentRoute.stops?.length || 0) + 1;
+    const stopName = selectedStudent ? selectedStudent.name + "'s Stop" : `Stop ${nextIndex}`;
+
     const newStop: BusStop = {
       id: `stop-${Date.now()}`,
-      name: selectedStudent.name + "'s Stop",
+      name: stopName,
       arrivalTime: '00:00 AM',
       coordinates: selectedLocation,
-      studentId: selectedStudent.id
+      studentId: selectedStudent?.id
     };
 
     setCurrentRoute(prev => ({

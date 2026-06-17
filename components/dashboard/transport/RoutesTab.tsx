@@ -38,7 +38,7 @@ export function RoutesTab({
   
   const filteredRoutes = routes.filter(route => 
     route.route_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    route.bus_number.toLowerCase().includes(searchQuery.toLowerCase())
+    (route.bus_number || route.vehicle_number || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -48,7 +48,7 @@ export function RoutesTab({
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-xl font-bold text-foreground">{route.route_number}</h3>
-              <p className="text-sm font-medium text-muted-foreground">{route.bus_number}</p>
+              <p className="text-sm font-medium text-muted-foreground">{route.bus_number || route.vehicle_number || '-'}</p>
             </div>
             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
               route.status === 'In Transit' ? 'bg-emerald-500/20 text-emerald-500' :

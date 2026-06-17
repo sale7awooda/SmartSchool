@@ -197,8 +197,10 @@ export interface BusStop {
 
 export interface BusRoute {
   id: string;
+  name?: string;
   route_number: string;
-  bus_number: string;
+  bus_number?: string;
+  vehicle_number?: string;
   driver_id: string;
   driver_name?: string;
   driver_phone?: string;
